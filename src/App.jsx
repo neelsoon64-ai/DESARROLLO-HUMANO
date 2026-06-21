@@ -29,7 +29,7 @@ export default function App() {
 
   const registrarAuditoria = useCallback(
     (evento) => {
-      setAuditoria((prev) => [...prev, { ...evento, fecha: new Date().toISOString() }]);
+      setAuditoria((prev) => [...(Array.isArray(prev) ? prev : []), { ...evento, fecha: new Date().toISOString() }]);
     },
     [setAuditoria]
   );
@@ -58,7 +58,10 @@ export default function App() {
   const agregarCarga = useCallback(
     (seccion, carga) => {
       const setter = seccion === "nacion" ? setNacion : setProvincia;
-      setter((prev) => ({ ...prev, movimientos: [...prev.movimientos, carga] }));
+      setter((prev) => {
+        const actuales = prev && Array.isArray(prev.movimientos) ? prev.movimientos : [];
+        return { ...prev, movimientos: [...actuales, carga] };
+      });
     },
     [setNacion, setProvincia]
   );
@@ -78,7 +81,7 @@ export default function App() {
     );
   }
 
-  if (!usuarioActual) return <Login usuarios={usuarios} onLogin={setUsuarioActual} onAudit={registrarAuditoria} />;
+  if (!usuarioActual) return <Login usuarios={Array.isArray(usuarios) ? usuarios : USUARIOS_INICIALES} onLogin={setUsuarioActual} onAudit={registrarAuditoria} />;
 
   const sincLabel = (() => {
     const diff = Math.floor((new Date() - ultimaSync) / 1000);
@@ -86,6 +89,12 @@ export default function App() {
     if (diff < 60) return `${diff}s`;
     return `${Math.floor(diff / 60)}m`;
   })();
+
+  // 🛡️ Aseguramos que los movimientos sean arrays iterables antes de calcular KPIs
+  const nacionMovs = nacion && Array.isArray(nacion.movimientos) ? nacion.movimientos : [];
+  const provinciaMovs = provincia && Array.isArray(provincia.movimientos) ? provincia.movimientos : [];
+  const auditoriaLogs = Array.isArray(auditoria) ? auditoria : [];
+  const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
 
   return (
     <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "'Inter',system-ui,sans-serif" }}>
@@ -123,10 +132,10 @@ export default function App() {
                   {esAdmin && (
                     <>
                       <button onClick={() => { setPanelAudit(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "#1E293B", borderRadius: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                        🔍 Auditoría <span style={{ marginLeft: "auto", background: "#E2E8F0", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{auditoria.length}</span>
+                        🔍 Auditoría <span style={{ marginLeft: "auto", background: "#E2E8F0", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{auditoriaLogs.length}</span>
                       </button>
                       <button onClick={() => { setPanelUsers(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "#1E293B", borderRadius: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                        👥 Gestionar Usuarios <span style={{ marginLeft: "auto", background: "#E2E8F0", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{usuarios.length}</span>
+                        👥 Gestionar Usuarios <span style={{ marginLeft: "auto", background: "#E2E8F0", borderRadius: 10, fontSize: 11, padding: "1px 7px", fontWeight: 700 }}>{listaUsuarios.length}</span>
                       </button>
                       <div style={{ height: 1, background: "#E2E8F0", margin: "4px 0" }} />
                     </>
@@ -163,9 +172,9 @@ export default function App() {
         {/* KPIs */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
           {[
-            { label: "Artículos Nación", value: new Set(nacion.movimientos?.map((m) => `${m.categoria}||${m.descripcion}`) || []).size, icon: "🏛️", color: "#1A3A5C" },
-            { label: "Artículos Provincia", value: new Set(provincia.movimientos?.map((m) => `${m.categoria}||${m.descripcion}`) || []).size, icon: "🏢", color: "#2E7DC4" },
-            { label: "Total Movimientos", value: (nacion.movimientos?.length || 0) + (provincia.movimientos?.length || 0), icon: "📋", color: "#C8993A" },
+            { label: "Artículos Nación", value: new Set(nacionMovs.map((m) => `${m.categoria}||${m.descripcion}`)).size, icon: "🏛️", color: "#1A3A5C" },
+            { label: "Artículos Provincia", value: new Set(provinciaMovs.map((m) => `${m.categoria}||${m.descripcion}`)).size, icon: "🏢", color: "#2E7DC4" },
+            { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
           ].map((stat) => (
             <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
               <div style={{ fontSize: 18, marginBottom: 4 }}>{stat.icon}</div>
@@ -181,8 +190,8 @@ export default function App() {
           </div>
         )}
 
-        <Seccion nombre="Inventario — Nación" color="#1A3A5C" colorClaro="#2E7DC4" datos={nacion} onCarga={() => setModalCarga("nacion")} onActualizar={setNacion} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoria} />
-        <Seccion nombre="Inventario — Provincia" color="#1B6EB5" colorClaro="#4DA3D4" datos={provincia} onCarga={() => setModalCarga("provincia")} onActualizar={setProvincia} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoria} />
+        <Seccion nombre="Inventario — Nación" color="#1A3A5C" colorClaro="#2E7DC4" datos={{ movimientos: nacionMovs }} onCarga={() => setModalCarga("nacion")} onActualizar={setNacion} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoriaLogs} />
+        <Seccion nombre="Inventario — Provincia" color="#1B6EB5" colorClaro="#4DA3D4" datos={{ movimientos: provinciaMovs }} onCarga={() => setModalCarga("provincia")} onActualizar={setProvincia} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoriaLogs} />
 
         <div style={{ textAlign: "center", color: "#94A3B8", fontSize: 11, paddingBottom: 8 }}>
           Ministerio de Desarrollo Humano · Sistema de Control de Inventario
@@ -207,8 +216,8 @@ export default function App() {
         />
       )}
 
-      {panelAudit && <PanelAuditoria logs={auditoria} onClose={() => setPanelAudit(false)} />}
-      {panelUsers && <PanelUsuarios usuarios={usuarios} setUsuarios={setUsuarios} onClose={() => { setPanelUsers(false); setMenuAbierto(false); }} onAudit={registrarAuditoria} usuarioActual={usuarioActual} />}
+      {panelAudit && <PanelAuditoria logs={auditoriaLogs} onClose={() => setPanelAudit(false)} />}
+      {panelUsers && <PanelUsuarios usuarios={listaUsuarios} setUsuarios={setUsuarios} onClose={() => { setPanelUsers(false); setMenuAbierto(false); }} onAudit={registrarAuditoria} usuarioActual={usuarioActual} />}
     </div>
   );
 }
