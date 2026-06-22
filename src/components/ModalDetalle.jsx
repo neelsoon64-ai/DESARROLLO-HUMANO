@@ -4,9 +4,22 @@ import { btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { InfoItem } from "./Common.jsx";
 
 export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onEliminar }) {
+  // Convertimos mov.foto a un array estandarizado para iterar sin problemas
+  const fotosArray = Array.isArray(mov.foto) 
+    ? mov.foto 
+    : (mov.foto ? [mov.foto] : []);
+
   const [zoomOpen, setZoomOpen] = useState(false);
+  const [fotoSeleccionada, setFotoSeleccionada] = useState(fotosArray[0] || null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const cat = CATEGORIAS.find((c) => c.id === mov.categoria);
+
+  const abrirZoom = (fotoUrl) => {
+    setFotoSeleccionada(fotoUrl);
+    setZoomLevel(1);
+    setZoomOpen(true);
+  };
+
   return (
     <>
       <div style={overlay}>
@@ -72,34 +85,54 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
               </div>
             )}
 
+            {/* ── SECCIÓN CONTENEDORA DE IMÁGENES REFORMULADA ── */}
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
               <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
                 <div>
-                  <div style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>Imagen del remito</div>
-                  <div style={{ color: "#64748B", fontSize: 11, marginTop: 4 }}>Pulse para ampliar</div>
+                  <div style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>Imágenes del remito ({fotosArray.length})</div>
+                  <div style={{ color: "#64748B", fontSize: 11, marginTop: 4 }}>Pulse sobre cualquier captura para ampliar</div>
                 </div>
-                {mov.foto && (
+                {fotosArray.length > 0 && (
                   <button
-                    onClick={() => setZoomOpen(true)}
+                    onClick={() => abrirZoom(fotosArray[0])}
                     style={{ border: "1px solid #E2E8F0", background: "#F8FAFC", color: "#0F172A", borderRadius: 12, padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
                   >
                     🔎 Ampliar
                   </button>
                 )}
               </div>
-              <div style={{ padding: 18, display: "flex", justifyContent: "center", background: "#F8FAFC" }}>
-                {mov.foto ? (
-                  <img
-                    src={mov.foto}
-                    alt="Remito"
-                    style={{ width: "100%", maxWidth: 500, maxHeight: 360, borderRadius: 18, objectFit: "contain", cursor: "zoom-in" }}
-                    onClick={() => {
-                      setZoomLevel(1);
-                      setZoomOpen(true);
-                    }}
-                  />
+              
+              <div style={{ padding: 18, background: "#F8FAFC" }}>
+                {fotosArray.length > 0 ? (
+                  /* Renderizamos dinámicamente en grilla si son varias, o completa si es una sola */
+                  <div style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: fotosArray.length === 1 ? "1fr" : "1fr 1fr", 
+                    gap: 12,
+                    maxHeight: 380,
+                    overflowY: "auto"
+                  }}>
+                    {fotosArray.map((fotoUrl, index) => (
+                      <img
+                        key={index}
+                        src={fotoUrl}
+                        alt={`Parte del remito ${index + 1}`}
+                        style={{ 
+                          width: "100%", 
+                          height: fotosArray.length === 1 ? "auto" : 140, 
+                          maxHeight: 340,
+                          borderRadius: 14, 
+                          objectFit: "cover", 
+                          cursor: "zoom-in",
+                          border: "1px solid #CBD5E1",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+                        }}
+                        onClick={() => abrirZoom(fotoUrl)}
+                      />
+                    ))}
+                  </div>
                 ) : (
-                  <div style={{ width: "100%", maxWidth: 500, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8", background: "#F1F5F9", borderRadius: 18, border: "1px dashed #CBD5E1" }}>
+                  <div style={{ width: "100%", maxWidth: 500, minHeight: 220, display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8", background: "#F1F5F9", borderRadius: 18, border: "1px dashed #CBD5E1" }}>
                     No hay imagen cargada
                   </div>
                 )}
@@ -125,6 +158,7 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
         </div>
       </div>
 
+      {/* ── MODAL DE ZOOM SOPORTANDO LA IMAGEN SELECCIONADA ── */}
       {zoomOpen && (
         <div
           onClick={() => {
@@ -135,7 +169,7 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ position: "relative", width: "100%", maxWidth: 940, maxHeight: "90vh", borderRadius: 26, overflow: "auto", boxShadow: "0 32px 120px rgba(15,23,42,0.35)" }}
+            style={{ position: "relative", width: "100%", maxWidth: 940, maxHeight: "90vh", borderRadius: 26, overflow: "auto", boxShadow: "0 32px 120px rgba(15,23,42,0.35)", background: "#111827" }}
           >
             <div style={{ position: "absolute", top: 18, left: 18, zIndex: 11, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
@@ -157,10 +191,11 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                 +
               </button>
             </div>
+            
             <img
-              src={mov.foto}
+              src={fotoSeleccionada}
               alt="Remito ampliado"
-              style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "none", objectFit: "contain", background: "#111827", transform: `scale(${zoomLevel})`, transformOrigin: "center top", transition: "transform 0.2s ease" }}
+              style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "80vh", objectFit: "contain", background: "#111827", transform: `scale(${zoomLevel})`, transformOrigin: "center center", transition: "transform 0.2s ease", display: "block", margin: "auto" }}
               onWheel={(e) => {
                 e.preventDefault();
                 if (e.deltaY < 0) {
@@ -170,7 +205,12 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                 }
               }}
             />
+            
             <button
+              onClick={() => {
+                setZoomLevel(1);
+                setZoomOpen(false);
+              }}
               style={{
                 position: "absolute",
                 top: 18,
