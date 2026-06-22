@@ -5,6 +5,12 @@ import { comprimirImagen, subirFotoRemito } from "../fotoStorage.js";
 
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimientoEditar, esEdicion }) {
   const inicial = movimientoEditar || {};
+  
+  // Normalizamos las fotos existentes para asegurarnos de que siempre sea un Array limpio
+  const fotosIniciales = Array.isArray(inicial.foto) 
+    ? inicial.foto 
+    : (inicial.foto ? [inicial.foto] : []);
+
   const [form, setForm] = useState({
     fecha: inicial.fecha ? new Date(inicial.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
     nroRemito: inicial.nroRemito || "",
@@ -15,57 +21,78 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
     descripcion: inicial.descripcion || "",
     cantidad: inicial.cantidad || "",
     unidad: inicial.unidad || "unidades",
-    fotoPreview: inicial.foto || null,
-    fotoData: null, // base64 nuevo a subir (si se cambió la foto)
-    fotoUrlExistente: inicial.foto || null, // URL ya subida (si no se cambió)
+    // Guardamos las múltiples imágenes en un Array de objetos { id, data }
+    listaFotos: fotosIniciales.map((f, i) => ({ id: `id-${i}-${Date.now()}`, data: f }))
   });
+  
   const [error, setError] = useState("");
   const [cargandoFoto, setCargandoFoto] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const [arrastrandoFoto, setArrastrandoFoto] = useState(false);
   const fileInputGaleriaRef = useRef();
   const fileInputCamaraRef = useRef();
+
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const procesarArchivo = async (file) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("El archivo debe ser una imagen (JPG, PNG, WEBP).");
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      setError("La imagen es demasiado grande (máx. 20MB).");
-      return;
-    }
+  // Procesa uno o varios archivos seleccionados y los agrega al Array
+  const procesarArchivos = async (files) => {
+    if (!files || files.length === 0) return;
+    
     setCargandoFoto(true);
     setError("");
-    try {
-      const data = await comprimirImagen(file);
-      if (data) {
-        set("fotoData", data);
-        set("fotoPreview", data);
-        set("fotoUrlExistente", null);
-      } else {
-        setError("No se pudo procesar la imagen. Intentá con otro archivo.");
+    
+    const nuevasFotos = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith("image/")) {
+        setError("Uno de los archivos no es una imagen válida.");
+        continue;
       }
-    } catch {
-      setError("Error al cargar la imagen.");
-    } finally {
-      setCargandoFoto(false);
+      if (file.size > 20 * 1024 * 1024) {
+        setError("Una de las imágenes supera el límite de 20MB.");
+        continue;
+      }
+
+      try {
+        // Pasa por el fotoStorage optimizado (maxW: 1000px, calidad: 0.75)
+        const base64Comprimido = await comprimirImagen(file, 1000, 0.75);
+        if (base64Comprimido) {
+          nuevasFotos.push({
+            id: `foto-${i}-${Math.random().toString(36).substring(2, 7)}-${Date.now()}`,
+            data: base64Comprimido
+          });
+        }
+      } catch (err) {
+        setError("Hubo un problema al comprimir algunas imágenes.");
+      }
     }
+
+    if (nuevasFotos.length > 0) {
+      setForm((f) => ({
+        ...f,
+        listaFotos: [...f.listaFotos, ...nuevasFotos]
+      }));
+    }
+    setCargandoFoto(false);
   };
 
   const handleInputChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) procesarArchivo(file);
+    if (e.target.files) procesarArchivos(e.target.files);
     e.target.value = "";
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setArrastrandoFoto(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) procesarArchivo(file);
+    if (e.dataTransfer.files) procesarArchivos(e.dataTransfer.files);
+  };
+
+  const quitarFoto = (idABorrar) => {
+    setForm((f) => ({
+      ...f,
+      listaFotos: f.listaFotos.filter((foto) => foto.id !== idABorrar)
+    }));
   };
 
   const handleGuardar = async () => {
@@ -75,37 +102,35 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
     setError("");
 
     const id = movimientoEditar?.id || generarId();
-    let fotoFinal = form.fotoUrlExistente; // mantiene la foto vieja si no se cambió
+    setSubiendo(true);
 
-    // Si hay una foto nueva en base64, subirla a Firebase Storage
-    if (form.fotoData) {
-      setSubiendo(true);
-      try {
-        fotoFinal = await subirFotoRemito(form.fotoData, id);
-      } catch (err) {
-        setSubiendo(false);
-        setError("No se pudo subir la foto. Revisá tu conexión e intentá de nuevo.");
-        return;
-      }
+    try {
+      // Extraemos solo el texto Base64 crudo del array de objetos
+      const base64ArrayCrudo = form.listaFotos.map(f => f.data);
+      
+      // Enviamos el array completo al fotoStorage
+      const fotosFinales = await subirFotoRemito(base64ArrayCrudo, id);
+
+      onGuardar({
+        ...(movimientoEditar || { id }),
+        fecha: new Date(form.fecha).toISOString(),
+        nroRemito: form.nroRemito,
+        proveedor: form.proveedor,
+        observaciones: form.observaciones,
+        tipo: form.tipo,
+        categoria: form.categoria,
+        descripcion: form.descripcion.trim(),
+        cantidad: Number(form.cantidad),
+        unidad: form.unidad,
+        foto: fotosFinales, // Se guarda como Array en Firebase Realtime Database
+      });
+
       setSubiendo(false);
-    } else if (form.fotoPreview === null) {
-      fotoFinal = null; // se quitó la foto
+      onClose();
+    } catch (err) {
+      setSubiendo(false);
+      setError("No se pudo estructurar el guardado. Intentá nuevamente.");
     }
-
-    onGuardar({
-      ...(movimientoEditar || { id }),
-      fecha: new Date(form.fecha).toISOString(),
-      nroRemito: form.nroRemito,
-      proveedor: form.proveedor,
-      observaciones: form.observaciones,
-      tipo: form.tipo,
-      categoria: form.categoria,
-      descripcion: form.descripcion.trim(),
-      cantidad: Number(form.cantidad),
-      unidad: form.unidad,
-      foto: fotoFinal,
-    });
-    onClose();
   };
 
   const catActual = CATEGORIAS.find((c) => c.id === form.categoria);
@@ -193,80 +218,82 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
             <textarea placeholder="Notas adicionales..." value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} />
           </div>
 
-          {/* ── SECCIÓN FOTO ── */}
+          {/* ── SECCIÓN MULTI-FOTO ── */}
           <div style={fieldGroup}>
-            <label style={labelStyle}>📷 Foto del Remito</label>
+            <label style={labelStyle}>📷 Fotos adjuntas ({form.listaFotos.length})</label>
 
-            {form.fotoPreview ? (
-              <div style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F8FAFC" }}>
-                <img src={form.fotoPreview} alt="Vista previa del remito" style={{ width: "100%", maxHeight: 200, objectFit: "contain", display: "block" }} />
-                <div style={{ display: "flex", gap: 6, padding: 8 }}>
-                  <button onClick={() => fileInputGaleriaRef.current.click()} style={{ ...btnSecundario, flex: 1, fontSize: 12, padding: "7px 10px" }}>
-                    🔄 Cambiar
-                  </button>
-                  <button
-                    onClick={() => { set("fotoPreview", null); set("fotoData", null); set("fotoUrlExistente", null); }}
-                    style={{ ...btnSecundario, flex: 1, fontSize: 12, padding: "7px 10px", color: "#DC2626", borderColor: "#FCA5A5" }}
-                  >
-                    🗑️ Quitar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setArrastrandoFoto(true); }}
-                  onDragLeave={() => setArrastrandoFoto(false)}
-                  onDrop={handleDrop}
-                  style={{
-                    border: `2px dashed ${arrastrandoFoto ? "#2E7DC4" : "#CBD5E1"}`,
-                    borderRadius: 10, padding: "20px 16px", textAlign: "center",
-                    background: arrastrandoFoto ? "#EFF6FF" : "#F8FAFC",
-                    transition: "all 0.2s", marginBottom: 8,
-                  }}
-                >
-                  {cargandoFoto ? (
-                    <div style={{ color: "#2E7DC4", fontSize: 13 }}>⏳ Procesando imagen...</div>
-                  ) : (
-                    <>
-                      <div style={{ fontSize: 32, marginBottom: 6 }}>📄</div>
-                      <div style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>Arrastrá una foto acá</div>
-                      <div style={{ color: "#94A3B8", fontSize: 11, marginTop: 2 }}>o usá los botones de abajo</div>
-                    </>
-                  )}
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <button
-                    onClick={() => fileInputGaleriaRef.current.click()}
-                    disabled={cargandoFoto}
-                    style={{ ...btnSecundario, fontSize: 13, padding: "10px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: cargandoFoto ? 0.6 : 1 }}
-                  >
-                    🖼️ Elegir imagen
-                  </button>
-                  <button
-                    onClick={() => fileInputCamaraRef.current.click()}
-                    disabled={cargandoFoto}
-                    style={{ ...btnSecundario, fontSize: 13, padding: "10px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: cargandoFoto ? 0.6 : 1, color: "#1A3A5C", borderColor: "#BFDBFE", background: "#EFF6FF" }}
-                  >
-                    📸 Sacar foto
-                  </button>
-                </div>
+            {/* Grilla con miniaturas de las fotos cargadas */}
+            {form.listaFotos.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                {form.listaFotos.map((foto) => (
+                  <div key={foto.id} style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F8FAFC" }}>
+                    <img src={foto.data} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
+                    <button 
+                      onClick={() => quitarFoto(foto.id)} 
+                      style={{ position: "absolute", top: 4, right: 4, background: "rgba(220, 38, 38, 0.85)", border: "none", color: "#fff", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: "bold" }}
+                      title="Quitar foto"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
-            <input ref={fileInputGaleriaRef} type="file" accept="image/*" onChange={handleInputChange} style={{ display: "none" }} />
-            <input ref={fileInputCamaraRef} type="file" accept="image/*" capture="environment" onChange={handleInputChange} style={{ display: "none" }} />
+            {/* Zona de Arrastre Dropzone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setArrastrandoFoto(true); }}
+              onDragLeave={() => setArrastrandoFoto(false)}
+              onDrop={handleDrop}
+              style={{
+                border: `2px dashed ${arrastrandoFoto ? "#2E7DC4" : "#CBD5E1"}`,
+                borderRadius: 10, padding: "18px 16px", textAlign: "center",
+                background: arrastrandoFoto ? "#EFF6FF" : "#F8FAFC",
+                transition: "all 0.2s", marginBottom: 8,
+              }}
+            >
+              {cargandoFoto ? (
+                <div style={{ color: "#2E7DC4", fontSize: 13 }}>⏳ Comprimiendo archivos adjuntos...</div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 26, marginBottom: 4 }}>📄📌</div>
+                  <div style={{ color: "#475569", fontSize: 12, fontWeight: 600 }}>Arrastrá una o más fotos acá</div>
+                  <div style={{ color: "#94A3B8", fontSize: 10, marginTop: 2 }}>Podés agregar múltiples capturas de corrido</div>
+                </>
+              )}
+            </div>
+
+            {/* Botonera de carga */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button
+                onClick={() => fileInputGaleriaRef.current.click()}
+                disabled={cargandoFoto}
+                style={{ ...btnSecundario, fontSize: 12, padding: "10px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: cargandoFoto ? 0.6 : 1 }}
+              >
+                🖼️ Añadir desde Galería
+              </button>
+              <button
+                onClick={() => fileInputCamaraRef.current.click()}
+                disabled={cargandoFoto}
+                style={{ ...btnSecundario, fontSize: 12, padding: "10px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: cargandoFoto ? 0.6 : 1, color: "#1A3A5C", borderColor: "#BFDBFE", background: "#EFF6FF" }}
+              >
+                📸 Capturar Cámara
+              </button>
+            </div>
+
+            {/* Inputs ocultos nativos con propiedad "multiple" habilitada */}
+            <input ref={fileInputGaleriaRef} type="file" accept="image/*" multiple onChange={handleInputChange} style={{ display: "none" }} />
+            <input ref={fileInputCamaraRef} type="file" accept="image/*" capture="environment" multiple onChange={handleInputChange} style={{ display: "none" }} />
           </div>
 
           {error && <div style={{ color: "#DC2626", background: "#FEE2E2", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⚠️ {error}</div>}
-          {subiendo && <div style={{ color: "#2E7DC4", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>☁️ Subiendo foto a la nube...</div>}
+          {subiendo && <div style={{ color: "#2E7DC4", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⏳ Registrando remito en tiempo real...</div>}
         </div>
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ ...btnSecundario, flex: 1 }}>Cancelar</button>
           <button onClick={handleGuardar} disabled={procesando} style={{ ...btnPrincipal, flex: 2, opacity: procesando ? 0.7 : 1 }}>
-            {subiendo ? "☁️ Subiendo..." : esEdicion ? "✅ Guardar Cambios" : "✅ Guardar Carga"}
+            {subiendo ? "⏳ Guardando..." : esEdicion ? "✅ Guardar Cambios" : "✅ Guardar Carga"}
           </button>
         </div>
       </div>

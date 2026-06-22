@@ -4,7 +4,9 @@ import { storage, firebaseConfigurado } from "./firebase.js";
 // ════════════════════════════════════════════════════════════════════════════
 // Comprime una imagen en el navegador antes de subirla (más rápido, menos datos)
 // ════════════════════════════════════════════════════════════════════════════
-export function comprimirImagen(file, maxW = 1200, calidad = 0.82) {
+export function comprimirImagen(file, maxW = 1000, calidad = 0.75) { 
+  // Nota: Bajamos un pelito la calidad (de 0.82 a 0.75) y el ancho max (a 1000px) 
+  // para que al subir MÚLTIPLES fotos, el texto no sea tan gigante y Firebase no te lo rechace.
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -19,7 +21,7 @@ export function comprimirImagen(file, maxW = 1200, calidad = 0.82) {
       canvas.width = width;
       canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", calidad)); // <-- Devuelve el texto Base64 comprimido
+      resolve(canvas.toDataURL("image/jpeg", calidad)); 
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -30,21 +32,18 @@ export function comprimirImagen(file, maxW = 1200, calidad = 0.82) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Sube una imagen (en formato dataURL base64). 
-// ¡MODIFICADO!: Ahora salta directo el Storage y devuelve siempre el Base64 
-// para guardarlo como texto en la Realtime Database de forma 100% gratuita.
+// ¡NUEVA FUNCIÓN!: Recibe una lista de imágenes en Base64 y las devuelve 
+// listas para guardarse como array en la Realtime Database de forma gratuita.
 // ════════════════════════════════════════════════════════════════════════════
-export async function subirFotoRemito(dataUrlBase64, idMovimiento) {
-  // 🔥 FORZAMOS EL SVALTO: Devolvemos el texto directo para guardarlo en la base de datos gratis
-  return dataUrlBase64;
+export async function subirFotoRemito(dataUrlsBase64, idMovimiento) {
+  // Si le pasamos un array de fotos, lo devuelve derecho. 
+  // Si viene una sola foto como string, la metemos en una lista para mantener el orden.
+  if (Array.isArray(dataUrlsBase64)) {
+    return dataUrlsBase64;
+  }
+  return dataUrlsBase64 ? [dataUrlsBase64] : [];
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Elimina una foto de Storage (Se mantiene la función para que no rompa la app,
-// pero como no usamos Storage, no hace falta borrar nada de la nube)
-// ════════════════════════════════════════════════════════════════════════════
 export async function eliminarFotoRemito(url) {
-  // Como las fotos ahora son texto dentro del remito, al borrar el movimiento 
-  // de la base de datos la foto se elimina automáticamente con él.
   return;
 }
