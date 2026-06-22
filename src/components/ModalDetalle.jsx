@@ -85,7 +85,7 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
               </div>
             )}
 
-            {/* ── SECCIÓN CONTENEDORA DE IMÁGENES REFORMULADA ── */}
+            {/* ── SECCIÓN IMÁGENES DEL REMITO ── */}
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
               <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
                 <div>
@@ -104,7 +104,6 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
               
               <div style={{ padding: 18, background: "#F8FAFC" }}>
                 {fotosArray.length > 0 ? (
-                  /* Renderizamos dinámicamente en grilla si son varias, o completa si es una sola */
                   <div style={{ 
                     display: "grid", 
                     gridTemplateColumns: fotosArray.length === 1 ? "1fr" : "1fr 1fr", 
@@ -158,75 +157,118 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
         </div>
       </div>
 
-      {/* ── MODAL DE ZOOM SOPORTANDO LA IMAGEN SELECCIONADA ── */}
+      {/* ── MODAL DE ZOOM OPTIMIZADO PARA COMPUTADORAS ── */}
       {zoomOpen && (
         <div
           onClick={() => {
             setZoomLevel(1);
             setZoomOpen(false);
           }}
-          style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(15,23,42,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(15,23,42,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ position: "relative", width: "100%", maxWidth: 940, maxHeight: "90vh", borderRadius: 26, overflow: "auto", boxShadow: "0 32px 120px rgba(15,23,42,0.35)", background: "#111827" }}
+            style={{ 
+              position: "relative", 
+              width: "100%", 
+              maxWidth: "960px", 
+              height: "85vh", 
+              borderRadius: 24, 
+              overflow: "auto", // Maneja el scroll general perfectamente al agrandar la foto
+              boxShadow: "0 32px 120px rgba(15,23,42,0.5)", 
+              background: "#0F172A",
+              border: "1px solid rgba(255,255,255,0.1)"
+            }}
           >
-            <div style={{ position: "absolute", top: 18, left: 18, zIndex: 11, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {/* Barra de controles superior fija usando Sticky */}
+            <div style={{ 
+              position: "sticky", 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              zIndex: 100, 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              padding: "14px 20px", 
+              background: "linear-gradient(to bottom, rgba(15,23,42,0.95), rgba(15,23,42,0.8))",
+              backdropFilter: "blur(8px)",
+              borderBottom: "1px solid rgba(255,255,255,0.08)"
+            }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => setZoomLevel((prev) => Math.max(prev - 0.25, 1))}
+                  style={{ border: "none", background: "#fff", color: "#0F172A", borderRadius: 10, width: 36, height: 36, cursor: "pointer", fontWeight: 700, fontSize: 16 }}
+                  title="Alejar"
+                >
+                  −
+                </button>
+                <button
+                  onClick={() => setZoomLevel(1)}
+                  style={{ border: "none", background: "rgba(255,255,255,0.15)", color: "#fff", borderRadius: 10, padding: "0 14px", height: 36, cursor: "pointer", fontWeight: 600, fontSize: 12 }}
+                >
+                  Restablecer ({Math.round(zoomLevel * 100)}%)
+                </button>
+                <button
+                  onClick={() => setZoomLevel((prev) => Math.min(prev + 0.25, 4))} // Incrementado a un máximo de 400%
+                  style={{ border: "none", background: "#fff", color: "#0F172A", borderRadius: 10, width: 36, height: 36, cursor: "pointer", fontWeight: 700, fontSize: 16 }}
+                  title="Acercar"
+                >
+                  +
+                </button>
+              </div>
+
               <button
-                onClick={() => setZoomLevel((prev) => Math.max(prev - 0.25, 1))}
-                style={{ border: "none", background: "rgba(255,255,255,0.94)", color: "#0F172A", borderRadius: 16, padding: "10px 14px", cursor: "pointer", fontWeight: 700, boxShadow: "0 10px 28px rgba(15,23,42,0.18)" }}
+                onClick={() => {
+                  setZoomLevel(1);
+                  setZoomOpen(false);
+                }}
+                style={{ border: "none", background: "#EF4444", color: "#fff", borderRadius: 10, padding: "0 16px", height: 36, cursor: "pointer", fontWeight: 700, fontSize: 12 }}
               >
-                −
-              </button>
-              <button
-                onClick={() => setZoomLevel(1)}
-                style={{ border: "none", background: "rgba(255,255,255,0.94)", color: "#0F172A", borderRadius: 16, padding: "10px 14px", cursor: "pointer", fontWeight: 700, boxShadow: "0 10px 28px rgba(15,23,42,0.18)" }}
-              >
-                100%
-              </button>
-              <button
-                onClick={() => setZoomLevel((prev) => Math.min(prev + 0.25, 3))}
-                style={{ border: "none", background: "rgba(255,255,255,0.94)", color: "#0F172A", borderRadius: 16, padding: "10px 14px", cursor: "pointer", fontWeight: 700, boxShadow: "0 10px 28px rgba(15,23,42,0.18)" }}
-              >
-                +
+                Cerrar Vista
               </button>
             </div>
             
-            <img
-              src={fotoSeleccionada}
-              alt="Remito ampliado"
-              style={{ width: "100%", maxWidth: "100%", height: "auto", maxHeight: "80vh", objectFit: "contain", background: "#111827", transform: `scale(${zoomLevel})`, transformOrigin: "center center", transition: "transform 0.2s ease", display: "block", margin: "auto" }}
+            {/* Contenedor dinámico de dimensiones calculadas según escala */}
+            <div 
               onWheel={(e) => {
-                e.preventDefault();
                 if (e.deltaY < 0) {
-                  setZoomLevel((prev) => Math.min(prev + 0.1, 3));
+                  setZoomLevel((prev) => Math.min(prev + 0.15, 4));
                 } else {
-                  setZoomLevel((prev) => Math.max(prev - 0.1, 1));
+                  setZoomLevel((prev) => Math.max(prev - 0.15, 1));
                 }
               }}
-            />
-            
-            <button
-              onClick={() => {
-                setZoomLevel(1);
-                setZoomOpen(false);
+              style={{ 
+                padding: "30px",
+                minHeight: "calc(100% - 65px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: zoomLevel > 1 ? "zoom-out" : "zoom-in"
               }}
-              style={{
-                position: "absolute",
-                top: 18,
-                right: 18,
-                border: "none",
-                background: "rgba(255,255,255,0.94)",
-                color: "#0F172A",
-                borderRadius: 16,
-                padding: "10px 14px",
-                cursor: "pointer",
-                fontWeight: 700,
-                boxShadow: "0 10px 28px rgba(15,23,42,0.18)",
-              }}
+              onClick={() => setZoomLevel(prev => prev > 1 ? 1 : 2)} // Click rápido para alternar zoom básico
             >
-              Cerrar
-            </button>
+              <div style={{
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: "center center",
+                transition: "transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)",
+                display: "inline-block"
+              }}>
+                <img
+                  src={fotoSeleccionada}
+                  alt="Remito ampliado"
+                  style={{ 
+                    maxWidth: "100%", 
+                    height: "auto", 
+                    maxHeight: "70vh", 
+                    objectFit: "contain",
+                    borderRadius: 8,
+                    boxShadow: zoomLevel > 1 ? "0 20px 50px rgba(0,0,0,0.5)" : "none"
+                  }}
+                />
+              </div>
+            </div>
+
           </div>
         </div>
       )}
