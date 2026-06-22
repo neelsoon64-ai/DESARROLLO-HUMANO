@@ -1,18 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CATEGORIAS, formatFecha, formatFechaCorta } from "../constants.js";
 import { btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { InfoItem } from "./Common.jsx";
 
 export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onEliminar }) {
+  // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
+  if (!mov) return null;
+
   // Convertimos mov.foto a un array estandarizado para iterar sin problemas
   const fotosArray = Array.isArray(mov.foto) 
     ? mov.foto 
     : (mov.foto ? [mov.foto] : []);
 
   const [zoomOpen, setZoomOpen] = useState(false);
-  const [fotoSeleccionada, setFotoSeleccionada] = useState(fotosArray[0] || null);
+  const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const cat = CATEGORIAS.find((c) => c.id === mov.categoria);
+
+  // Sincroniza la foto seleccionada de manera segura una vez que el componente monta o cambia
+  useEffect(() => {
+    if (fotosArray.length > 0) {
+      setFotoSeleccionada(fotosArray[0]);
+    }
+  }, [mov]);
 
   const abrirZoom = (fotoUrl) => {
     setFotoSeleccionada(fotoUrl);
@@ -157,30 +167,30 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
         </div>
       </div>
 
-      {/* ── MODAL DE ZOOM OPTIMIZADO PARA COMPUTADORAS ── */}
+      {/* ── VISOR DE ZOOM REPARADO Y OPTIMIZADO PARA PC ── */}
       {zoomOpen && (
         <div
           onClick={() => {
             setZoomLevel(1);
             setZoomOpen(false);
           }}
-          style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(15,23,42,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}
+          style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(15,23,42,0.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: "30px 20px" }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{ 
               position: "relative", 
               width: "100%", 
-              maxWidth: "960px", 
-              height: "85vh", 
-              borderRadius: 24, 
-              overflow: "auto", // Maneja el scroll general perfectamente al agrandar la foto
-              boxShadow: "0 32px 120px rgba(15,23,42,0.5)", 
-              background: "#0F172A",
-              border: "1px solid rgba(255,255,255,0.1)"
+              maxWidth: "1050px", 
+              height: "88vh", 
+              borderRadius: 20, 
+              overflow: "auto", // Activa las barras de scroll nativas de forma perfecta
+              boxShadow: "0 25px 70px rgba(0,0,0,0.5)", 
+              background: "#090D16",
+              border: "1px solid rgba(255,255,255,0.08)"
             }}
           >
-            {/* Barra de controles superior fija usando Sticky */}
+            {/* Controles superiores fijos (Sticky) */}
             <div style={{ 
               position: "sticky", 
               top: 0, 
@@ -190,32 +200,34 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
               display: "flex", 
               justifyContent: "space-between", 
               alignItems: "center", 
-              padding: "14px 20px", 
-              background: "linear-gradient(to bottom, rgba(15,23,42,0.95), rgba(15,23,42,0.8))",
-              backdropFilter: "blur(8px)",
-              borderBottom: "1px solid rgba(255,255,255,0.08)"
+              padding: "12px 20px", 
+              background: "#0F172A",
+              borderBottom: "1px solid rgba(255,255,255,0.1)"
             }}>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <button
                   onClick={() => setZoomLevel((prev) => Math.max(prev - 0.25, 1))}
-                  style={{ border: "none", background: "#fff", color: "#0F172A", borderRadius: 10, width: 36, height: 36, cursor: "pointer", fontWeight: 700, fontSize: 16 }}
-                  title="Alejar"
+                  style={{ border: "none", background: "#334155", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontWeight: 700, fontSize: 16 }}
                 >
                   −
                 </button>
+                <span style={{ color: "#94A3B8", fontSize: 13, minWidth: 60, textAlign: "center", fontWeight: 600 }}>
+                  {Math.round(zoomLevel * 100)}%
+                </span>
                 <button
-                  onClick={() => setZoomLevel(1)}
-                  style={{ border: "none", background: "rgba(255,255,255,0.15)", color: "#fff", borderRadius: 10, padding: "0 14px", height: 36, cursor: "pointer", fontWeight: 600, fontSize: 12 }}
-                >
-                  Restablecer ({Math.round(zoomLevel * 100)}%)
-                </button>
-                <button
-                  onClick={() => setZoomLevel((prev) => Math.min(prev + 0.25, 4))} // Incrementado a un máximo de 400%
-                  style={{ border: "none", background: "#fff", color: "#0F172A", borderRadius: 10, width: 36, height: 36, cursor: "pointer", fontWeight: 700, fontSize: 16 }}
-                  title="Acercar"
+                  onClick={() => setZoomLevel((prev) => Math.min(prev + 0.25, 4))}
+                  style={{ border: "none", background: "#334155", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontWeight: 700, fontSize: 16 }}
                 >
                   +
                 </button>
+                {zoomLevel > 1 && (
+                  <button
+                    onClick={() => setZoomLevel(1)}
+                    style={{ border: "none", background: "rgba(255,255,255,0.1)", color: "#fff", borderRadius: 8, padding: "0 12px", height: 34, cursor: "pointer", fontSize: 12 }}
+                  >
+                    Restablecer
+                  </button>
+                )}
               </div>
 
               <button
@@ -223,49 +235,53 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                   setZoomLevel(1);
                   setZoomOpen(false);
                 }}
-                style={{ border: "none", background: "#EF4444", color: "#fff", borderRadius: 10, padding: "0 16px", height: 36, cursor: "pointer", fontWeight: 700, fontSize: 12 }}
+                style={{ border: "none", background: "#EF4444", color: "#fff", borderRadius: 8, padding: "0 16px", height: 34, cursor: "pointer", fontWeight: 700, fontSize: 12 }}
               >
                 Cerrar Vista
               </button>
             </div>
             
-            {/* Contenedor dinámico de dimensiones calculadas según escala */}
+            {/* Contenedor del scroll dinámico */}
             <div 
               onWheel={(e) => {
                 if (e.deltaY < 0) {
-                  setZoomLevel((prev) => Math.min(prev + 0.15, 4));
+                  setZoomLevel((prev) => Math.min(prev + 0.25, 4));
                 } else {
-                  setZoomLevel((prev) => Math.max(prev - 0.15, 1));
+                  setZoomLevel((prev) => Math.max(prev - 0.25, 1));
                 }
               }}
               style={{ 
-                padding: "30px",
-                minHeight: "calc(100% - 65px)",
-                display: "flex",
+                padding: "40px",
+                minWidth: "100%",
+                minHeight: "calc(100% - 60px)",
+                display: zoomLevel > 1 ? "block" : "flex", // Cambia a block para permitir scroll correcto al agrandar
                 alignItems: "center",
-                justifyContent: "center",
-                cursor: zoomLevel > 1 ? "zoom-out" : "zoom-in"
+                justifyContent: "center"
               }}
-              onClick={() => setZoomLevel(prev => prev > 1 ? 1 : 2)} // Click rápido para alternar zoom básico
             >
               <div style={{
                 transform: `scale(${zoomLevel})`,
-                transformOrigin: "center center",
-                transition: "transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)",
-                display: "inline-block"
+                transformOrigin: "0 0", // Crucial: origen arriba-izquierda para que el scroll acompañe perfectamente
+                transition: "transform 0.12s ease-out",
+                display: "block",
+                margin: zoomLevel > 1 ? "0" : "auto"
               }}>
-                <img
-                  src={fotoSeleccionada}
-                  alt="Remito ampliado"
-                  style={{ 
-                    maxWidth: "100%", 
-                    height: "auto", 
-                    maxHeight: "70vh", 
-                    objectFit: "contain",
-                    borderRadius: 8,
-                    boxShadow: zoomLevel > 1 ? "0 20px 50px rgba(0,0,0,0.5)" : "none"
-                  }}
-                />
+                {fotoSeleccionada ? (
+                  <img
+                    src={fotoSeleccionada}
+                    alt="Remito ampliado"
+                    style={{ 
+                      maxWidth: "100%", 
+                      height: "auto", 
+                      maxHeight: "72vh", 
+                      objectFit: "contain",
+                      borderRadius: 6,
+                      display: "block"
+                    }}
+                  />
+                ) : (
+                  <div style={{ color: "#64748B", textAlign: "center" }}>Cargando captura...</div>
+                )}
               </div>
             </div>
 
