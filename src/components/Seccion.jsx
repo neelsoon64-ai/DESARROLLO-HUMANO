@@ -21,7 +21,13 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
   datos.movimientos.forEach((m) => {
     const key = `${m.categoria}||${m.descripcion}`;
     if (!stockPorArticulo[key]) stockPorArticulo[key] = { categoria: m.categoria, descripcion: m.descripcion, unidad: m.unidad, total: 0 };
-    stockPorArticulo[key].total += m.tipo === "ingreso" ? m.cantidad : -m.cantidad;
+    
+    // 🟢 CLAVE: 'ingreso' e 'inicial' SUMAN stock; 'egreso' RESTA stock
+    if (m.tipo === "ingreso" || m.tipo === "inicial") {
+      stockPorArticulo[key].total += m.cantidad;
+    } else if (m.tipo === "egreso") {
+      stockPorArticulo[key].total -= m.cantidad;
+    }
   });
 
   const aplicarFiltros = (arr) =>
@@ -110,6 +116,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
             <option value="todos">Todos</option>
             <option value="ingreso">📥 Ingresos</option>
             <option value="egreso">📤 Egresos</option>
+            <option value="inicial">💾 Stock Inicial</option> {/* <-- Agregado filtro visual */}
           </select>
         )}
       </div>
@@ -148,7 +155,6 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
           </div>
         ) : (
           movFiltrados.map((m) => {
-            const cat = CATEGORIAS.find((c) => c.id === m.categoria);
             return (
               <div
                 key={m.id}
@@ -158,7 +164,10 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>{m.tipo === "ingreso" ? "📥" : "📤"}</span>
+                  {/* Icono dinámico según tipo de movimiento */}
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>
+                    {m.tipo === "ingreso" ? "📥" : m.tipo === "egreso" ? "📤" : "💾"}
+                  </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, color: "#1E293B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.descripcion}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8" }}>
@@ -171,8 +180,13 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: m.tipo === "ingreso" ? "#059669" : "#DC2626" }}>
-                    {m.tipo === "ingreso" ? "+" : "-"}
+                  {/* Color y signo según tipo de movimiento */}
+                  <span style={{ 
+                    fontWeight: 700, 
+                    fontSize: 13, 
+                    color: m.tipo === "ingreso" ? "#059669" : m.tipo === "egreso" ? "#DC2626" : "#2563EB" 
+                  }}>
+                    {m.tipo === "ingreso" ? "+" : m.tipo === "egreso" ? "-" : "≡ "}
                     {m.cantidad}
                   </span>
                   <div style={{ fontSize: 10, color: "#94A3B8" }}>{m.unidad}</div>

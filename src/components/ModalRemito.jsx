@@ -16,7 +16,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
     nroRemito: inicial.nroRemito || "",
     proveedor: inicial.proveedor || "",
     observaciones: inicial.observaciones || "",
-    tipo: inicial.tipo || "ingreso",
+    tipo: inicial.tipo || "ingreso", // Puede ser: 'ingreso', 'egreso', o 'inicial'
     categoria: inicial.categoria || CATEGORIAS[0].id,
     descripcion: inicial.descripcion || "",
     cantidad: inicial.cantidad || "",
@@ -111,18 +111,23 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
       // Enviamos el array completo al fotoStorage
       const fotosFinales = await subirFotoRemito(base64ArrayCrudo, id);
 
+      // Si es stock inicial y no definieron origen, por defecto ponemos Ajuste Interno
+      const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
+        ? "Inventario Físico Inicial" 
+        : form.proveedor.trim();
+
       onGuardar({
         ...(movimientoEditar || { id }),
         fecha: new Date(form.fecha).toISOString(),
         nroRemito: form.nroRemito,
-        proveedor: form.proveedor,
+        proveedor: proveedorFinal,
         observaciones: form.observaciones,
         tipo: form.tipo,
         categoria: form.categoria,
         descripcion: form.descripcion.trim(),
         cantidad: Number(form.cantidad),
         unidad: form.unidad,
-        foto: fotosFinales, // Se guarda como Array en Firebase Realtime Database
+        foto: fotosFinales, // Se guarda como Array en Firebase
       });
 
       setSubiendo(false);
@@ -136,32 +141,54 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
   const catActual = CATEGORIAS.find((c) => c.id === form.categoria);
   const procesando = cargandoFoto || subiendo;
 
+  // Manejo de degradado dinámico de la cabecera según el tipo seleccionado
+  const headerBg = esEdicion 
+    ? "linear-gradient(135deg,#C8993A,#E8B84B)" 
+    : form.tipo === "ingreso" 
+      ? "linear-gradient(135deg,#0D714C,#10B981)" 
+      : form.tipo === "egreso"
+        ? "linear-gradient(135deg,#B91C1C,#F97316)"
+        : "linear-gradient(135deg,#1E40AF,#2563EB)"; // Azul robusto para Stock Inicial
+
   return (
     <div style={overlay}>
       <div style={modal}>
-        <div style={{ background: esEdicion ? "linear-gradient(135deg,#C8993A,#E8B84B)" : "linear-gradient(135deg,#1A3A5C,#2E7DC4)", borderRadius: "14px 14px 0 0", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ background: headerBg, borderRadius: "14px 14px 0 0", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "background 0.3s ease" }}>
           <div>
             <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>{seccionNombre}</div>
-            <div style={{ color: "#fff", fontSize: 17, fontWeight: 700, marginTop: 2 }}>{esEdicion ? "✏️ Editar Movimiento" : "Nueva Carga de Remito"}</div>
+            <div style={{ color: "#fff", fontSize: 17, fontWeight: 700, marginTop: 2 }}>
+              {esEdicion ? "✏️ Editar Movimiento" : form.tipo === "inicial" ? "💾 Carga de Stock Inicial" : "Nueva Carga de Remito"}
+            </div>
           </div>
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
         <div style={{ padding: "22px", overflowY: "auto", maxHeight: "68vh", display: "flex", flexDirection: "column", gap: 14 }}>
+          
+          {/* Selector de Tipo de Movimiento con Triple Opción */}
           <div style={fieldGroup}>
             <label style={labelStyle}>Tipo de movimiento</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[{ v: "ingreso", l: "📥 Ingreso" }, { v: "egreso", l: "📤 Egreso" }].map(({ v, l }) => (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                { v: "ingreso", l: "📥 Ingreso", color: "#059669", bg: "#D1FAE5" },
+                { v: "egreso", l: "📤 Egreso", color: "#DC2626", bg: "#FEE2E2" },
+                { v: "inicial", l: "💾 Stock Inicial", color: "#2563EB", bg: "#DBEAFE" }
+              ].map(({ v, l, color, bg }) => (
                 <button
                   key={v}
                   onClick={() => set("tipo", v)}
                   style={{
-                    flex: 1, padding: "10px",
-                    border: `2px solid ${form.tipo === v ? (v === "ingreso" ? "#059669" : "#DC2626") : "#E2E8F0"}`,
+                    flex: 1,
+                    minWidth: "100px",
+                    padding: "10px",
+                    border: `2px solid ${form.tipo === v ? color : "#E2E8F0"}`,
                     borderRadius: 8,
-                    background: form.tipo === v ? (v === "ingreso" ? "#D1FAE5" : "#FEE2E2") : "#F8FAFC",
-                    color: form.tipo === v ? (v === "ingreso" ? "#059669" : "#DC2626") : "#64748B",
-                    fontWeight: 700, cursor: "pointer", fontSize: 13,
+                    background: form.tipo === v ? bg : "#F8FAFC",
+                    color: form.tipo === v ? color : "#64748B",
+                    fontWeight: 700, 
+                    cursor: "pointer", 
+                    fontSize: 12,
+                    transition: "all 0.2s",
                   }}
                 >
                   {l}
@@ -176,14 +203,22 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
               <input type="date" value={form.fecha} onChange={(e) => set("fecha", e.target.value)} style={inputStyle} />
             </div>
             <div style={fieldGroup}>
-              <label style={labelStyle}>N° Remito</label>
-              <input type="text" placeholder="REM-0001" value={form.nroRemito} onChange={(e) => set("nroRemito", e.target.value)} style={inputStyle} />
+              <label style={labelStyle}>N° Remito / Comprobante</label>
+              <input type="text" placeholder={form.tipo === "inicial" ? "Opcional (Ej: Ajuste-01)" : "REM-0001"} value={form.nroRemito} onChange={(e) => set("nroRemito", e.target.value)} style={inputStyle} />
             </div>
           </div>
 
           <div style={fieldGroup}>
-            <label style={labelStyle}>Proveedor / Origen</label>
-            <input type="text" placeholder="Nombre o procedencia" value={form.proveedor} onChange={(e) => set("proveedor", e.target.value)} style={inputStyle} />
+            <label style={labelStyle}>
+              {form.tipo === "inicial" ? "Ubicación / Depósito" : "Proveedor / Origen"}
+            </label>
+            <input 
+              type="text" 
+              placeholder={form.tipo === "inicial" ? "Ej: Depósito Central (Opcional)" : "Nombre o procedencia"} 
+              value={form.proveedor} 
+              onChange={(e) => set("proveedor", e.target.value)} 
+              style={inputStyle} 
+            />
           </div>
 
           <div style={fieldGroup}>
@@ -196,13 +231,13 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
           </div>
 
           <div style={fieldGroup}>
-            <label style={labelStyle}>{catActual?.icon} Descripción</label>
+            <label style={labelStyle}>{catActual?.icon} Descripción del Artículo</label>
             <input type="text" placeholder={`Ej: ${catActual?.label} 2.44m`} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} style={inputStyle} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={fieldGroup}>
-              <label style={labelStyle}>Cantidad</label>
+              <label style={labelStyle}>Cantidad {form.tipo === "inicial" ? "Existente" : ""}</label>
               <input type="number" min="1" placeholder="0" value={form.cantidad} onChange={(e) => set("cantidad", e.target.value)} style={inputStyle} />
             </div>
             <div style={fieldGroup}>
@@ -215,14 +250,13 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
 
           <div style={fieldGroup}>
             <label style={labelStyle}>Observaciones</label>
-            <textarea placeholder="Notas adicionales..." value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} />
+            <textarea placeholder="Notas adicionales sobre este registro..." value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} />
           </div>
 
           {/* ── SECCIÓN MULTI-FOTO ── */}
           <div style={fieldGroup}>
             <label style={labelStyle}>📷 Fotos adjuntas ({form.listaFotos.length})</label>
 
-            {/* Grilla con miniaturas de las fotos cargadas */}
             {form.listaFotos.length > 0 && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 {form.listaFotos.map((foto) => (
@@ -240,7 +274,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
               </div>
             )}
 
-            {/* Zona de Arrastre Dropzone */}
             <div
               onDragOver={(e) => { e.preventDefault(); setArrastrandoFoto(true); }}
               onDragLeave={() => setArrastrandoFoto(false)}
@@ -258,12 +291,11 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
                 <>
                   <div style={{ fontSize: 26, marginBottom: 4 }}>📄📌</div>
                   <div style={{ color: "#475569", fontSize: 12, fontWeight: 600 }}>Arrastrá una o más fotos acá</div>
-                  <div style={{ color: "#94A3B8", fontSize: 10, marginTop: 2 }}>Podés agregar múltiples capturas de corrido</div>
+                  <div style={{ color: "#94A3B8", fontSize: 10, marginTop: 2 }}>Opcional para justificar el stock actual</div>
                 </>
               )}
             </div>
 
-            {/* Botonera de carga */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button
                 onClick={() => fileInputGaleriaRef.current.click()}
@@ -281,13 +313,12 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
               </button>
             </div>
 
-            {/* Inputs ocultos nativos con propiedad "multiple" habilitada */}
             <input ref={fileInputGaleriaRef} type="file" accept="image/*" multiple onChange={handleInputChange} style={{ display: "none" }} />
             <input ref={fileInputCamaraRef} type="file" accept="image/*" capture="environment" multiple onChange={handleInputChange} style={{ display: "none" }} />
           </div>
 
           {error && <div style={{ color: "#DC2626", background: "#FEE2E2", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⚠️ {error}</div>}
-          {subiendo && <div style={{ color: "#2E7DC4", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⏳ Registrando remito en tiempo real...</div>}
+          {subiendo && <div style={{ color: "#2E7DC4", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⏳ Registrando movimiento en base de datos...</div>}
         </div>
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10 }}>
