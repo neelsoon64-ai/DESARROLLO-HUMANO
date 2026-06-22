@@ -25,7 +25,7 @@ export default function App() {
   // Estado local para forzar el re-render del reloj de sincronización cada segundo
   const [, setTick] = useState(0);
 
-  const todoCargado = usuariosListo && nacionListo && provinciaListo && auditoriaListo;
+  const todoCargado = !!(usuariosListo && nacionListo && provinciaListo && auditoriaListo);
 
   const registrarAuditoria = useCallback(
     (evento) => {
@@ -50,7 +50,9 @@ export default function App() {
   }, []);
 
   const logout = () => {
-    registrarAuditoria({ tipo: "logout", usuario: usuarioActual.nombre, rol: usuarioActual.rol, detalle: "Cerró sesión" });
+    if (usuarioActual) {
+      registrarAuditoria({ tipo: "logout", usuario: usuarioActual.nombre, rol: usuarioActual.rol, detalle: "Cerró sesión" });
+    }
     setUsuarioActual(null);
     setMenuAbierto(false);
   };
@@ -68,6 +70,7 @@ export default function App() {
 
   const esAdmin = usuarioActual?.rol === "admin";
 
+  // 🛡️ CONTROL DE CARGA INICIAL ANTES DE CUALQUIER LOGICA DE RENDERS
   if (!todoCargado) {
     return (
       <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0F2540,#1A3A5C,#2E7DC4)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
@@ -90,11 +93,15 @@ export default function App() {
     return `${Math.floor(diff / 60)}m`;
   })();
 
-  // 🛡️ Aseguramos que los movimientos sean arrays iterables antes de calcular KPIs
+  // 🛡️ Aseguramos que los movimientos sean arrays iterables de manera segura usando encadenamiento opcional
   const nacionMovs = nacion && Array.isArray(nacion.movimientos) ? nacion.movimientos : [];
   const provinciaMovs = provincia && Array.isArray(provincia.movimientos) ? provincia.movimientos : [];
   const auditoriaLogs = Array.isArray(auditoria) ? auditoria : [];
   const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
+
+  // Mapeos seguros previniendo campos corruptos o nulos
+  const articulosNacionUnicos = new Set(nacionMovs.filter(m => m && m.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
+  const articulosProvinciaUnicos = new Set(provinciaMovs.filter(m => m && m.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "'Inter',system-ui,sans-serif" }}>
@@ -105,7 +112,7 @@ export default function App() {
             <img src={logo} alt="Logo" style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }} />
             <div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 8, letterSpacing: 2.5, fontWeight: 700 }}>SISTEMA DE GESTIÓN</div>
-              <div style={{ color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>Ministerio de Desarrollo Humano</div>
+              <div style={{ color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>Secretaría de Trabajo</div>
             </div>
           </div>
 
@@ -118,7 +125,7 @@ export default function App() {
             <div style={{ position: "relative" }}>
               <button onClick={() => setMenuAbierto((m) => !m)} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10, padding: "6px 10px", cursor: "pointer", color: "#fff" }}>
                 <div style={{ width: 26, height: 26, borderRadius: 7, background: esAdmin ? "linear-gradient(135deg,#C8993A,#E8B84B)" : "linear-gradient(135deg,#2E7DC4,#4DA3D4)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
-                  {usuarioActual.nombre.charAt(0)}
+                  {usuarioActual?.nombre ? usuarioActual.nombre.charAt(0) : "U"}
                 </div>
                 <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}>▼</span>
               </button>
@@ -126,7 +133,7 @@ export default function App() {
               {menuAbierto && (
                 <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.2)", padding: "8px", minWidth: 210, zIndex: 300 }}>
                   <div style={{ padding: "8px 12px 12px", borderBottom: "1px solid #F1F5F9", marginBottom: 4 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "#1E293B" }}>{usuarioActual.nombre}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "#1E293B" }}>{usuarioActual?.nombre}</div>
                     <div style={{ fontSize: 11, color: "#64748B" }}>{esAdmin ? "🔑 Administrador" : "👤 Usuario"}</div>
                   </div>
                   {esAdmin && (
@@ -169,11 +176,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* KPIs */}
+        {/* KPIs protegidos contra errores de mapeo */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
           {[
-            { label: "Artículos Nación", value: new Set(nacionMovs.map((m) => `${m.categoria}||${m.descripcion}`)).size, icon: "🏛️", color: "#1A3A5C" },
-            { label: "Artículos Provincia", value: new Set(provinciaMovs.map((m) => `${m.categoria}||${m.descripcion}`)).size, icon: "🏢", color: "#2E7DC4" },
+            { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
+            { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
             { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
           ].map((stat) => (
             <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
@@ -194,7 +201,7 @@ export default function App() {
         <Seccion nombre="Inventario — Provincia" color="#1B6EB5" colorClaro="#4DA3D4" datos={{ movimientos: provinciaMovs }} onCarga={() => setModalCarga("provincia")} onActualizar={setProvincia} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoriaLogs} />
 
         <div style={{ textAlign: "center", color: "#94A3B8", fontSize: 11, paddingBottom: 8 }}>
-          Ministerio de Desarrollo Humano · Sistema de Control de Inventario
+          Secretaría de Trabajo · Sistema de Control de Inventario
         </div>
       </div>
 
@@ -203,12 +210,12 @@ export default function App() {
           seccionNombre={modalCarga === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           onClose={() => setModalCarga(null)}
           onGuardar={(carga) => {
-            const conUsuario = { ...carga, cargadoPor: usuarioActual.nombre };
+            const conUsuario = { ...carga, cargadoPor: usuarioActual?.nombre || "Desconocido" };
             agregarCarga(modalCarga, conUsuario);
             registrarAuditoria({
               tipo: "carga",
-              usuario: usuarioActual.nombre,
-              rol: usuarioActual.rol,
+              usuario: usuarioActual?.nombre || "Desconocido",
+              rol: usuarioActual?.rol || "usuario",
               detalle: `Cargó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) en ${modalCarga === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
             });
             setModalCarga(null);
