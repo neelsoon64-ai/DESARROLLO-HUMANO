@@ -11,8 +11,8 @@ import logo from "./assets/logo.png";
 
 export default function App() {
   const [usuarios, setUsuarios, usuariosListo] = useSharedState(COLECCION, DOC_IDS.usuarios, USUARIOS_INICIALES);
-  const [nacion, setNacion, nacionListo] = useSharedState(COLECCION, DOC_IDS.nacion, { movimientos: [] });
-  const [provincia, setProvincia, provinciaListo] = useSharedState(COLECCION, DOC_IDS.provincia, { movimientos: [] });
+  const [nacion, setNacion, nacionListo] = useSharedState(COLECCION, DOC_IDS.nacion, { movimientos: {} });
+  const [provincia, setProvincia, provinciaListo] = useSharedState(COLECCION, DOC_IDS.provincia, { movimientos: {} });
   
   // 🔄 Conectado a Firebase para historial compartido entre dispositivos
   const [auditoriaRaw, setAuditoriaRaw, auditoriaListo] = useSharedState(COLECCION, DOC_IDS.auditoria, []);
@@ -96,9 +96,11 @@ export default function App() {
     (seccion, carga) => {
       const setter = seccion === "nacion" ? setNacion : setProvincia;
       
-      // 🛡️ SANITIZACIÓN CRÍTICA: Previene que valores vacíos o undefined rompan Firebase en otras PCs
+      // Generamos una llave/ID único forzado como string para evitar arrays rotos en Realtime DB
+      const idMovimiento = String(carga?.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5));
+
       const movimientoSeguro = {
-        id: String(carga?.id || Date.now()),
+        id: idMovimiento,
         descripcion: String(carga?.descripcion || "Sin descripción"),
         categoria: String(carga?.categoria || "General"),
         cantidad: Number(carga?.cantidad || 0),
@@ -109,10 +111,31 @@ export default function App() {
       };
 
       setter((prev) => {
-        const actuales = prev && Array.isArray(prev.movimientos) 
-          ? prev.movimientos.filter(m => m !== null && m !== undefined) 
-          : [];
-        return { ...prev, movimientos: [...actuales, movimientoSeguro] };
+        // En Realtime Database los datos pueden bajar como objeto indexado o transformarse. 
+        // Inicializamos siempre un diccionario/objeto limpio.
+        let movimientosPrevios = {};
+        
+        if (prev && prev.movimientos) {
+          if (Array.isArray(prev.movimientos)) {
+            // Si vino como Array, lo convertimos a Objeto usando su ID o índice como llave
+            prev.movimientos.forEach((m, idx) => {
+              if (m) {
+                const key = m.id || `key_${idx}`;
+                movimientosPrevios[key] = m;
+              }
+            });
+          } else if (typeof prev.movimientos === "object") {
+            movimientosPrevios = { ...prev.movimientos };
+          }
+        }
+
+        // Insertamos el nuevo remito directamente sobre su clave ID
+        movimientosPrevios[idMovimiento] = movimientoSeguro;
+
+        return {
+          ...prev,
+          movimientos: movimientosPrevios
+        };
       });
     },
     [setNacion, setProvincia]
@@ -159,13 +182,14 @@ export default function App() {
     return `${Math.floor(diff / 60)}m`;
   })();
 
-  // 🛡️ PARCHE ANTICRASH DIRECTO: Sanitiza las listas de movimientos antes del renderizado
-  const nacionMovs = nacion && Array.isArray(nacion.movimientos) 
-    ? nacion.movimientos.filter(m => m !== null && m !== undefined) 
+  // 🛡️ PARCHE ANTICRASH Y ADAPTADOR PARA REALTIME DB: 
+  // Extrae los valores del objeto en Firebase y los expone como un Array limpio para las tablas de <Seccion />
+  const nacionMovs = nacion && nacion.movimientos
+    ? (Array.isArray(nacion.movimientos) ? nacion.movimientos : Object.values(nacion.movimientos)).filter(m => m !== null && m !== undefined)
     : [];
     
-  const provinciaMovs = provincia && Array.isArray(provincia.movimientos) 
-    ? provincia.movimientos.filter(m => m !== null && m !== undefined) 
+  const provinciaMovs = provincia && provincia.movimientos
+    ? (Array.isArray(provincia.movimientos) ? provincia.movimientos : Object.values(provincia.movimientos)).filter(m => m !== null && m !== undefined)
     : [];
     
   const auditoriaLogs = auditoria;
@@ -179,7 +203,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "'Inter',system-ui,sans-serif" }}>
-      {/* Navbar */}
+      {/* Navbar Único Institucional */}
       <div style={{ background: "linear-gradient(135deg,#0F2540,#1A3A5C)", position: "sticky", top: 0, zIndex: 200, boxShadow: "0 2px 16px rgba(0,0,0,0.3)" }}>
         <div style={{ maxWidth: 920, margin: "0 auto", padding: "13px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
