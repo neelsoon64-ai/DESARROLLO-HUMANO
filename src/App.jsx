@@ -14,8 +14,8 @@ export default function App() {
   const [nacion, setNacion, nacionListo] = useSharedState(COLECCION, DOC_IDS.nacion, { movimientos: [] });
   const [provincia, setProvincia, provinciaListo] = useSharedState(COLECCION, DOC_IDS.provincia, { movimientos: [] });
   
-  // 🔄 Conectado nuevamente a Firebase con persistencia e historial compartido
-  const [auditoria, setAuditoria, auditoriaListo] = useSharedState(COLECCION, DOC_IDS.auditoria, []);
+  // 🔄 Conectado a Firebase para historial compartido entre dispositivos
+  const [auditoriaRaw, setAuditoriaRaw, auditoriaListo] = useSharedState(COLECCION, DOC_IDS.auditoria, []);
 
   const [usuarioActual, setUsuarioActual] = useState(null);
   const [modalCarga, setModalCarga] = useState(null);
@@ -27,13 +27,35 @@ export default function App() {
   // Estado local para forzar el re-render del reloj de sincronización cada segundo
   const [, setTick] = useState(0);
 
+  // 🛡️ Wrapper de seguridad: Sanitiza los datos de auditoría previniendo la inserción de valores corruptos
+  const auditoria = Array.isArray(auditoriaRaw) 
+    ? auditoriaRaw.filter(log => log !== null && log !== undefined) 
+    : [];
+
+  const setAuditoria = useCallback((actualizador) => {
+    if (!setAuditoriaRaw) return;
+    setAuditoriaRaw((prev) => {
+      const previoValido = Array.isArray(prev) ? prev.filter(log => log !== null && log !== undefined) : [];
+      const siguiente = typeof actualizador === "function" ? actualizador(previoValido) : actualizador;
+      
+      // Sanitiza estrictamente cada campo convirtiéndolo a String plano
+      return (Array.isArray(siguiente) ? siguiente : [])
+        .filter(log => log !== null && log !== undefined)
+        .map(log => ({
+          tipo: String(log?.tipo || "accion"),
+          usuario: String(log?.usuario || "Sistema"),
+          rol: String(log?.rol || "sistema"),
+          detalle: String(log?.detalle || "Acción registrada"),
+          fecha: String(log?.fecha || new Date().toISOString())
+        }));
+    });
+  }, [setAuditoriaRaw]);
+
   const todoCargado = !!(usuariosListo && nacionListo && provinciaListo && auditoriaListo);
 
-  // 🛡️ Guardado seguro convirtiendo todo a String para blindar la base de datos contra valores undefined
+  // 🛡️ Guardado seguro que despacha el evento sanitizado
   const registrarAuditoria = useCallback(
     (evento) => {
-      if (!setAuditoria) return;
-
       const eventoSeguro = {
         tipo: String(evento?.tipo || "accion"),
         usuario: String(evento?.usuario || usuarioActual?.nombre || "Sistema"),
@@ -42,7 +64,7 @@ export default function App() {
         fecha: new Date().toISOString()
       };
 
-      setAuditoria((prev) => [...(Array.isArray(prev) ? prev : []), eventoSeguro]);
+      setAuditoria((prev) => [...prev, eventoSeguro]);
     },
     [setAuditoria, usuarioActual]
   );
@@ -52,7 +74,7 @@ export default function App() {
     if (todoCargado) {
       setUltimaSync(new Date());
     }
-  }, [nacion, provincia, usuarios, auditoria, todoCargado]);
+  }, [nacion, provincia, usuarios, auditoriaRaw, todoCargado]);
 
   // Timer para que el contador de "Sincronizado hace x segundos" se actualice en vivo
   useEffect(() => {
@@ -124,7 +146,7 @@ export default function App() {
 
   const nacionMovs = nacion && Array.isArray(nacion.movimientos) ? nacion.movimientos : [];
   const provinciaMovs = provincia && Array.isArray(provincia.movimientos) ? provincia.movimientos : [];
-  const auditoriaLogs = Array.isArray(auditoria) ? auditoria : [];
+  const auditoriaLogs = auditoria;
   const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
 
   const articulosNacionUnicos = new Set(nacionMovs.filter(m => m && m.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
