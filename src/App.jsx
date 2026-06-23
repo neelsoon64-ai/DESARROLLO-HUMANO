@@ -14,9 +14,8 @@ export default function App() {
   const [nacion, setNacion, nacionListo] = useSharedState(COLECCION, DOC_IDS.nacion, { movimientos: [] });
   const [provincia, setProvincia, provinciaListo] = useSharedState(COLECCION, DOC_IDS.provincia, { movimientos: [] });
   
-  // 🛡️ BYPASS DE EMERGENCIA: Desconectamos la auditoría de Firebase temporalmente para saltar el error
-  const [auditoria, setAuditoria] = useState([]);
-  const auditoriaListo = true;
+  // 🔄 Conectado nuevamente a Firebase con persistencia e historial compartido
+  const [auditoria, setAuditoria, auditoriaListo] = useSharedState(COLECCION, DOC_IDS.auditoria, []);
 
   const [usuarioActual, setUsuarioActual] = useState(null);
   const [modalCarga, setModalCarga] = useState(null);
@@ -30,20 +29,22 @@ export default function App() {
 
   const todoCargado = !!(usuariosListo && nacionListo && provinciaListo && auditoriaListo);
 
-  // 🛡️ Guardado local seguro adaptado al bypass
+  // 🛡️ Guardado seguro convirtiendo todo a String para blindar la base de datos contra valores undefined
   const registrarAuditoria = useCallback(
     (evento) => {
+      if (!setAuditoria) return;
+
       const eventoSeguro = {
-        tipo: evento?.tipo || "accion",
-        usuario: evento?.usuario || usuarioActual?.nombre || "Sistema",
-        rol: evento?.rol || usuarioActual?.rol || "sistema",
-        detalle: evento?.detalle || "Acción del sistema",
+        tipo: String(evento?.tipo || "accion"),
+        usuario: String(evento?.usuario || usuarioActual?.nombre || "Sistema"),
+        rol: String(evento?.rol || usuarioActual?.rol || "sistema"),
+        detalle: String(evento?.detalle || "Acción del sistema"),
         fecha: new Date().toISOString()
       };
 
       setAuditoria((prev) => [...(Array.isArray(prev) ? prev : []), eventoSeguro]);
     },
-    [usuarioActual]
+    [setAuditoria, usuarioActual]
   );
 
   // Monitorea cambios en los datos para actualizar la estampa de tiempo
@@ -82,21 +83,37 @@ export default function App() {
 
   const esAdmin = usuarioActual?.rol === "admin";
 
-  // 🛡️ CONTROL DE CARGA INICIAL ANTES DE CUALQUIER LOGICA DE RENDERS
-  if (!todoCargado) {
+  // ⚡ CONTROL DE CARGA INTELIGENTE: Si la lista de usuarios ya bajó, mostramos el Login al toque.
+  if (!usuariosListo) {
     return (
       <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0F2540,#1A3A5C,#2E7DC4)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
         <img src={logo} alt="Logo" style={{ width: 64, height: 64, objectFit: "contain", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} />
-        <div style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>Cargando sistema...</div>
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Sincronizando datos compartidos</div>
+        <div style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>Iniciando componentes...</div>
+        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Conectando con el servidor de la Secretaría</div>
         <div style={{ width: 120, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 10, position: "relative", overflow: "hidden", marginTop: 4 }}>
-          <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: "60%", background: "#C8993A", borderRadius: 10 }} />
+          <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: "40%", background: "#C8993A", borderRadius: 10 }} />
         </div>
       </div>
     );
   }
 
-  if (!usuarioActual) return <Login usuarios={Array.isArray(usuarios) ? usuarios : USUARIOS_INICIALES} onLogin={setUsuarioActual} onAudit={registrarAuditoria} />;
+  // Si no hay sesión iniciada, va directo al Login sin bloquearse esperando los remitos pesados.
+  if (!usuarioActual) {
+    return <Login usuarios={Array.isArray(usuarios) ? usuarios : USUARIOS_INICIALES} onLogin={setUsuarioActual} onAudit={registrarAuditoria} />;
+  }
+
+  // Si ya se logueó pero las planillas siguen descargándose de Firebase en segundo plano:
+  if (!todoCargado) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F1F5F9", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <div style={{ color: "#1A3A5C", fontSize: 15, fontWeight: 700 }}>Sincronizando base de datos...</div>
+        <div style={{ color: "#64748B", fontSize: 12 }}>Descargando planillas de Nación y Provincia</div>
+        <div style={{ width: 160, height: 4, background: "#E2E8F0", borderRadius: 10, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: "75%", background: "#2E7DC4", borderRadius: 10 }} />
+        </div>
+      </div>
+    );
+  }
 
   const sincLabel = (() => {
     const diff = Math.floor((new Date() - ultimaSync) / 1000);
