@@ -95,9 +95,24 @@ export default function App() {
   const agregarCarga = useCallback(
     (seccion, carga) => {
       const setter = seccion === "nacion" ? setNacion : setProvincia;
+      
+      // 🛡️ SANITIZACIÓN CRÍTICA: Previene que valores vacíos o undefined rompan Firebase en otras PCs
+      const movimientoSeguro = {
+        id: String(carga?.id || Date.now()),
+        descripcion: String(carga?.descripcion || "Sin descripción"),
+        categoria: String(carga?.categoria || "General"),
+        cantidad: Number(carga?.cantidad || 0),
+        unidad: String(carga?.unidad || "unidades"),
+        nroRemito: String(carga?.nroRemito || "s/n"),
+        fechaCarga: String(carga?.fechaCarga || new Date().toISOString()),
+        cargadoPor: String(carga?.cargadoPor || "Desconocido")
+      };
+
       setter((prev) => {
-        const actuales = prev && Array.isArray(prev.movimientos) ? prev.movimientos : [];
-        return { ...prev, movimientos: [...actuales, carga] };
+        const actuales = prev && Array.isArray(prev.movimientos) 
+          ? prev.movimientos.filter(m => m !== null && m !== undefined) 
+          : [];
+        return { ...prev, movimientos: [...actuales, movimientoSeguro] };
       });
     },
     [setNacion, setProvincia]
