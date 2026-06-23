@@ -27,11 +27,20 @@ export default function App() {
 
   const todoCargado = !!(usuariosListo && nacionListo && provinciaListo && auditoriaListo);
 
+  // 🛡️ CORRECCIÓN CLAVE: Blindaje anti-undefined para Firebase Realtime Database
   const registrarAuditoria = useCallback(
     (evento) => {
-      setAuditoria((prev) => [...(Array.isArray(prev) ? prev : []), { ...evento, fecha: new Date().toISOString() }]);
+      const eventoSeguro = {
+        tipo: evento?.tipo || "accion",
+        usuario: evento?.usuario || usuarioActual?.nombre || "Sistema",
+        rol: evento?.rol || usuarioActual?.rol || "sistema",
+        detalle: evento?.detalle || "Acción del sistema",
+        fecha: new Date().toISOString()
+      };
+
+      setAuditoria((prev) => [...(Array.isArray(prev) ? prev : []), eventoSeguro]);
     },
-    [setAuditoria]
+    [setAuditoria, usuarioActual]
   );
 
   // Monitorea cambios en los datos para actualizar la estampa de tiempo
@@ -176,7 +185,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* KPIs protegidos contra errores de mapeo */}
+        {/* KPIs protegidos */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
           {[
             { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
