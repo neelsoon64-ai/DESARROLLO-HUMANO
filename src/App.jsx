@@ -111,7 +111,7 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0F2540,#1A3A5C,#2E7DC4)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
         <img src={logo} alt="Logo" style={{ width: 64, height: 64, objectFit: "contain", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} />
         <div style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>Iniciando componentes...</div>
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Conectando con el servidor de la Secretaría</div>
+        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Conectando con el servidor del Ministerio</div>
         <div style={{ width: 120, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 10, position: "relative", overflow: "hidden", marginTop: 4 }}>
           <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: "40%", background: "#C8993A", borderRadius: 10 }} />
         </div>
@@ -144,10 +144,20 @@ export default function App() {
     return `${Math.floor(diff / 60)}m`;
   })();
 
-  const nacionMovs = nacion && Array.isArray(nacion.movimientos) ? nacion.movimientos : [];
-  const provinciaMovs = provincia && Array.isArray(provincia.movimientos) ? provincia.movimientos : [];
+  // 🛡️ PARCHE ANTICRASH DIRECTO: Sanitiza las listas de movimientos antes del renderizado
+  const nacionMovs = nacion && Array.isArray(nacion.movimientos) 
+    ? nacion.movimientos.filter(m => m !== null && m !== undefined) 
+    : [];
+    
+  const provinciaMovs = provincia && Array.isArray(provincia.movimientos) 
+    ? provincia.movimientos.filter(m => m !== null && m !== undefined) 
+    : [];
+    
   const auditoriaLogs = auditoria;
-  const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
+  
+  const listaUsuarios = Array.isArray(usuarios) 
+    ? usuarios.filter(u => u !== null && u !== undefined) 
+    : [];
 
   const articulosNacionUnicos = new Set(nacionMovs.filter(m => m && m.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
   const articulosProvinciaUnicos = new Set(provinciaMovs.filter(m => m && m.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
@@ -161,7 +171,7 @@ export default function App() {
             <img src={logo} alt="Logo" style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }} />
             <div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 8, letterSpacing: 2.5, fontWeight: 700 }}>SISTEMA DE GESTIÓN</div>
-              <div style={{ color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>Secretaría de Trabajo</div>
+              <div style={{ color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>Min. de Desarrollo Humano</div>
             </div>
           </div>
 
@@ -250,7 +260,7 @@ export default function App() {
         <Seccion nombre="Inventario — Provincia" color="#1B6EB5" colorClaro="#4DA3D4" datos={{ movimientos: provinciaMovs }} onCarga={() => setModalCarga("provincia")} onActualizar={setProvincia} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoriaLogs} />
 
         <div style={{ textAlign: "center", color: "#94A3B8", fontSize: 11, paddingBottom: 8 }}>
-          Secretaría de Trabajo · Sistema de Control de Inventario
+          Ministerio de Desarrollo Humano · Sistema de Control de Inventario
         </div>
       </div>
 
