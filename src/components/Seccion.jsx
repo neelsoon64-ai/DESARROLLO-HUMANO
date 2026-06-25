@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { utils, writeFile } from "xlsx";
 
-export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, usuarioActual, onAudit }) {
+export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, onVerDetalle, usuarioActual, onAudit }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
   const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
