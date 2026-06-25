@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { utils, writeFile } from "xlsx";
 
-export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onActualizar, usuarioActual, onAudit }) {
+export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, usuarioActual, onAudit }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
   const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
 
-  // 🛡️ ADAPTADOR CRÍTICO: Convierte objetos mutados de Realtime DB a Array plano
+  // 🛡️ ADAPTADOR CRÍTICO: Convierte objetos de Realtime DB a Array plano
   const movimientos = (() => {
     if (!datos || !datos.movimientos) return [];
     if (Array.isArray(datos.movimientos)) return datos.movimientos.filter(Boolean);
     if (typeof datos.movimientos === "object") return Object.values(datos.movimientos).filter(Boolean);
     return [];
   })();
+
+  const esAdmin = usuarioActual?.rol === "admin";
 
   // Procesar stock consolidado (Agrupar por Categoría + Descripción)
   const stockConsolidado = {};
@@ -47,7 +49,6 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
       return coincideBusqueda && coincideCategoria;
     });
 
-  // Exportar Excel nativo con xlsx
   const exportarExcel = () => {
     const dataExport = pestaña === "stock" 
       ? stockFiltrado.map(i => ({ Categoría: i.categoria, Descripción: i.descripcion, Cantidad: i.cantidad, Unidad: i.unidad }))
@@ -60,16 +61,28 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
     if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó Excel de ${nombre} (${pestaña})` });
   };
 
-  // Generador de PDF nativo ultra-liviano usando la función de impresión del sistema organizada
   const exportarPDF = () => {
     window.print();
-    if (onAudit) onAudit({ tipo: "exportar", detalle: `Abrió panel de impresión PDF de ${nombre} (${pestaña})` });
+    if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó PDF/Impresión de ${nombre} (${pestaña})` });
   };
 
   return (
-    <div className="no-print" style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", overflow: "hidden", border: "1px solid #E2E8F0" }}>
+    <div className="seccion-contenedor" style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", overflow: "hidden", border: "1px solid #E2E8F0", marginBottom: "20px" }}>
+      
+      {/* Inyección de estilos CSS dinámicos para corregir la exportación del PDF */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; background: transparent !important; box-shadow: none !important; }
+          .seccion-contenedor, .seccion-contenedor * { visibility: visible; }
+          .seccion-contenedor { position: absolute; left: 0; top: 0; width: 100%; border: none !important; }
+          .no-print-barra, .no-print-btn, .no-print-filtros { display: none !important; }
+          table { width: 100% !important; border-collapse: collapse !important; }
+          th, td { border-bottom: 1px solid #94A3B8 !important; padding: 8px !important; }
+        }
+      `}</style>
+
       {/* Encabezado Control */}
-      <div style={{ background: `linear-gradient(135deg, ${color}, ${colorClaro})`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+      <div className="no-print-barra" style={{ background: `linear-gradient(135deg, ${color}, ${colorClaro})`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
           <h2 style={{ color: "#fff", margin: 0, fontSize: 16, fontWeight: 800 }}>{nombre}</h2>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 }}>
@@ -79,18 +92,23 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={onCarga} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}>+ Nueva Carga</button>
           <button onClick={exportarExcel} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📊 Excel</button>
-          <button onClick={exportarPDF} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📄 Imprimir PDF</button>
+          <button onClick={exportarPDF} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📄 Exportar PDF</button>
         </div>
       </div>
 
+      {/* Título invisible para el PDF Impreso */}
+      <div className="print-only" style={{ display: "none" }}>
+        <h2 style={{ fontSize: "20px", color: "#1E293B", marginBottom: "10px" }}>{nombre} - Reporte Oficial</h2>
+      </div>
+
       {/* Selectores de Pestaña */}
-      <div style={{ display: "flex", borderBottom: "1px solid #E2E8F0" }}>
+      <div className="no-print-barra" style={{ display: "flex", borderBottom: "1px solid #E2E8F0" }}>
         <button onClick={() => setPestaña("stock")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "stock" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "stock" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📦 Stock Consolidado</button>
         <button onClick={() => setPestaña("historial")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "historial" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "historial" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📜 Historial de Remitos</button>
       </div>
 
       {/* Barra de Filtros */}
-      <div style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div className="no-print-filtros" style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
         <input type="text" placeholder="Buscar por descripción..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
         <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, background: "#fff" }}>
           {categoriasUnicas.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -101,7 +119,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
       <div style={{ overflowX: "auto", padding: "8px" }}>
         {pestaña === "stock" ? (
           stockFiltrado.length === 0 ? (
-            <div style={{ padding: "32px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>No hay artículos cargados o no coinciden con la búsqueda.</div>
+            <div style={{ padding: "32px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>No hay artículos en stock.</div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
@@ -134,6 +152,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
                   <th style={{ padding: "10px" }}>Artículo</th>
                   <th style={{ padding: "10px", textAlign: "right" }}>Cantidad</th>
                   <th style={{ padding: "10px" }}>Operario</th>
+                  <th className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,6 +166,14 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
                     </td>
                     <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: "#2563EB" }}>{mov.cantidad} {mov.unidad}</td>
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
+                    <td className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>
+                      <button 
+                        onClick={() => onEditar(mov)} 
+                        style={{ padding: "4px 8px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, color: "#2563EB", cursor: "pointer", fontWeight: 600, fontSize: 11 }}
+                      >
+                        ✏️ Editar
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

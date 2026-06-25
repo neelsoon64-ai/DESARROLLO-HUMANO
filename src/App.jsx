@@ -18,7 +18,7 @@ export default function App() {
   const [auditoriaRaw, setAuditoriaRaw] = useSharedState(COLECCION, DOC_IDS.auditoria, []);
 
   const [usuarioActual, setUsuarioActual] = useState(null);
-  const [modalCarga, setModalCarga] = useState(null);
+  const [modalCarga, setModalCarga] = useState(null); // Ahora guarda objeto: { seccion: "nacion"|"provincia", datos: mov|null }
   const [panelAudit, setPanelAudit] = useState(false);
   const [panelUsers, setPanelUsers] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -216,22 +216,48 @@ export default function App() {
           ))}
         </div>
 
-        <Seccion nombre="Inventario — Nación" color="#1A3A5C" colorClaro="#2E7DC4" datos={{ movimientos: nacionMovs }} onCarga={() => setModalCarga("nacion")} onActualizar={setNacion} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoria} />
-        <Seccion nombre="Inventario — Provincia" color="#1B6EB5" colorClaro="#4DA3D4" datos={{ movimientos: provinciaMovs }} onCarga={() => setModalCarga("provincia")} onActualizar={setProvincia} usuarioActual={usuarioActual} onAudit={registrarAuditoria} auditoria={auditoria} />
+        <Seccion 
+          nombre="Inventario — Nación" 
+          color="#1A3A5C" 
+          colorClaro="#2E7DC4" 
+          datos={{ movimientos: nacionMovs }} 
+          onCarga={() => setModalCarga({ seccion: "nacion", datos: null })} 
+          onEditar={(mov) => setModalCarga({ seccion: "nacion", datos: mov })} 
+          usuarioActual={usuarioActual} 
+          onAudit={registrarAuditoria} 
+          auditoria={auditoria} 
+        />
+        
+        <Seccion 
+          nombre="Inventario — Provincia" 
+          color="#1B6EB5" 
+          colorClaro="#4DA3D4" 
+          datos={{ movimientos: provinciaMovs }} 
+          onCarga={() => setModalCarga({ seccion: "provincia", datos: null })} 
+          onEditar={(mov) => setModalCarga({ seccion: "provincia", datos: mov })} 
+          usuarioActual={usuarioActual} 
+          onAudit={registrarAuditoria} 
+          auditoria={auditoria} 
+        />
       </div>
 
       {modalCarga && (
         <ModalRemito
-          seccionNombre={modalCarga === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
+          seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
+          datosEdicion={modalCarga.datos}
           onClose={() => setModalCarga(null)}
           onGuardar={(carga) => {
-            const conUsuario = { ...carga, cargadoPor: usuarioActual?.nombre || "Desconocido" };
-            agregarCarga(modalCarga, conUsuario);
+            const conUsuario = { 
+              ...carga, 
+              id: modalCarga.datos?.id || carga.id, 
+              cargadoPor: modalCarga.datos?.cargadoPor || usuarioActual?.nombre || "Desconocido" 
+            };
+            agregarCarga(modalCarga.seccion, conUsuario);
             registrarAuditoria({
-              tipo: "carga",
+              tipo: modalCarga.datos ? "edicion" : "carga",
               usuario: usuarioActual?.nombre || "Desconocido",
               rol: usuarioActual?.rol || "usuario",
-              detalle: `Cargó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) en ${modalCarga === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
+              detalle: `${modalCarga.datos ? "Editó" : "Cargó"} "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) en ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
             });
             setModalCarga(null);
           }}

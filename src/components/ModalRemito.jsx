@@ -3,8 +3,10 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { comprimirImagen, subirFotoRemito } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimientoEditar, esEdicion }) {
-  const inicial = movimientoEditar || {};
+// Adaptamos las propiedades para recibir directamente datosEdicion de App.jsx
+export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
+  const inicial = datosEdicion || {};
+  const esEdicion = !!datosEdicion; // Si viene con datos, se activa el modo edición de forma automática
   
   // Normalizamos las fotos existentes para asegurarnos de que siempre sea un Array limpio
   const fotosIniciales = Array.isArray(inicial.foto) 
@@ -101,7 +103,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
       return setError("Ingresá una cantidad válida.");
     setError("");
 
-    const id = movimientoEditar?.id || generarId();
+    const id = inicial?.id || generarId();
     setSubiendo(true);
 
     try {
@@ -117,7 +119,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
         : form.proveedor.trim();
 
       onGuardar({
-        ...(movimientoEditar || { id }),
+        ...inicial,
+        id,
         fecha: new Date(form.fecha).toISOString(),
         nroRemito: form.nroRemito,
         proveedor: proveedorFinal,
@@ -141,14 +144,14 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
   const catActual = CATEGORIAS.find((c) => c.id === form.categoria);
   const procesando = cargandoFoto || subiendo;
 
-  // Manejo de degradado dinámico de la cabecera según el tipo seleccionado
+  // Manejo de degradado dinámico de la cabecera según el tipo seleccionado u orden de edición
   const headerBg = esEdicion 
-    ? "linear-gradient(135deg,#C8993A,#E8B84B)" 
+    ? "linear-gradient(135deg,#C8993A,#E8B84B)" // Dorado para edición
     : form.tipo === "ingreso" 
       ? "linear-gradient(135deg,#0D714C,#10B981)" 
       : form.tipo === "egreso"
         ? "linear-gradient(135deg,#B91C1C,#F97316)"
-        : "linear-gradient(135deg,#1E40AF,#2563EB)"; // Azul robusto para Stock Inicial
+        : "linear-gradient(135deg,#1E40AF,#2563EB)"; // Azul para Stock Inicial
 
   return (
     <div style={overlay}>
@@ -176,6 +179,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
               ].map(({ v, l, color, bg }) => (
                 <button
                   key={v}
+                  disabled={esEdicion} // Deshabilitado en edición para mantener consistencia histórica del remito
                   onClick={() => set("tipo", v)}
                   style={{
                     flex: 1,
@@ -186,9 +190,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
                     background: form.tipo === v ? bg : "#F8FAFC",
                     color: form.tipo === v ? color : "#64748B",
                     fontWeight: 700, 
-                    cursor: "pointer", 
+                    cursor: esEdicion ? "not-allowed" : "pointer", 
                     fontSize: 12,
                     transition: "all 0.2s",
+                    opacity: esEdicion && form.tipo !== v ? 0.4 : 1
                   }}
                 >
                   {l}
@@ -238,7 +243,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={fieldGroup}>
               <label style={labelStyle}>Cantidad {form.tipo === "inicial" ? "Existente" : ""}</label>
-              <input type="number" min="1" placeholder="0" value={form.cantidad} onChange={(e) => set("cantidad", e.target.value)} style={inputStyle} />
+              <input type="number" min="1" placeholder="0" value={form.formatoCantidad || form.cantidad} onChange={(e) => set("cantidad", e.target.value)} style={inputStyle} />
             </div>
             <div style={fieldGroup}>
               <label style={labelStyle}>Unidad</label>
@@ -298,6 +303,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button
+                type="button"
                 onClick={() => fileInputGaleriaRef.current.click()}
                 disabled={cargandoFoto}
                 style={{ ...btnSecundario, fontSize: 12, padding: "10px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: cargandoFoto ? 0.6 : 1 }}
@@ -305,6 +311,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, movimie
                 🖼️ Añadir desde Galería
               </button>
               <button
+                type="button"
                 onClick={() => fileInputCamaraRef.current.click()}
                 disabled={cargandoFoto}
                 style={{ ...btnSecundario, fontSize: 12, padding: "10px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: cargandoFoto ? 0.6 : 1, color: "#1A3A5C", borderColor: "#BFDBFE", background: "#EFF6FF" }}
