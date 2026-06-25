@@ -103,12 +103,20 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                   <div style={{ color: "#64748B", fontSize: 11, marginTop: 4 }}>Pulse sobre cualquier captura para ampliar</div>
                 </div>
                 {fotosArray.length > 0 && (
-                  <button
-                    onClick={() => abrirZoom(fotosArray[0])}
-                    style={{ border: "1px solid #E2E8F0", background: "#F8FAFC", color: "#0F172A", borderRadius: 12, padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
-                  >
-                    🔎 Ampliar
-                  </button>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <button
+                      onClick={() => abrirZoom(fotosArray[0])}
+                      style={{ border: "1px solid #E2E8F0", background: "#F8FAFC", color: "#0F172A", borderRadius: 12, padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                    >
+                      🔎 Ampliar
+                    </button>
+                    <button
+                      onClick={() => window.open(fotosArray[0], "_blank")}
+                      style={{ border: "1px solid #E2E8F0", background: "#fff", color: "#0F172A", borderRadius: 12, padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                    >
+                      🌐 Abrir en nueva pestaña
+                    </button>
+                  </div>
                 )}
               </div>
               

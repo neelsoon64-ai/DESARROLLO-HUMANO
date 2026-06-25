@@ -3,7 +3,7 @@ import { firebaseConfigurado } from "./firebase.js";
 // ════════════════════════════════════════════════════════════════════════════
 // Compresión ULTRA AGRESIVA para forzar el guardado en la Realtime Database
 // ════════════════════════════════════════════════════════════════════════════
-export async function comprimirImagen(file, maxW = 1200, calidad = 0.8) {
+export async function comprimirImagen(file, maxW = 1600, calidad = 0.92) {
   // Conservamos la máxima legibilidad posible para fotos de remitos.
   const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -14,8 +14,8 @@ export async function comprimirImagen(file, maxW = 1200, calidad = 0.8) {
 
   if (!dataUrl || typeof dataUrl !== "string") return null;
 
-  // Si la imagen ya es pequeña, mantenemos su calidad original.
-  if (file.size <= 1000000) {
+  // Si la imagen ya es pequeña y no supera 2MB, mantenemos su calidad original.
+  if (file.size <= 2000000) {
     return dataUrl;
   }
 
