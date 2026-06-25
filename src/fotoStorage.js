@@ -1,62 +1,26 @@
-import { firebaseConfigurado } from "./firebase.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "./firebase.js";
 
-// ════════════════════════════════════════════════════════════════════════════
-// Compresión ULTRA AGRESIVA para forzar el guardado en la Realtime Database
-// ════════════════════════════════════════════════════════════════════════════
-export async function comprimirImagen(file, maxW = 1600, calidad = 0.92) {
-  // Conservamos la máxima legibilidad posible para fotos de remitos.
-  const dataUrl = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  }).catch(() => null);
-
-  if (!dataUrl || typeof dataUrl !== "string") return null;
-
-  // Si la imagen ya es pequeña y no supera 2MB, mantenemos su calidad original.
-  if (file.size <= 2000000) {
-    return dataUrl;
-  }
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (width > maxW) {
-        height = Math.round((height * maxW) / width);
-        width = maxW;
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-      }
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", calidad));
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(dataUrl);
-    };
-    img.src = url;
+export function generarPreviewDesdeArchivo(file) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onload = () => resolve(lector.result);
+    lector.onerror = () => reject(lector.error);
+    lector.readAsDataURL(file);
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Retorna el string listo para guardarse en el remito
-// ════════════════════════════════════════════════════════════════════════════
-export async function subirFotoRemito(dataUrlBase64, idMovimiento) {
-  if (!dataUrlBase64) return "";
-  return dataUrlBase64;
+export async function subirFotoRemito(file, idMovimiento, indice) {
+  if (!file) return "";
+  if (!storage) {
+    return generarPreviewDesdeArchivo(file);
+  }
+
+  const nombreSeguro = file.name ? file.name.replace(/[^a-zA-Z0-9._-]/g, "_") : `foto-${indice}`;
+  const ruta = `remitos/${idMovimiento}/${Date.now()}-${indice}-${nombreSeguro}`;
+  const referencia = storageRef(storage, ruta);
+  const resultado = await uploadBytes(referencia, file);
+  return getDownloadURL(resultado.ref);
 }
 
 export async function eliminarFotoRemito(url) {
