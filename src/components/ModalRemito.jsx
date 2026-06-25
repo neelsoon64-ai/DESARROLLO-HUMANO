@@ -43,6 +43,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      console.debug("ModalRemito: procesando archivo:", { name: file.name, type: file.type, size: file.size });
       if (!file.type.startsWith("image/")) {
         setError("Uno de los archivos no es una imagen válida.");
         continue;
@@ -51,6 +52,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       try {
         // Llama a la compresión ultra agresiva que definimos en fotoStorage.js
         const base64Comprimido = await comprimirImagen(file);
+        console.debug("ModalRemito: resultado compresión (longitud):", base64Comprimido ? base64Comprimido.length : null);
         if (base64Comprimido) {
           nuevasFotos.push({
             id: `foto-${i}-${Math.random().toString(36).substring(2, 7)}-${Date.now()}`,
@@ -59,14 +61,16 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         }
       } catch (err) {
         setError("Hubo un problema al comprimir algunas imágenes.");
+        console.error("ModalRemito: error al comprimir imagen:", err);
       }
     }
 
     if (nuevasFotos.length > 0) {
-      setForm((f) => ({
-        ...f,
-        listaFotos: [...f.listaFotos, ...nuevasFotos]
-      }));
+      setForm((f) => {
+        const siguiente = { ...f, listaFotos: [...f.listaFotos, ...nuevasFotos] };
+        console.debug("ModalRemito: fotos añadidas, total ahora:", siguiente.listaFotos.length);
+        return siguiente;
+      });
     }
     setCargandoFoto(false);
   };
@@ -99,9 +103,16 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     setSubiendo(true);
 
     try {
-      const fotoFinal = form.listaFotos.length > 0
-        ? form.listaFotos.map((f) => f.data)
-        : inicial.foto || "";
+      // Combina las fotos previas (si existen) con las nuevas del formulario.
+      const inicialFotosArray = Array.isArray(inicial.foto) ? inicial.foto : (inicial.foto ? [inicial.foto] : []);
+      const fotosDesdeForm = form.listaFotos.map((f) => f.data);
+      // Mantener orden: primero las previas, luego las nuevas; eliminar duplicados exactos
+      let fotoFinalArray = [...inicialFotosArray, ...fotosDesdeForm];
+      fotoFinalArray = fotoFinalArray.filter((v, i, a) => a.indexOf(v) === i);
+
+      const fotoFinal = fotoFinalArray.length === 0 ? "" : (fotoFinalArray.length === 1 ? fotoFinalArray[0] : fotoFinalArray);
+
+      console.debug("ModalRemito: guardando. inicialFotos=", inicialFotosArray.length, "fotosDesdeForm=", fotosDesdeForm.length, "fotoFinal count=", fotoFinalArray.length);
 
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
         ? "Inventario Físico Inicial" 
