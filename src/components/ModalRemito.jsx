@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
-import { comprimirImagen } from "../fotoStorage.js";
+import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
 export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNombre, datosEdicion }) {
   const inicial = datosEdicion || {};
@@ -21,7 +21,7 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
     descripcion: inicial.descripcion || "",
     cantidad: inicial.cantidad || "",
     unidad: inicial.unidad || "unidades",
-    listaFotos: fotosIniciales.map((f, i) => ({ id: `id-${i}-${Date.now()}`, data: f }))
+    listaFotos: fotosIniciales.map((f, i) => ({ id: `id-${i}-${Date.now()}`, preview: f, url: f }))
   });
   
   const [error, setError] = useState("");
@@ -50,18 +50,15 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
       }
 
       try {
-        // Llama a la compresión ultra agresiva que definimos en fotoStorage.js
-        const base64Comprimido = await comprimirImagen(file);
-        console.debug("ModalRemito: resultado compresión (longitud):", base64Comprimido ? base64Comprimido.length : null);
-        if (base64Comprimido) {
-          nuevasFotos.push({
-            id: `foto-${i}-${Math.random().toString(36).substring(2, 7)}-${Date.now()}`,
-            data: base64Comprimido
-          });
-        }
+        const preview = await generarPreviewDesdeArchivo(file);
+        nuevasFotos.push({
+          id: `foto-${i}-${Math.random().toString(36).substring(2, 7)}-${Date.now()}`,
+          preview,
+          file
+        });
       } catch (err) {
-        setError("Hubo un problema al comprimir algunas imágenes.");
-        console.error("ModalRemito: error al comprimir imagen:", err);
+        setError("Hubo un problema al procesar algunas imágenes.");
+        console.error("ModalRemito: error al generar vista previa de imagen:", err);
       }
     }
 
@@ -72,6 +69,7 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
         return siguiente;
       });
     }
+
     setCargandoFoto(false);
   };
 
@@ -105,9 +103,13 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
     try {
       // Combina las fotos previas (si existen) con las nuevas del formulario.
       const inicialFotosArray = Array.isArray(inicial.foto) ? inicial.foto : (inicial.foto ? [inicial.foto] : []);
-      const fotosDesdeForm = form.listaFotos.map((f) => f.data);
+      const fotosDesdeForm = await Promise.all(form.listaFotos.map(async (f, idx) => {
+        if (f.url) return f.url;
+        if (f.file) return await subirFotoRemito(f.file, id, idx);
+        return f.preview || "";
+      }));
       // Mantener orden: primero las previas, luego las nuevas; eliminar duplicados exactos
-      let fotoFinalArray = [...inicialFotosArray, ...fotosDesdeForm];
+      let fotoFinalArray = [...inicialFotosArray, ...fotosDesdeForm.filter(Boolean)];
       fotoFinalArray = fotoFinalArray.filter((v, i, a) => a.indexOf(v) === i);
 
       const fotoFinal = fotoFinalArray.length === 0 ? "" : (fotoFinalArray.length === 1 ? fotoFinalArray[0] : fotoFinalArray);
@@ -269,7 +271,7 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 {form.listaFotos.map((foto) => (
                   <div key={foto.id} style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F8FAFC" }}>
-                    <img src={foto.data} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
+                    <img src={foto.preview || foto.url} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
                     <button 
                       type="button"
                       onClick={() => quitarFoto(foto.id)} 
