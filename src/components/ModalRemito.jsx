@@ -3,12 +3,10 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { comprimirImagen, subirFotoRemito } from "../fotoStorage.js";
 
-// Adaptamos las propiedades para recibir directamente datosEdicion de App.jsx
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
   const inicial = datosEdicion || {};
-  const esEdicion = !!datosEdicion; // Si viene con datos, se activa el modo edición de forma automática
+  const esEdicion = !!datosEdicion;
   
-  // Normalizamos las fotos existentes para asegurarnos de que siempre sea un Array limpio
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 
     : (inicial.foto ? [inicial.foto] : []);
@@ -18,12 +16,11 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     nroRemito: inicial.nroRemito || "",
     proveedor: inicial.proveedor || "",
     observaciones: inicial.observaciones || "",
-    tipo: inicial.tipo || "ingreso", // Puede ser: 'ingreso', 'egreso', o 'inicial'
+    tipo: inicial.tipo || "ingreso", 
     categoria: inicial.categoria || CATEGORIAS[0].id,
     descripcion: inicial.descripcion || "",
     cantidad: inicial.cantidad || "",
     unidad: inicial.unidad || "unidades",
-    // Guardamos las múltiples imágenes en un Array de objetos { id, data }
     listaFotos: fotosIniciales.map((f, i) => ({ id: `id-${i}-${Date.now()}`, data: f }))
   });
   
@@ -36,7 +33,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Procesa uno o varios archivos seleccionados y los agrega al Array
   const procesarArchivos = async (files) => {
     if (!files || files.length === 0) return;
     
@@ -57,7 +53,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       }
 
       try {
-        // Pasa por el fotoStorage optimizado (maxW: 1000px, calidad: 0.75)
         const base64Comprimido = await comprimirImagen(file, 1000, 0.75);
         if (base64Comprimido) {
           nuevasFotos.push({
@@ -107,13 +102,9 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     setSubiendo(true);
 
     try {
-      // Extraemos solo el texto Base64 crudo del array de objetos
       const base64ArrayCrudo = form.listaFotos.map(f => f.data);
-      
-      // Enviamos el array completo al fotoStorage
       const fotosFinales = await subirFotoRemito(base64ArrayCrudo, id);
 
-      // Si es stock inicial y no definieron origen, por defecto ponemos Ajuste Interno
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
         ? "Inventario Físico Inicial" 
         : form.proveedor.trim();
@@ -130,7 +121,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         descripcion: form.descripcion.trim(),
         cantidad: Number(form.cantidad),
         unidad: form.unidad,
-        foto: fotosFinales, // Se guarda como Array en Firebase
+        foto: fotosFinales, 
       });
 
       setSubiendo(false);
@@ -144,14 +135,13 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
   const catActual = CATEGORIAS.find((c) => c.id === form.categoria);
   const procesando = cargandoFoto || subiendo;
 
-  // Manejo de degradado dinámico de la cabecera según el tipo seleccionado u orden de edición
   const headerBg = esEdicion 
-    ? "linear-gradient(135deg,#C8993A,#E8B84B)" // Dorado para edición
+    ? "linear-gradient(135deg,#C8993A,#E8B84B)" 
     : form.tipo === "ingreso" 
       ? "linear-gradient(135deg,#0D714C,#10B981)" 
       : form.tipo === "egreso"
         ? "linear-gradient(135deg,#B91C1C,#F97316)"
-        : "linear-gradient(135deg,#1E40AF,#2563EB)"; // Azul para Stock Inicial
+        : "linear-gradient(135deg,#1E40AF,#2563EB)";
 
   return (
     <div style={overlay}>
@@ -168,7 +158,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
         <div style={{ padding: "22px", overflowY: "auto", maxHeight: "68vh", display: "flex", flexDirection: "column", gap: 14 }}>
           
-          {/* Selector de Tipo de Movimiento con Triple Opción */}
           <div style={fieldGroup}>
             <label style={labelStyle}>Tipo de movimiento</label>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -179,7 +168,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
               ].map(({ v, l, color, bg }) => (
                 <button
                   key={v}
-                  disabled={esEdicion} // Deshabilitado en edición para mantener consistencia histórica del remito
+                  type="button"
+                  disabled={esEdicion}
                   onClick={() => set("tipo", v)}
                   style={{
                     flex: 1,
@@ -243,7 +233,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={fieldGroup}>
               <label style={labelStyle}>Cantidad {form.tipo === "inicial" ? "Existente" : ""}</label>
-              <input type="number" min="1" placeholder="0" value={form.formatoCantidad || form.cantidad} onChange={(e) => set("cantidad", e.target.value)} style={inputStyle} />
+              {/* Corregido: value apunta directo a form.cantidad para evitar que se anule el cambio */}
+              <input type="number" min="1" placeholder="0" value={form.cantidad} onChange={(e) => set("cantidad", e.target.value)} style={inputStyle} />
             </div>
             <div style={fieldGroup}>
               <label style={labelStyle}>Unidad</label>
@@ -268,6 +259,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
                   <div key={foto.id} style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F8FAFC" }}>
                     <img src={foto.data} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
                     <button 
+                      type="button"
                       onClick={() => quitarFoto(foto.id)} 
                       style={{ position: "absolute", top: 4, right: 4, background: "rgba(220, 38, 38, 0.85)", border: "none", color: "#fff", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: "bold" }}
                       title="Quitar foto"
@@ -329,8 +321,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         </div>
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ ...btnSecundario, flex: 1 }}>Cancelar</button>
-          <button onClick={handleGuardar} disabled={procesando} style={{ ...btnPrincipal, flex: 2, opacity: procesando ? 0.7 : 1 }}>
+          <button type="button" onClick={onClose} style={{ ...btnSecundario, flex: 1 }}>Cancelar</button>
+          <button type="button" onClick={handleGuardar} disabled={procesando} style={{ ...btnPrincipal, flex: 2, opacity: procesando ? 0.7 : 1 }}>
             {subiendo ? "⏳ Guardando..." : esEdicion ? "✅ Guardar Cambios" : "✅ Guardar Carga"}
           </button>
         </div>
