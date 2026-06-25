@@ -8,7 +8,10 @@ const firebaseConfig = {
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  
+  // ─── 🛠️ CORRECCIÓN: Si la variable viene vacía de Vercel/Local, le clava el bucket por defecto
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "desarrollo-humano-six.firebasestorage.app",
+  
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
