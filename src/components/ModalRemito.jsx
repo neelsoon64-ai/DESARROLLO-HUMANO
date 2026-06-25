@@ -3,7 +3,7 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { comprimirImagen } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
+export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNombre, datosEdicion }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   
@@ -332,9 +332,18 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           {subiendo && <div style={{ color: "#2E7DC4", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⏳ Registrando movimiento en base de datos...</div>}
         </div>
 
-        <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10 }}>
-          <button type="button" onClick={onClose} style={{ ...btnSecundario, flex: 1 }}>Cancelar</button>
-          <button type="button" onClick={handleGuardar} disabled={procesando} style={{ ...btnPrincipal, flex: 2, opacity: procesando ? 0.7 : 1 }}>
+        <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button type="button" onClick={onClose} style={{ ...btnSecundario, flex: 1, minWidth: 120 }}>Cancelar</button>
+          {esEdicion && (
+            <button
+              type="button"
+              onClick={() => onEliminar({ ...inicial, ...form })}
+              style={{ ...btnSecundario, flex: 1, minWidth: 120, background: "#FEE2E2", borderColor: "#FCA5A5", color: "#B91C1C" }}
+            >
+              🗑️ Eliminar
+            </button>
+          )}
+          <button type="button" onClick={handleGuardar} disabled={procesando} style={{ ...btnPrincipal, flex: 2, minWidth: 140, opacity: procesando ? 0.7 : 1 }}>
             {subiendo ? "⏳ Guardando..." : esEdicion ? "✅ Guardar Cambios" : "✅ Guardar Carga"}
           </button>
         </div>

@@ -8,7 +8,7 @@ import ModalRemito from "./components/ModalRemito.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import logo from "./assets/logo.png";
-import { getDatabase, ref, set } from "firebase/database";
+import { getDatabase, ref, remove, set } from "firebase/database";
 
 export default function App() {
   // Mantienen sus escuchas activos en segundo plano
@@ -124,6 +124,41 @@ export default function App() {
     [setNacion, setProvincia]
   );
 
+  const eliminarCarga = useCallback(
+    async (seccion, carga) => {
+      const docId = seccion === "nacion" ? DOC_IDS.nacion : DOC_IDS.provincia;
+      const setter = seccion === "nacion" ? setNacion : setProvincia;
+      const idMovimiento = carga?.id;
+      if (!idMovimiento) return;
+
+      setter((prev) => {
+        const movsBase = prev?.movimientos;
+        if (!movsBase) return prev;
+        let movimientosPrevios = {};
+
+        if (Array.isArray(movsBase)) {
+          movsBase.filter(Boolean).forEach((mov) => {
+            if (mov.id && mov.id !== idMovimiento) movimientosPrevios[mov.id] = mov;
+          });
+        } else if (typeof movsBase === "object") {
+          movimientosPrevios = { ...movsBase };
+          delete movimientosPrevios[idMovimiento];
+        }
+
+        return { ...prev, movimientos: movimientosPrevios };
+      });
+
+      try {
+        const db = getDatabase();
+        const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
+        await remove(movimientoRef);
+      } catch (error) {
+        console.error("Error al eliminar en Firebase Realtime DB:", error);
+      }
+    },
+    [setNacion, setProvincia]
+  );
+
   const esAdmin = usuarioActual?.rol === "admin";
 
   // ⚡ INICIO ASÍNCRONO SEGURO: Si los usuarios no cargaron de la red, usamos los por defecto para no trabar
@@ -159,11 +194,15 @@ export default function App() {
       {/* Navbar */}
       <div style={{ background: "linear-gradient(135deg,#0F2540,#1A3A5C)", position: "sticky", top: 0, zIndex: 200, boxShadow: "0 2px 16px rgba(0,0,0,0.3)" }}>
         <div style={{ maxWidth: 920, margin: "0 auto", padding: "13px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <img src={logo} alt="Logo" style={{ width: 40, height: 40, objectFit: "contain" }} />
-            <div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 8, letterSpacing: 2.5, fontWeight: 700 }}>SISTEMA DE GESTIÓN</div>
-              <div style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>Min. de Desarrollo Humano</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <img src={logo} alt="Logo Gobierno de Chubut" style={{ width: 48, height: 48, objectFit: "contain" }} />
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, letterSpacing: 1.5, fontWeight: 700, textTransform: "uppercase" }}>
+                Gobierno de la Provincia del Chubut
+              </div>
+              <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginTop: 3 }}>
+                Ministerio de Desarrollo Humano
+              </div>
             </div>
           </div>
 
@@ -264,6 +303,17 @@ export default function App() {
               usuario: usuarioActual?.nombre || "Desconocido",
               rol: usuarioActual?.rol || "usuario",
               detalle: `${modalCarga.datos ? "Editó" : "Cargó"} "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) en ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
+            });
+            setModalCarga(null);
+          }}
+          onEliminar={(carga) => {
+            if (!modalCarga.datos) return;
+            eliminarCarga(modalCarga.seccion, carga);
+            registrarAuditoria({
+              tipo: "eliminacion",
+              usuario: usuarioActual?.nombre || "Desconocido",
+              rol: usuarioActual?.rol || "usuario",
+              detalle: `Eliminó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) de ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
             });
             setModalCarga(null);
           }}
