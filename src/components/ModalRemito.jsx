@@ -102,8 +102,14 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     setSubiendo(true);
 
     try {
-      const base64ArrayCrudo = form.listaFotos.map(f => f.data);
-      const fotosFinales = await subirFotoRemito(base64ArrayCrudo, id);
+      // Tomamos solo la primera foto si existe para no romper tu backend/storage actual
+      const primeraFotoCruda = form.listaFotos.length > 0 ? form.listaFotos[0].data : null;
+      
+      let fotoFinal = "";
+      if (primeraFotoCruda) {
+        // Se le pasa el string directo a tu función original del storage sin romper el tipado
+        fotoFinal = await subirFotoRemito(primeraFotoCruda, id);
+      }
 
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
         ? "Inventario Físico Inicial" 
@@ -121,7 +127,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         descripcion: form.descripcion.trim(),
         cantidad: Number(form.cantidad),
         unidad: form.unidad,
-        foto: fotosFinales, 
+        foto: fotoFinal || "", 
       });
 
       setSubiendo(false);
@@ -233,7 +239,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={fieldGroup}>
               <label style={labelStyle}>Cantidad {form.tipo === "inicial" ? "Existente" : ""}</label>
-              {/* Corregido: value apunta directo a form.cantidad para evitar que se anule el cambio */}
               <input type="number" min="1" placeholder="0" value={form.cantidad} onChange={(e) => set("cantidad", e.target.value)} style={inputStyle} />
             </div>
             <div style={fieldGroup}>
