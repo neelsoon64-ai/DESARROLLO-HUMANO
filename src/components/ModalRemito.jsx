@@ -99,24 +99,22 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     setSubiendo(true);
 
     try {
-      // ─── 🛠️ EXTRACTOR DIRECTO ───
-      // Sacamos el string base64 crudo de tu estado local sin pasar por promesas extras externos
-      let fotoStringFinal = "";
-      if (form.listaFotos.length > 0) {
-        fotoStringFinal = form.listaFotos[0].data; 
-      } else if (inicial.foto) {
-        fotoStringFinal = inicial.foto;
-      }
+      const fotoFinal = form.listaFotos.length > 0
+        ? form.listaFotos.map((f) => f.data)
+        : inicial.foto || "";
 
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
         ? "Inventario Físico Inicial" 
         : form.proveedor.trim();
 
+      const fechaFinal = new Date(form.fecha).toISOString();
+
       // Mandamos la estructura limpia para que tu db.set u onGuardar impacte directo
       onGuardar({
         ...inicial,
         id,
-        fecha: new Date(form.fecha).toISOString(),
+        fecha: fechaFinal,
+        fechaCarga: fechaFinal,
         nroRemito: form.nroRemito,
         proveedor: proveedorFinal,
         observaciones: form.observaciones,
@@ -125,7 +123,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         descripcion: form.descripcion.trim(),
         cantidad: Number(form.cantidad),
         unidad: form.unidad,
-        foto: fotoStringFinal // Inyección garantizada en el payload
+        foto: fotoFinal // Inyección garantizada en el payload
       });
 
       setSubiendo(false);

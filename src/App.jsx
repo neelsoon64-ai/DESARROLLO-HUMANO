@@ -87,8 +87,14 @@ export default function App() {
         cantidad: Number(carga?.cantidad || 0),
         unidad: String(carga?.unidad || "unidades"),
         nroRemito: String(carga?.nroRemito || "s/n"),
-        fechaCarga: String(carga?.fechaCarga || new Date().toISOString()),
-        cargadoPor: String(carga?.cargadoPor || "Desconocido")
+        fecha: String(carga?.fecha || carga?.fechaCarga || new Date().toISOString()),
+        fechaCarga: String(carga?.fechaCarga || carga?.fecha || new Date().toISOString()),
+        proveedor: String(carga?.proveedor || "No informado"),
+        observaciones: String(carga?.observaciones || ""),
+        tipo: String(carga?.tipo || "ingreso"),
+        foto: carga?.foto || "",
+        cargadoPor: String(carga?.cargadoPor || "Desconocido"),
+        editadoPor: String(carga?.editadoPor || "")
       };
 
       // Modificamos el estado local de React al instante para que la UI responda en el acto
