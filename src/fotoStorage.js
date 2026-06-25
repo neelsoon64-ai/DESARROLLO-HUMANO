@@ -1,10 +1,10 @@
-import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
-import { storage, firebaseConfigurado } from "./firebase.js";
+import { firebaseConfigurado } from "./firebase.js";
 
 // ════════════════════════════════════════════════════════════════════════════
-// Comprime una imagen en el navegador antes de subirla (más rápido, menos datos)
+// Comprime la imagen de forma agresiva para que entre liviana en la RTDB (Gratis)
 // ════════════════════════════════════════════════════════════════════════════
-export function comprimirImagen(file, maxW = 1000, calidad = 0.75) { 
+export function comprimirImagen(file, maxW = 500, calidad = 0.5) { 
+  // Bajamos el ancho máximo a 500px y la calidad a 0.5 para achicar el Base64 al extremo
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -19,6 +19,8 @@ export function comprimirImagen(file, maxW = 1000, calidad = 0.75) {
       canvas.width = width;
       canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      
+      // Exportamos como un JPEG ultra comprimido
       resolve(canvas.toDataURL("image/jpeg", calidad)); 
     };
     img.onerror = () => {
@@ -30,39 +32,19 @@ export function comprimirImagen(file, maxW = 1000, calidad = 0.75) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Sube la foto real a Firebase Storage y retorna la URL pública de descarga
+// Solución sin Storage: Retorna la cadena Base64 limpia para inyectar en el remito
 // ════════════════════════════════════════════════════════════════════════════
 export async function subirFotoRemito(dataUrlBase64, idMovimiento) {
   if (!dataUrlBase64) return "";
-
-  // Si por alguna razón la imagen ya es una URL web de Firebase, no la resubimos
-  if (dataUrlBase64.startsWith("http")) return dataUrlBase64;
-
-  try {
-    // Creamos la referencia en la carpeta 'remitos' con el ID único del movimiento
-    const storageRef = ref(storage, `remitos/${idMovimiento}_${Date.now()}.jpg`);
-    
-    // Subimos el string en formato 'data_url' (Base64)
-    const snapshot = await uploadString(storageRef, dataUrlBase64, "data_url");
-    
-    // Obtenemos y retornamos la URL de descarga real
-    const urlDescarga = await getDownloadURL(snapshot.ref);
-    return urlDescarga;
-  } catch (error) {
-    console.error("Error crítico al subir la imagen a Firebase Storage:", error);
-    return "";
-  }
+  
+  // En vez de usar el Storage bloqueado, devolvemos la imagen como texto plano optimizado.
+  // Esto viaja dentro del objeto del remito directo a tu Realtime Database que sí funciona.
+  return dataUrlBase64;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Elimina la foto de Firebase Storage si se borra el remito
+// No requiere limpieza en Storage externo
 // ════════════════════════════════════════════════════════════════════════════
 export async function eliminarFotoRemito(url) {
-  if (!url || !url.startsWith("http")) return;
-  try {
-    const storageRef = ref(storage, url);
-    await deleteObject(storageRef);
-  } catch (error) {
-    console.error("Error al eliminar la foto de Storage:", error);
-  }
+  return;
 }
