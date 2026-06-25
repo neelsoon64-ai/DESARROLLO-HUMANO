@@ -1,206 +1,177 @@
 import { useState } from "react";
-import { CATEGORIAS } from "../constants.js";
-import { formatFechaCorta } from "../constants.js";
-import { inputStyle } from "../styles.js";
-import { StockBadge } from "./Common.jsx";
-import ModalDetalle from "./ModalDetalle.jsx";
-import ModalRemito from "./ModalRemito.jsx";
-import { exportarExcel, exportarPDF } from "../exportUtils.js";
-import { eliminarFotoRemito } from "../fotoStorage.js";
+import { utils, writeFile } from "xlsx";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
-export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onActualizar, usuarioActual, onAudit, auditoria }) {
-  const [tab, setTab] = useState("stock");
-  const [filtroCategoria, setFiltroCategoria] = useState("todas");
-  const [filtroBusqueda, setFiltroBusqueda] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [movDetalle, setMovDetalle] = useState(null);
-  const [movEditar, setMovEditar] = useState(null);
-  const esAdmin = usuarioActual.rol === "admin";
+export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onActualizar, usuarioActual, onAudit }) {
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
+  const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
 
-  const stockPorArticulo = {};
-  datos.movimientos.forEach((m) => {
-    const key = `${m.categoria}||${m.descripcion}`;
-    if (!stockPorArticulo[key]) stockPorArticulo[key] = { categoria: m.categoria, descripcion: m.descripcion, unidad: m.unidad, total: 0 };
-    
-    // 🟢 CLAVE: 'ingreso' e 'inicial' SUMAN stock; 'egreso' RESTA stock
-    if (m.tipo === "ingreso" || m.tipo === "inicial") {
-      stockPorArticulo[key].total += m.cantidad;
-    } else if (m.tipo === "egreso") {
-      stockPorArticulo[key].total -= m.cantidad;
+  // 🛡️ ADAPTADOR CRÍTICO: Si "datos.movimientos" es un objeto de Firebase, lo transformamos a Array al toque
+  const movimientos = (() => {
+    if (!datos || !datos.movimientos) return [];
+    if (Array.isArray(datos.movimientos)) return datos.movimientos.filter(Boolean);
+    if (typeof datos.movimientos === "object") return Object.values(datos.movimientos).filter(Boolean);
+    return [];
+  })();
+
+  const esAdmin = usuarioActual?.rol === "admin";
+
+  // Procesar stock consolidado (Agrupar por Categoría + Descripción)
+  const stockConsolidado = {};
+  movimientos.forEach((mov) => {
+    const clave = `${mov.categoria || "General"}⁻⁻⁻${mov.descripcion}`;
+    if (!stockConsolidado[clave]) {
+      stockConsolidated[clave] = {
+        categoria: mov.categoria || "General",
+        descripcion: mov.descripcion,
+        cantidad: 0,
+        unidad: mov.unidad || "unidades",
+      };
     }
+    stockConsolidado[clave].cantidad += Number(mov.cantidad || 0);
   });
 
-  const aplicarFiltros = (arr) =>
-    arr.filter((x) => {
-      if (filtroCategoria !== "todas" && x.categoria !== filtroCategoria) return false;
-      if (filtroBusqueda && !x.descripcion?.toLowerCase().includes(filtroBusqueda.toLowerCase()) && !x.nroRemito?.toLowerCase().includes(filtroBusqueda.toLowerCase())) return false;
-      if (filtroTipo !== "todos" && x.tipo && x.tipo !== filtroTipo) return false;
-      return true;
+  const listaStock = Object.values(stockConsolidado);
+
+  // Extraer categorías únicas para el selector de filtros
+  const categoriasUnicas = ["Todas", ...new Set(movimientos.map((m) => m.categoria || "General"))];
+
+  // Filtrado adaptativo para la tabla de Stock
+  const stockFiltrado = listaStock.filter((item) => {
+    const coincideBusqueda = item.descripcion.toLowerCase().includes(busqueda.toLowerCase()) || item.categoria.toLowerCase().includes(busqueda.toLowerCase());
+    const coincideCategoria = categoriaFiltro === "Todas" || item.categoria === categoriaFiltro;
+    return coincideBusqueda && coincideCategoria;
+  });
+
+  // Filtrado adaptativo para la tabla de Historial (ordenado por fecha descendente)
+  const historialFiltrado = [...movimientos]
+    .sort((a, b) => new Date(b.fechaCarga) - new Date(a.fechaCarga))
+    .filter((mov) => {
+      const coincideBusqueda = mov.descripcion.toLowerCase().includes(busqueda.toLowerCase()) || (mov.nroRemito && mov.nroRemito.toLowerCase().includes(busqueda.toLowerCase()));
+      const coincideCategoria = categoriaFiltro === "Todas" || mov.categoria === categoriaFiltro;
+      return coincideBusqueda && coincideCategoria;
     });
 
-  const stockList = aplicarFiltros(Object.values(stockPorArticulo));
-  const movFiltrados = aplicarFiltros([...datos.movimientos]).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  // Funciones de exportación seguras
+  const exportarExcel = () => {
+    const dataExport = pestaña === "stock" 
+      ? stockFiltrado.map(i => ({ Categoría: i.categoria, Descripción: i.descripcion, Cantidad: i.cantidad, Unidad: i.unidad }))
+      : historialFiltrado.map(h => ({ Fecha: new Date(h.fechaCarga).toLocaleDateString(), Remito: h.nroRemito, Categoría: h.categoria, Descripción: h.descripcion, Cantidad: h.cantidad, Unidad: h.unidad, Operario: h.cargadoPor }));
 
-  const editarMovimiento = (mov) => {
-    setMovDetalle(null);
-    setMovEditar(mov);
+    const wb = utils.book_new();
+    const ws = utils.json_to_sheet(dataExport);
+    utils.book_append_sheet(wb, ws, pestaña === "stock" ? "Stock Actual" : "Historial");
+    writeFile(wb, `${nombre}-${pestaña}.xlsx`);
+    if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó Excel de ${nombre} (${pestaña})` });
   };
 
-  const eliminarMovimiento = async (mov) => {
-    if (!window.confirm(`¿Eliminar el movimiento "${mov.descripcion}"?`)) return;
-    onActualizar((prev) => ({ ...prev, movimientos: prev.movimientos.filter((m) => m.id !== mov.id) }));
-    onAudit({ tipo: "eliminacion", usuario: usuarioActual.nombre, rol: usuarioActual.rol, detalle: `Eliminó movimiento "${mov.descripcion}" (${mov.cantidad} ${mov.unidad}) en ${nombre}` });
-    setMovDetalle(null);
-    if (mov.foto) eliminarFotoRemito(mov.foto);
-  };
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    doc.text(`${nombre} - Reporte de ${pestaña === "stock" ? "Stock" : "Historial"}`, 14, 15);
+    
+    const headers = pestaña === "stock" 
+      ? [["Categoría", "Descripción", "Cantidad", "Unidad"]]
+      : [["Fecha", "Remito", "Categoría", "Descripción", "Cant.", "Unidad", "Usuario"]];
 
-  const guardarEdicion = (movEditado) => {
-    onActualizar((prev) => ({
-      ...prev,
-      movimientos: prev.movimientos.map((m) =>
-        m.id === movEditado.id ? { ...movEditado, editadoPor: usuarioActual.nombre, fechaEdicion: new Date().toISOString() } : m
-      ),
-    }));
-    onAudit({ tipo: "edicion", usuario: usuarioActual.nombre, rol: usuarioActual.rol, detalle: `Editó movimiento "${movEditado.descripcion}" en ${nombre}` });
-    setMovEditar(null);
+    const body = pestaña === "stock"
+      ? stockFiltrado.map(i => [i.categoria, i.descripcion, i.cantidad, i.unidad])
+      : historialFiltrado.map(h => [new Date(h.fechaCarga).toLocaleDateString(), h.nroRemito, h.categoria, h.descripcion, h.cantidad, h.unidad, h.cargadoPor]);
+
+    doc.autoTable({ head: headers, body: body, startY: 22, theme: "striped" });
+    doc.save(`${nombre}-${pestaña}.pdf`);
+    if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó PDF de ${nombre} (${pestaña})` });
   };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.08)", overflow: "hidden", border: `1px solid ${colorClaro}40` }}>
-      <div style={{ background: `linear-gradient(135deg,${color},${colorClaro})`, padding: "18px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-          <div>
-            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 9, letterSpacing: 3, fontWeight: 700 }}>MINISTERIO DE DESARROLLO HUMANO</div>
-            <div style={{ color: "#fff", fontSize: 20, fontWeight: 800, marginTop: 2 }}>{nombre}</div>
-            <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
-              <div style={{ color: "rgba(255,255,255,0.9)", fontSize: 12 }}><span style={{ fontWeight: 700, fontSize: 15 }}>{Object.keys(stockPorArticulo).length}</span> artículos</div>
-              <div style={{ color: "rgba(255,255,255,0.9)", fontSize: 12 }}><span style={{ fontWeight: 700, fontSize: 15 }}>{datos.movimientos.length}</span> movimientos</div>
-            </div>
+    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", overflow: "hidden", border: "1px solid #E2E8F0" }}>
+      {/* Encabezado Control */}
+      <div style={{ background: `linear-gradient(135deg, ${color}, ${colorClaro})`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h2 style={{ color: "#fff", margin: 0, fontSize: 16, fontWeight: 800 }}>{nombre}</h2>
+          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 }}>
+            {listaStock.length} ítems registrados · {movimientos.length} movimientos en total
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-            <button onClick={onCarga} style={{ background: "#C8993A", color: "#fff", border: "none", borderRadius: 9, padding: "9px 14px", fontWeight: 700, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}>
-              + Nueva Carga
-            </button>
-            <div style={{ display: "flex", gap: 5 }}>
-              <button onClick={() => exportarExcel(datos.movimientos, nombre.replace("Inventario — ", ""), auditoria, usuarioActual, onAudit)} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 7, padding: "5px 9px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                📊 Excel
-              </button>
-              <button onClick={() => exportarPDF(datos.movimientos, nombre.replace("Inventario — ", ""), usuarioActual, onAudit)} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 7, padding: "5px 9px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                📄 PDF
-              </button>
-            </div>
-          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={onCarga} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}>+ Nueva Carga</button>
+          <button onClick={exportarExcel} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📊 Excel</button>
+          <button onClick={exportarPDF} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📄 PDF</button>
         </div>
       </div>
 
-      <div style={{ display: "flex", borderBottom: "2px solid #F1F5F9", background: "#FAFAFA" }}>
-        {[{ k: "stock", l: "📊 Stock" }, { k: "historial", l: "📋 Historial" }].map(({ k, l }) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            style={{ flex: 1, padding: "11px", border: "none", background: "none", fontWeight: tab === k ? 700 : 500, fontSize: 13, color: tab === k ? color : "#64748B", borderBottom: tab === k ? `2px solid ${color}` : "2px solid transparent", marginBottom: -2, cursor: "pointer" }}
-          >
-            {l}
-          </button>
-        ))}
+      {/* Selectores de Pestaña */}
+      <div style={{ display: "flex", borderBottom: "1px solid #E2E8F0" }}>
+        <button onClick={() => setPestaña("stock")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "stock" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "stock" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📦 Stock Consolidado</button>
+        <button onClick={() => setPestaña("historial")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "historial" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "historial" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📜 Historial de Remitos</button>
       </div>
 
-      <div style={{ padding: "12px 14px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input type="text" placeholder="🔍 Buscar..." value={filtroBusqueda} onChange={(e) => setFiltroBusqueda(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 120, fontSize: 12, padding: "7px 10px" }} />
-        <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", minWidth: 0 }}>
-          <option value="todas">Todas</option>
-          {CATEGORIAS.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+      {/* Barra de Filtros */}
+      <div style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <input type="text" placeholder="Buscar por descripción..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
+        <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, background: "#fff" }}>
+          {categoriasUnicas.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
-        {tab === "historial" && (
-          <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", minWidth: 0 }}>
-            <option value="todos">Todos</option>
-            <option value="ingreso">📥 Ingresos</option>
-            <option value="egreso">📤 Egresos</option>
-            <option value="inicial">💾 Stock Inicial</option> {/* <-- Agregado filtro visual */}
-          </select>
-        )}
       </div>
 
-      <div style={{ minHeight: 180, maxHeight: 360, overflowY: "auto" }}>
-        {tab === "stock" ? (
-          stockList.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 20px", color: "#94A3B8" }}>
-              <div style={{ fontSize: 38 }}>📦</div>
-              <div style={{ fontSize: 13, marginTop: 6 }}>Sin artículos — Cargá el primer remito</div>
-            </div>
+      {/* Contenedor de Tablas */}
+      <div style={{ overflowX: "auto", padding: "8px" }}>
+        {pestaña === "stock" ? (
+          stockFiltrado.length === 0 ? (
+            <div style={{ padding: "32px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>No hay artículos cargados o no coinciden con la búsqueda.</div>
           ) : (
-            stockList.map((s) => {
-              const cat = CATEGORIAS.find((c) => c.id === s.categoria);
-              return (
-                <div key={`${s.categoria}||${s.descripcion}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 16px", borderBottom: "1px solid #F1F5F9", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>{cat?.icon}</span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#1E293B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.descripcion}</div>
-                      <div style={{ fontSize: 11, color: "#94A3B8" }}>{cat?.label}</div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <StockBadge cantidad={s.total} />
-                    <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 2 }}>{s.unidad}</div>
-                  </div>
-                </div>
-              );
-            })
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
+                  <th style={{ padding: "10px" }}>Categoría</th>
+                  <th style={{ padding: "10px" }}>Descripción</th>
+                  <th style={{ padding: "10px", textAlign: "right" }}>Stock Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockFiltrado.map((item, idx) => (
+                  <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9", background: idx % 2 === 0 ? "#fff" : "#F8FAFC" }}>
+                    <td style={{ padding: "10px" }}><span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{item.categoria}</span></td>
+                    <td style={{ padding: "10px", fontWeight: 600, color: "#1E293B" }}>{item.descripcion}</td>
+                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: item.cantidad > 0 ? "#16A34A" : "#DC2626" }}>{item.cantidad} {item.unidad}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )
-        ) : movFiltrados.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 20px", color: "#94A3B8" }}>
-            <div style={{ fontSize: 38 }}>📋</div>
-            <div style={{ fontSize: 13, marginTop: 6 }}>Sin movimientos</div>
-          </div>
         ) : (
-          movFiltrados.map((m) => {
-            return (
-              <div
-                key={m.id}
-                onClick={() => setMovDetalle(m)}
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid #F1F5F9", cursor: "pointer", gap: 8 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#F8FAFC")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                  {/* Icono dinámico según tipo de movimiento */}
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>
-                    {m.tipo === "ingreso" ? "📥" : m.tipo === "egreso" ? "📤" : "💾"}
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: "#1E293B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.descripcion}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>
-                      {formatFechaCorta(m.fecha)}
-                      {m.nroRemito ? ` · ${m.nroRemito}` : ""}
-                      {m.cargadoPor ? ` · ${m.cargadoPor}` : ""}
-                      {m.foto ? " · 📷" : ""}
-                      {m.editadoPor ? " · ✏️" : ""}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  {/* Color y signo según tipo de movimiento */}
-                  <span style={{ 
-                    fontWeight: 700, 
-                    fontSize: 13, 
-                    color: m.tipo === "ingreso" ? "#059669" : m.tipo === "egreso" ? "#DC2626" : "#2563EB" 
-                  }}>
-                    {m.tipo === "ingreso" ? "+" : m.tipo === "egreso" ? "-" : "≡ "}
-                    {m.cantidad}
-                  </span>
-                  <div style={{ fontSize: 10, color: "#94A3B8" }}>{m.unidad}</div>
-                </div>
-              </div>
-            );
-          })
+          historialFiltrado.length === 0 ? (
+            <div style={{ padding: "32px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>No hay movimientos registrados.</div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
+                  <th style={{ padding: "10px" }}>Fecha</th>
+                  <th style={{ padding: "10px" }}>Remito</th>
+                  <th style={{ padding: "10px" }}>Artículo</th>
+                  <th style={{ padding: "10px", textAlign: "right" }}>Cantidad</th>
+                  <th style={{ padding: "10px" }}>Operario</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historialFiltrado.map((mov, idx) => (
+                  <tr key={mov.id || idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                    <td style={{ padding: "10px", color: "#64748B" }}>{new Date(mov.fechaCarga).toLocaleDateString()}</td>
+                    <td style={{ padding: "10px", fontWeight: 700, color: "#475569" }}>📄 {mov.nroRemito || "s/n"}</td>
+                    <td style={{ padding: "10px" }}>
+                      <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
+                      <span style={{ fontSize: 10, color: "#94A3B8" }}>{mov.categoria}</span>
+                    </td>
+                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: "#2563EB" }}>{mov.cantidad} {mov.unidad}</td>
+                    <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
         )}
       </div>
-
-      {movDetalle && (
-        <ModalDetalle mov={movDetalle} onClose={() => setMovDetalle(null)} esAdmin={esAdmin} onEditar={() => editarMovimiento(movDetalle)} onEliminar={() => eliminarMovimiento(movDetalle)} />
-      )}
-      {movEditar && <ModalRemito seccionNombre={nombre} onClose={() => setMovEditar(null)} onGuardar={guardarEdicion} movimientoEditar={movEditar} esEdicion />}
     </div>
   );
 }
