@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
-import { comprimirImagen, subirFotoRemito } from "../fotoStorage.js";
+import { comprimirImagen } from "../fotoStorage.js";
 
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
   const inicial = datosEdicion || {};
@@ -47,13 +47,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         setError("Uno de los archivos no es una imagen válida.");
         continue;
       }
-      if (file.size > 20 * 1024 * 1024) {
-        setError("Una de las imágenes supera el límite de 20MB.");
-        continue;
-      }
 
       try {
-        const base64Comprimido = await comprimirImagen(file, 1000, 0.75);
+        // Llama a la compresión ultra agresiva que definimos en fotoStorage.js
+        const base64Comprimido = await comprimirImagen(file);
         if (base64Comprimido) {
           nuevasFotos.push({
             id: `foto-${i}-${Math.random().toString(36).substring(2, 7)}-${Date.now()}`,
@@ -102,19 +99,20 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     setSubiendo(true);
 
     try {
-      // Tomamos solo la primera foto si existe para no romper tu backend/storage actual
-      const primeraFotoCruda = form.listaFotos.length > 0 ? form.listaFotos[0].data : null;
-      
-      let fotoFinal = "";
-      if (primeraFotoCruda) {
-        // Se le pasa el string directo a tu función original del storage sin romper el tipado
-        fotoFinal = await subirFotoRemito(primeraFotoCruda, id);
+      // ─── 🛠️ EXTRACTOR DIRECTO ───
+      // Sacamos el string base64 crudo de tu estado local sin pasar por promesas extras externos
+      let fotoStringFinal = "";
+      if (form.listaFotos.length > 0) {
+        fotoStringFinal = form.listaFotos[0].data; 
+      } else if (inicial.foto) {
+        fotoStringFinal = inicial.foto;
       }
 
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
         ? "Inventario Físico Inicial" 
         : form.proveedor.trim();
 
+      // Mandamos la estructura limpia para que tu db.set u onGuardar impacte directo
       onGuardar({
         ...inicial,
         id,
@@ -127,7 +125,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         descripcion: form.descripcion.trim(),
         cantidad: Number(form.cantidad),
         unidad: form.unidad,
-        foto: fotoFinal || "", 
+        foto: fotoStringFinal // Inyección garantizada en el payload
       });
 
       setSubiendo(false);
