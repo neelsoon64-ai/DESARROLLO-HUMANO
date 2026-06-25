@@ -5,6 +5,7 @@ import { firebaseConfigurado } from "./firebase.js";
 import Login from "./components/Login.jsx";
 import Seccion from "./components/Seccion.jsx";
 import ModalRemito from "./components/ModalRemito.jsx";
+import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import logo from "./assets/logo.png";
@@ -19,6 +20,7 @@ export default function App() {
 
   const [usuarioActual, setUsuarioActual] = useState(null);
   const [modalCarga, setModalCarga] = useState(null); // Ahora guarda objeto: { seccion: "nacion"|"provincia", datos: mov|null }
+  const [detalleMovimiento, setDetalleMovimiento] = useState(null);
   const [panelAudit, setPanelAudit] = useState(false);
   const [panelUsers, setPanelUsers] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -161,6 +163,12 @@ export default function App() {
 
   const esAdmin = usuarioActual?.rol === "admin";
 
+  const abrirDetalle = (mov, seccion) => {
+    setDetalleMovimiento({ mov, seccion });
+  };
+
+  const cerrarDetalle = () => setDetalleMovimiento(null);
+
   // ⚡ INICIO ASÍNCRONO SEGURO: Si los usuarios no cargaron de la red, usamos los por defecto para no trabar
   const usuariosSeguros = usuariosListo && Array.isArray(usuarios) && usuarios.length > 0 
     ? usuarios 
@@ -268,6 +276,7 @@ export default function App() {
           datos={{ movimientos: nacionMovs }} 
           onCarga={() => setModalCarga({ seccion: "nacion", datos: null })} 
           onEditar={(mov) => setModalCarga({ seccion: "nacion", datos: mov })} 
+          onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
           usuarioActual={usuarioActual} 
           onAudit={registrarAuditoria} 
           auditoria={auditoria} 
@@ -280,6 +289,7 @@ export default function App() {
           datos={{ movimientos: provinciaMovs }} 
           onCarga={() => setModalCarga({ seccion: "provincia", datos: null })} 
           onEditar={(mov) => setModalCarga({ seccion: "provincia", datos: mov })} 
+          onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
           usuarioActual={usuarioActual} 
           onAudit={registrarAuditoria} 
           auditoria={auditoria} 
@@ -307,7 +317,7 @@ export default function App() {
             setModalCarga(null);
           }}
           onEliminar={(carga) => {
-            if (!modalCarga.datos) return;
+            if (!modalCarga?.datos) return;
             eliminarCarga(modalCarga.seccion, carga);
             registrarAuditoria({
               tipo: "eliminacion",
@@ -316,6 +326,28 @@ export default function App() {
               detalle: `Eliminó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) de ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
             });
             setModalCarga(null);
+          }}
+        />
+      )}
+
+      {detalleMovimiento && (
+        <ModalDetalle
+          mov={detalleMovimiento.mov}
+          esAdmin={esAdmin}
+          onClose={cerrarDetalle}
+          onEditar={() => {
+            setModalCarga({ seccion: detalleMovimiento.seccion, datos: detalleMovimiento.mov });
+            cerrarDetalle();
+          }}
+          onEliminar={(carga) => {
+            eliminarCarga(detalleMovimiento.seccion, carga);
+            registrarAuditoria({
+              tipo: "eliminacion",
+              usuario: usuarioActual?.nombre || "Desconocido",
+              rol: usuarioActual?.rol || "usuario",
+              detalle: `Eliminó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) de ${detalleMovimiento.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
+            });
+            cerrarDetalle();
           }}
         />
       )}
