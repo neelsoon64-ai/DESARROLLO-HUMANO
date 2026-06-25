@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { utils, writeFile } from "xlsx";
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
 
 export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onActualizar, usuarioActual, onAudit }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
   const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
 
-  // 🛡️ ADAPTADOR CRÍTICO: Si "datos.movimientos" es un objeto de Firebase, lo transformamos a Array al toque
+  // 🛡️ ADAPTADOR CRÍTICO: Convierte objetos mutados de Realtime DB a Array plano
   const movimientos = (() => {
     if (!datos || !datos.movimientos) return [];
     if (Array.isArray(datos.movimientos)) return datos.movimientos.filter(Boolean);
@@ -16,14 +14,12 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
     return [];
   })();
 
-  const esAdmin = usuarioActual?.rol === "admin";
-
   // Procesar stock consolidado (Agrupar por Categoría + Descripción)
   const stockConsolidado = {};
   movimientos.forEach((mov) => {
     const clave = `${mov.categoria || "General"}⁻⁻⁻${mov.descripcion}`;
     if (!stockConsolidado[clave]) {
-      stockConsolidated[clave] = {
+      stockConsolidado[clave] = {
         categoria: mov.categoria || "General",
         descripcion: mov.descripcion,
         cantidad: 0,
@@ -34,18 +30,15 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
   });
 
   const listaStock = Object.values(stockConsolidado);
-
-  // Extraer categorías únicas para el selector de filtros
   const categoriasUnicas = ["Todas", ...new Set(movimientos.map((m) => m.categoria || "General"))];
 
-  // Filtrado adaptativo para la tabla de Stock
+  // Filtrados
   const stockFiltrado = listaStock.filter((item) => {
     const coincideBusqueda = item.descripcion.toLowerCase().includes(busqueda.toLowerCase()) || item.categoria.toLowerCase().includes(busqueda.toLowerCase());
     const coincideCategoria = categoriaFiltro === "Todas" || item.categoria === categoriaFiltro;
     return coincideBusqueda && coincideCategoria;
   });
 
-  // Filtrado adaptativo para la tabla de Historial (ordenado por fecha descendente)
   const historialFiltrado = [...movimientos]
     .sort((a, b) => new Date(b.fechaCarga) - new Date(a.fechaCarga))
     .filter((mov) => {
@@ -54,7 +47,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
       return coincideBusqueda && coincideCategoria;
     });
 
-  // Funciones de exportación seguras
+  // Exportar Excel nativo con xlsx
   const exportarExcel = () => {
     const dataExport = pestaña === "stock" 
       ? stockFiltrado.map(i => ({ Categoría: i.categoria, Descripción: i.descripcion, Cantidad: i.cantidad, Unidad: i.unidad }))
@@ -67,37 +60,26 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onA
     if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó Excel de ${nombre} (${pestaña})` });
   };
 
+  // Generador de PDF nativo ultra-liviano usando la función de impresión del sistema organizada
   const exportarPDF = () => {
-    const doc = new jsPDF();
-    doc.text(`${nombre} - Reporte de ${pestaña === "stock" ? "Stock" : "Historial"}`, 14, 15);
-    
-    const headers = pestaña === "stock" 
-      ? [["Categoría", "Descripción", "Cantidad", "Unidad"]]
-      : [["Fecha", "Remito", "Categoría", "Descripción", "Cant.", "Unidad", "Usuario"]];
-
-    const body = pestaña === "stock"
-      ? stockFiltrado.map(i => [i.categoria, i.descripcion, i.cantidad, i.unidad])
-      : historialFiltrado.map(h => [new Date(h.fechaCarga).toLocaleDateString(), h.nroRemito, h.categoria, h.descripcion, h.cantidad, h.unidad, h.cargadoPor]);
-
-    doc.autoTable({ head: headers, body: body, startY: 22, theme: "striped" });
-    doc.save(`${nombre}-${pestaña}.pdf`);
-    if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó PDF de ${nombre} (${pestaña})` });
+    window.print();
+    if (onAudit) onAudit({ tipo: "exportar", detalle: `Abrió panel de impresión PDF de ${nombre} (${pestaña})` });
   };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", overflow: "hidden", border: "1px solid #E2E8F0" }}>
+    <div className="no-print" style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", overflow: "hidden", border: "1px solid #E2E8F0" }}>
       {/* Encabezado Control */}
       <div style={{ background: `linear-gradient(135deg, ${color}, ${colorClaro})`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
           <h2 style={{ color: "#fff", margin: 0, fontSize: 16, fontWeight: 800 }}>{nombre}</h2>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 }}>
-            {listaStock.length} ítems registrados · {movimientos.length} movimientos en total
+            {listaStock.length} ítems registrados · {movimientos.length} movimientos
           </div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={onCarga} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}>+ Nueva Carga</button>
           <button onClick={exportarExcel} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📊 Excel</button>
-          <button onClick={exportarPDF} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📄 PDF</button>
+          <button onClick={exportarPDF} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📄 Imprimir PDF</button>
         </div>
       </div>
 
