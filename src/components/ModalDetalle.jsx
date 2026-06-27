@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { CATEGORIAS, formatFecha, formatFechaCorta } from "../constants.js";
 import { btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { InfoItem } from "./Common.jsx";
+// 📄 Importamos la función encargada de armar el PDF oficial de Desarrollo Humano
+import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 
 export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onEliminar }) {
   // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
@@ -114,7 +116,7 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                       onClick={() => window.open(fotosArray[0], "_blank")}
                       style={{ border: "1px solid #E2E8F0", background: "#fff", color: "#0F172A", borderRadius: 12, padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
                     >
-                      🌐 Abrir en nueva pestaña
+                      🌐 Abrir en pestaña
                     </button>
                   </div>
                 )}
@@ -156,21 +158,49 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {esAdmin && (
-                <button onClick={onEditar} style={{ ...btnSecundario, flex: 1, minWidth: 150, color: "#0F172A", borderColor: "#CBD5E1" }}>
-                  ✏️ Editar
-                </button>
-              )}
-              {esAdmin && (
-                <button onClick={onEliminar} style={{ ...btnSecundario, flex: 1, minWidth: 150, color: "#B91C1C", borderColor: "#FCA5A5" }}>
-                  🗑️ Eliminar
-                </button>
-              )}
-              <button onClick={onClose} style={{ ...btnPrincipal, flex: 1, minWidth: 150 }}>
-                Cerrar
+            {/* ── PANEL DE ACCIONES CON BOTÓN DE IMPRESIÓN OFICIAL INTEGRADO ── */}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", flexDirection: "column" }}>
+              
+              {/* Botón de Impresión de Reporte Oficial (Full Width para jerarquía institucional) */}
+              <button
+                onClick={() => imprimirRemitoOficial(mov)}
+                style={{
+                  background: "linear-gradient(135deg, #0284c7, #0369a1)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 16,
+                  padding: "14px 20px",
+                  fontWeight: "bold",
+                  fontSize: 14,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 12px rgba(2, 132, 199, 0.2)",
+                  transition: "transform 0.1s ease"
+                }}
+              >
+                📄 Generar Remito Oficial (PDF)
               </button>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", width: "100%" }}>
+                {esAdmin && (
+                  <button onClick={onEditar} style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#0F172A", borderColor: "#CBD5E1" }}>
+                    ✏️ Editar
+                  </button>
+                )}
+                {esAdmin && (
+                  <button onClick={onEliminar} style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#B91C1C", borderColor: "#FCA5A5" }}>
+                    🗑️ Eliminar
+                  </button>
+                )}
+                <button onClick={onClose} style={{ ...btnPrincipal, flex: 1, minWidth: 120 }}>
+                  Cerrar
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -192,7 +222,7 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
               maxWidth: "1050px", 
               height: "88vh", 
               borderRadius: 20, 
-              overflow: "auto", // Activa las barras de scroll nativas de forma perfecta
+              overflow: "auto", 
               boxShadow: "0 25px 70px rgba(0,0,0,0.5)", 
               background: "#090D16",
               border: "1px solid rgba(255,255,255,0.08)"
@@ -262,14 +292,14 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                 padding: "40px",
                 minWidth: "100%",
                 minHeight: "calc(100% - 60px)",
-                display: zoomLevel > 1 ? "block" : "flex", // Cambia a block para permitir scroll correcto al agrandar
+                display: zoomLevel > 1 ? "block" : "flex", 
                 alignItems: "center",
                 justifyContent: "center"
               }}
             >
               <div style={{
                 transform: `scale(${zoomLevel})`,
-                transformOrigin: "0 0", // Crucial: origen arriba-izquierda para que el scroll acompañe perfectamente
+                transformOrigin: "0 0", 
                 transition: "transform 0.12s ease-out",
                 display: "block",
                 margin: zoomLevel > 1 ? "0" : "auto"
