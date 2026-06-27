@@ -8,10 +8,7 @@ export function imprimirRemitoOficial(remito) {
 
   const tieneFoto = !!remito.foto;
 
-  // 🏔️ Logo oficial de la silueta de Chubut tal cual la imagen provista (fiel al diseño original)
-  const LOGO_CHUBUT_BASE64 = "data:image/png;base64,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";
-
-  // Renderizamos el HTML con estilos limpios e inyección segura
+  // Renderizamos el HTML con la silueta vectorizada exacta dibujada por código puro
   const htmlContenido = `
     <!DOCTYPE html>
     <html lang="es">
@@ -50,7 +47,7 @@ export function imprimirRemitoOficial(remito) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-bottom: 3px solid #f97316; /* Tono naranja acorde al logo */
+          border-bottom: 3px solid #f59e0b; /* Color amarillo/naranja del sol */
           padding-bottom: 20px;
           margin-bottom: 25px;
         }
@@ -59,10 +56,12 @@ export function imprimirRemitoOficial(remito) {
           align-items: center;
           gap: 15px;
         }
-        .logo-chubut {
-          width: 65px;
-          height: auto;
-          object-fit: contain;
+        .logo-container {
+          width: 75px;
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         .logos-izq {
           display: flex;
@@ -93,15 +92,15 @@ export function imprimirRemitoOficial(remito) {
         }
         .tipo-comprobante {
           display: inline-block;
-          border: 2px solid #f97316;
-          color: #e05600;
+          border: 2px solid #f59e0b;
+          color: #d97706;
           font-weight: 700;
           font-size: 18px;
           padding: 4px 14px;
           margin-bottom: 8px;
           text-transform: uppercase;
           border-radius: 4px;
-          background: #fff7ed;
+          background: #fffbeb;
         }
         .info-num-fecha {
           font-size: 13px;
@@ -214,11 +213,19 @@ export function imprimirRemitoOficial(remito) {
         
         <div class="header-ministerio">
           <div class="contenedor-identidad">
-            <img 
-              class="logo-chubut" 
-              src="${LOGO_CHUBUT_BASE64}" 
-              alt="Logo Oficial Chubut"
-            />
+            <div class="logo-container">
+              <svg viewBox="0 0 460 344" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 17,25 C 10,40 10,55 24,65 C 32,72 25,85 24,96 C 22,118 36,128 32,150 C 26,170 30,190 24,208 C 17,225 35,228 36,242 C 38,255 17,254 24,270 C 30,285 45,286 42,305 C 40,315 28,318 40,332 C 55,345 100,344 140,344 C 180,344 240,335 270,305 C 290,285 305,270 325,250 C 355,210 350,170 365,120 C 375,90 415,90 435,70 C 455,50 440,25 425,25 C 380,25 100,25 17,25 Z" fill="#ffca18"/>
+                
+                <circle cx="105" cy="95" r="45" fill="#ffb100"/>
+                
+                <path d="M 24,150 C 60,110 110,90 170,70 C 240,50 310,90 365,120 C 350,170 355,210 325,250 C 305,270 290,285 270,305 C 240,335 180,344 140,344 C 100,344 55,345 40,332 C 28,318 40,315 42,305 C 45,286 30,285 24,270 C 17,254 38,255 36,242 C 35,228 17,228 24,208 C 30,190 26,170 24,150 Z" fill="#f37023"/>
+                
+                <path d="M 24,208 C 70,225 140,190 210,180 C 280,170 315,220 340,230 C 328,245 315,260 295,278 C 265,305 210,330 140,344 C 100,344 55,344 40,332 C 28,318 40,315 42,305 C 45,286 30,285 24,270 C 17,254 38,255 36,242 C 35,228 17,228 24,208 Z" fill="#5897b2"/>
+                
+                <path d="M 36,242 C 80,255 130,240 190,250 C 240,260 270,290 295,278 C 265,305 210,330 140,344 C 100,344 55,344 40,332 C 28,318 40,315 42,305 C 45,286 30,285 24,270 C 17,254 38,255 36,242 Z" fill="#1b667a"/>
+              </svg>
+            </div>
             <div class="logos-izq">
               <div class="txt-gobierno">Provincia del Chubut</div>
               <div class="txt-ministerio">Ministerio de Desarrollo Humano</div>
