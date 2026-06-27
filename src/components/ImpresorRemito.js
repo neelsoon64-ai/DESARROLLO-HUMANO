@@ -6,10 +6,9 @@ export function imprimirRemitoOficial(remito) {
     ? new Date(remito.fecha).toLocaleDateString("es-AR") 
     : new Date().toLocaleDateString("es-AR");
 
-  // Si el remito guardó múltiples fotos o una sola, lo normalizamos para mostrar links si hiciera falta
   const tieneFoto = !!remito.foto;
 
-  // Renderizamos el HTML con estilos CSS embebidos optimizados para hojas A4
+  // Renderizamos el HTML con el logo oficial incorporado
   const htmlContenido = `
     <!DOCTYPE html>
     <html lang="es">
@@ -43,14 +42,24 @@ export function imprimirRemitoOficial(remito) {
           background: #fff;
         }
 
-        /* Membrete Institucional */
+        /* Membrete Institucional con espacio para Logo */
         .header-ministerio {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          border-bottom: 3px solid #0284c7; /* Azul institucional */
-          padding-bottom: 15px;
+          align-items: center;
+          border-bottom: 3px solid #0284c7;
+          padding-bottom: 20px;
           margin-bottom: 25px;
+        }
+        .contenedor-identidad {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+        .logo-chubut {
+          width: 55px;
+          height: auto;
+          object-fit: contain;
         }
         .logos-izq {
           display: flex;
@@ -84,10 +93,11 @@ export function imprimirRemitoOficial(remito) {
           border: 2px solid #0284c7;
           color: #0284c7;
           font-weight: 700;
-          font-size: 20px;
-          padding: 5px 15px;
+          font-size: 18px;
+          padding: 4px 14px;
           margin-bottom: 8px;
           text-transform: uppercase;
+          border-radius: 4px;
         }
         .info-num-fecha {
           font-size: 13px;
@@ -155,7 +165,7 @@ export function imprimirRemitoOficial(remito) {
           margin-bottom: 5px;
         }
 
-        /* Zona de Firmas al pie de página */
+        /* Zona de Firmas */
         .seccion-firmas {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -171,7 +181,6 @@ export function imprimirRemitoOficial(remito) {
           color: #475569;
         }
 
-        /* Forzado de reglas específicas para cuando se genera el PDF real */
         @media print {
           body {
             padding: 0;
@@ -199,11 +208,19 @@ export function imprimirRemitoOficial(remito) {
       <div class="documento-remito">
         
         <div class="header-ministerio">
-          <div class="logos-izq">
-            <div class="txt-gobierno">Provincia del Chubut</div>
-            <div class="txt-ministerio">Ministerio de Desarrollo Humano</div>
-            <div class="txt-subsecretaria">Sistema de Gestión Institucional (SGI)</div>
+          <div class="contenedor-identidad">
+            <img 
+              class="logo-chubut" 
+              src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Escudo_de_la_Provincia_del_Chubut.svg" 
+              alt="Escudo Chubut"
+            />
+            <div class="logos-izq">
+              <div class="txt-gobierno">Provincia del Chubut</div>
+              <div class="txt-ministerio">Ministerio de Desarrollo Humano</div>
+              <div class="txt-subsecretaria">Sistema de Gestión Institucional (SGI)</div>
+            </div>
           </div>
+          
           <div class="comprobante-der">
             <div class="tipo-comprobante">${remito.tipo === "ingreso" ? "Ingreso" : remito.tipo === "egreso" ? "Egreso" : "S. Inicial"}</div>
             <div class="info-num-fecha">
@@ -261,10 +278,8 @@ export function imprimirRemitoOficial(remito) {
       </div>
 
       <script>
-        // Dispara la ventana de guardado/impresión de forma automática al renderizar
         window.onload = function() {
           window.print();
-          // Opcional: cierra la pestaña secundaria automáticamente después de imprimir/cancelar
           setTimeout(() => { window.close(); }, 500);
         };
       </script>
@@ -272,7 +287,6 @@ export function imprimirRemitoOficial(remito) {
     </html>
   `;
 
-  // Insertamos el HTML estructurado y cerramos el flujo de renderizado del documento
   ventanaImpresion.document.write(htmlContenido);
   ventanaImpresion.document.close();
 }
