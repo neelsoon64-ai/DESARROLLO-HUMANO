@@ -41,4 +41,19 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
     const textoRespuesta = await respuesta.text();
     const resultado = JSON.parse(textoRespuesta);
 
-    if (resultado.status
+    if (resultado.status === "success") {
+      console.log("¡Foto guardada exitosamente en Google Drive!", resultado.url);
+      return resultado.url; // Retorna el enlace directo uc?export=view...
+    } else {
+      console.error("El script de Google Apps Script devolvió un error:", resultado.message);
+      return "";
+    }
+  } catch (error) {
+    console.error("Error de red o CORS al conectar con Google Drive:", error);
+    return "";
+  }
+}
+
+export async function eliminarFotoRemito(url) {
+  return;
+}
