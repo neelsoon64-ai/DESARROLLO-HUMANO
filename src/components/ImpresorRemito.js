@@ -8,7 +8,7 @@ export function imprimirRemitoOficial(remito) {
 
   const tieneFoto = !!remito.foto;
 
-  // Renderizamos el HTML inyectando directamente el SVG del mapa/sol de Chubut
+  // Renderizamos el HTML con el SVG lineal oficial y colores de Gobierno
   const htmlContenido = `
     <!DOCTYPE html>
     <html lang="es">
@@ -47,18 +47,18 @@ export function imprimirRemitoOficial(remito) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-bottom: 3px solid #f97316;
+          border-bottom: 3px solid #0284c7; /* Azul institucional */
           padding-bottom: 20px;
           margin-bottom: 25px;
         }
         .contenedor-identidad {
           display: flex;
           align-items: center;
-          gap: 15px;
+          gap: 18px;
         }
         .logo-container {
-          width: 70px;
-          height: 55px;
+          width: 65px;
+          height: 65px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -92,15 +92,15 @@ export function imprimirRemitoOficial(remito) {
         }
         .tipo-comprobante {
           display: inline-block;
-          border: 2px solid #f97316;
-          color: #e05600;
+          border: 2px solid #0284c7;
+          color: #0284c7;
           font-weight: 700;
           font-size: 18px;
           padding: 4px 14px;
           margin-bottom: 8px;
           text-transform: uppercase;
           border-radius: 4px;
-          background: #fff7ed;
+          background: #f0f9ff;
         }
         .info-num-fecha {
           font-size: 13px;
@@ -214,12 +214,13 @@ export function imprimirRemitoOficial(remito) {
         <div class="header-ministerio">
           <div class="contenedor-identidad">
             <div class="logo-container">
-              <svg viewBox="0 0 106 74" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4.6,3.6 C14,-1.2 38.3,0.3 53,0.1 C65,-0.1 79.5,-0.5 91.3,3.7 C94.5,4.8 97.4,7 101,6 C103.3,5.4 105.4,8.5 105.1,11 C104.7,14 101,13.4 99.3,16 C95.6,21.8 100.8,24.8 96.6,31.2 C91,39.8 72,50 78,57 C82.5,62.2 68.6,65 62,69 C51,75.6 37,74.2 25,74 C11,73.8 6.1,65.8 11.2,63 C16,60.4 11,58.7 8.1,57 C3.8,54.4 0,48.5 4,45 C7.5,42 0.3,34.5 2.1,31.2 C5.3,25.4 3,21.5 5,16 C7,10.6 -1.8,6.8 4.6,3.6 Z" fill="#fbb03b"/>
-                <path d="M12.4,51 C27,47.5 44,24.5 67,23 C81.5,22 83.1,33.5 96.6,31.2 C91,39.8 72,50 78,57 C82.5,62.2 68.6,65 62,69 C51,75.6 37,74.2 25,74 C15.2,73.8 10,68 11.2,63 C14,56 7.4,52.2 12.4,51 Z" fill="#e77817"/>
-                <path d="M11.2,63 C14,56 7.4,52.2 12.4,51 C24,48.2 35.4,56.8 51,55 C65,53.4 72.8,47.8 79,53 C81.4,55 74.2,59.8 72,62 C65.6,68.4 55.4,70 46,73.2 C38,74.2 21.6,74.5 11.2,63 Z" fill="#5894a4"/>
-                <path d="M51,55 C65,53.4 72.8,47.8 79,53 C81.4,55 74.2,59.8 72,62 C65,69 53,74.5 41,74 C29,73.5 21,72 11.2,63 C20,62 38,56.2 51,55 Z" fill="#1d657d"/>
-                <circle cx="21" cy="22" r="10" fill="#f7931e"/>
+              <svg viewBox="0 0 100 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="28" cy="28" r="11" fill="#f59e0b"/>
+                <path d="M28,12 L28,6 M28,44 L28,50 M12,28 L6,28 M44,28 L50,28 M16.7,16.7 L12.5,12.5 M39.3,39.3 L43.5,43.5 M43.5,12.5 L39.3,16.7 M12.5,43.5 L16.7,39.3" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+                
+                <path d="M15,68 C35,48 65,48 88,68" fill="none" stroke="#0ea5e9" stroke-width="7.5" stroke-linecap="round"/>
+                <path d="M15,77 C35,57 65,57 88,77" fill="none" stroke="#e2e8f0" stroke-width="7.5" stroke-linecap="round"/>
+                <path d="M15,86 C35,66 65,66 88,86" fill="none" stroke="#0ea5e9" stroke-width="7.5" stroke-linecap="round"/>
               </svg>
             </div>
             <div class="logos-izq">
