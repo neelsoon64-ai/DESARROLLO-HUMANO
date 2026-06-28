@@ -124,6 +124,7 @@ Vas a ver algo como:
 | Usuario | Contraseña | Rol |
 |---|---|---|
 | `admin` | `admin123` | 🔑 Administrador |
+| `juaniparraguirre` | `juan123` | 🔑 Administrador |
 | `operador1` | `op123` | 👤 Usuario común |
 | `operador2` | `op456` | 👤 Usuario común |
 

@@ -270,9 +270,25 @@ export default function App() {
 
   const cerrarDetalle = () => setDetalleMovimiento(null);
 
-  const usuariosSeguros = usuariosListo && Array.isArray(usuarios) && usuarios.length > 0 
-    ? usuarios 
-    : USUARIOS_INICIALES;
+  const usuariosSeguros = (() => {
+    const listaGuardada = usuariosListo && Array.isArray(usuarios) && usuarios.length > 0 
+      ? usuarios.filter(Boolean)
+      : [];
+
+    const existeAdmin = listaGuardada.some((u) => String(u.rol) === "Administrador");
+    if (listaGuardada.length === 0 || !existeAdmin) {
+      const adminsIniciales = USUARIOS_INICIALES.filter((u) => u.rol === "Administrador");
+      const listaCombinada = [...listaGuardada];
+      adminsIniciales.forEach((admin) => {
+        if (!listaCombinada.some((u) => String(u.usuario).toLowerCase() === String(admin.usuario).toLowerCase())) {
+          listaCombinada.push(admin);
+        }
+      });
+      return listaCombinada;
+    }
+
+    return listaGuardada;
+  })();
 
   if (!usuarioActual) {
     return <Login usuarios={usuariosSeguros} onLogin={setUsuarioActual} onAudit={registrarAuditoria} />;
