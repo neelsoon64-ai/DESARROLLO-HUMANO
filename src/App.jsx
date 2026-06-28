@@ -1,151 +1,359 @@
-import React from 'react';
-import { Package, Download, Upload, FileText, Users, Activity, ArrowLeft } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { useState, useCallback, useEffect } from "react";
+import { USUARIOS_INICIALES, COLECCION, DOC_IDS } from "./constants.js";
+import { useSharedState } from "./useSharedState.js";
+import { firebaseConfigurado } from "./firebase.js";
+import Login from "./components/Login.jsx";
+import Seccion from "./components/Seccion.jsx";
+import ModalRemito from "./components/ModalRemito.jsx";
+import ModalDetalle from "./components/ModalDetalle.jsx";
+import PanelAuditoria from "./components/PanelAuditoria.jsx";
+import PanelUsuarios from "./components/PanelUsuarios.jsx";
+import logo from "./assets/logo.png";
+import { getDatabase, ref, remove, set } from "firebase/database";
 
-export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, auditoria, onVolver }) {
-  
-  // 1. Cálculos de métricas en tiempo real basados en tu Firebase
-  const totalMovimientos = nacionMovs.length + provinciaMovs.length;
-  
-  const ingresosNacion = nacionMovs.filter(m => m.tipo === 'ingreso').length;
-  const egresosNacion = nacionMovs.filter(m => m.tipo === 'egreso').length;
-  const ingresosProv = provinciaMovs.filter(m => m.tipo === 'ingreso').length;
-  const egresosProv = provinciaMovs.filter(m => m.tipo === 'egreso').length;
+export default function App() {
+  // Mantienen sus escuchas activos en segundo plano
+  const [usuarios, setUsuarios, usuariosListo] = useSharedState(COLECCION, DOC_IDS.usuarios, USUARIOS_INICIALES);
+  const [nacion, setNacion] = useSharedState(COLECCION, DOC_IDS.nacion, {});
+  const [provincia, setProvincia] = useSharedState(COLECCION, DOC_IDS.provincia, {});
+  const [auditoriaRaw, setAuditoriaRaw] = useSharedState(COLECCION, DOC_IDS.auditoria, []);
 
-  const totalIngresos = ingresosNacion + ingresosProv;
-  const totalEgresos = egresosNacion + egresosProv;
+  const [usuarioActual, setUsuarioActual] = useState(null);
+  const [modalCarga, setModalCarga] = useState(null); // Ahora guarda objeto: { seccion: "nacion"|"provincia", datos: mov|null }
+  const [detalleMovimiento, setDetalleMovimiento] = useState(null);
+  const [panelAudit, setPanelAudit] = useState(false);
+  const [panelUsers, setPanelUsers] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [ultimaSync, setUltimaSync] = useState(new Date());
+  const [, setTick] = useState(0);
 
-  const articulosNacionUnicos = new Set(nacionMovs.filter(m => m?.descripcion).map(m => m.descripcion)).size;
-  const articulosProvinciaUnicos = new Set(provinciaMovs.filter(m => m?.descripcion).map(m => m.descripcion)).size;
+  const auditoria = Array.isArray(auditoriaRaw) ? auditoriaRaw.filter(Boolean) : [];
 
-  // 2. Gráfico 1: Comparativa de depósitos (Nación vs Provincia)
-  const dataComparativa = [
-    { name: 'Nación', Ingresos: ingresosNacion, Egresos: egresosNacion },
-    { name: 'Provincia', Ingresos: ingresosProv, Egresos: egresosProv },
-  ];
+  const setAuditoria = useCallback((actualizador) => {
+    if (!setAuditoriaRaw) return;
+    setAuditoriaRaw((prev) => {
+      const previoValido = Array.isArray(prev) ? prev.filter(Boolean) : [];
+      const siguiente = typeof actualizador === "function" ? actualizador(previoValido) : actualizador;
+      return (Array.isArray(siguiente) ? siguiente : [])
+        .filter(Boolean)
+        .map(log => ({
+          tipo: String(log?.tipo || "accion"),
+          usuario: String(log?.usuario || "Sistema"),
+          rol: String(log?.rol || "sistema"),
+          detalle: String(log?.detalle || "Acción registrada"),
+          fecha: String(log?.fecha || new Date().toISOString())
+        }));
+    });
+  }, [setAuditoriaRaw]);
 
-  // 3. Gráfico 2: Top Productos más movidos (Mapeo dinámico de descripciones)
-  const todasLasDescripciones = [...nacionMovs, ...provinciaMovs].map(m => m.descripcion || 'Sin descripción');
-  const conteoProductos = todasLasDescripciones.reduce((acc, desc) => {
-    acc[desc] = (acc[desc] || 0) + 1;
-    return acc;
-  }, {});
+  const registrarAuditoria = useCallback((evento) => {
+    const eventoSeguro = {
+      tipo: String(evento?.tipo || "accion"),
+      usuario: String(evento?.usuario || usuarioActual?.nombre || "Sistema"),
+      rol: String(evento?.rol || usuarioActual?.rol || "sistema"),
+      detalle: String(evento?.detalle || "Acción del sistema"),
+      fecha: new Date().toISOString()
+    };
+    setAuditoria((prev) => [...prev, eventoSeguro]);
+  }, [setAuditoria, usuarioActual]);
 
-  const productosTop = Object.entries(conteoProductos)
-    .map(([name, cantidad]) => ({ name: name.substring(0, 15), cantidad }))
-    .sort((a, b) => b.cantidad - a.cantidad)
-    .slice(0, 5);
+  useEffect(() => {
+    setUltimaSync(new Date());
+  }, [nacion, provincia, usuarios, auditoriaRaw]);
 
-  // 4. Tabla: Últimos 5 movimientos globales en tiempo real
-  const ultimosMovimientos = [...nacionMovs.map(m => ({ ...m, origen: 'Nación' })), ...provinciaMovs.map(m => ({ ...m, origen: 'Provincia' }))]
-    .sort((a, b) => new Date(b.fechaCarga || b.fecha) - new Date(a.fechaCarga || a.fecha))
-    .slice(0, 5);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const logout = () => {
+    if (usuarioActual) {
+      registrarAuditoria({ tipo: "logout", usuario: usuarioActual.nombre, rol: usuarioActual.rol, detalle: "Cerró sesión" });
+    }
+    setUsuarioActual(null);
+    setMenuAbierto(false);
+  };
+
+  // 🔥 FIJACIÓN DE EDICIÓN: Reescribe el estado local inmediatamente y actualiza Firebase sin intermediarios
+  const agregarCarga = useCallback(
+    async (seccion, carga) => {
+      const docId = seccion === "nacion" ? DOC_IDS.nacion : DOC_IDS.provincia;
+      const setter = seccion === "nacion" ? setNacion : setProvincia;
+      
+      const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
+
+      const movimientoSeguro = {
+        id: idMovimiento,
+        descripcion: String(carga?.descripcion || "Sin descripción"),
+        categoria: String(carga?.categoria || "General"),
+        cantidad: Number(carga?.cantidad || 0),
+        unidad: String(carga?.unidad || "unidades"),
+        nroRemito: String(carga?.nroRemito || "s/n"),
+        fecha: String(carga?.fecha || carga?.fechaCarga || new Date().toISOString()),
+        fechaCarga: String(carga?.fechaCarga || carga?.fecha || new Date().toISOString()),
+        proveedor: String(carga?.proveedor || "No informado"),
+        observaciones: String(carga?.observaciones || ""),
+        tipo: String(carga?.tipo || "ingreso"),
+        foto: carga?.foto || "",
+        cargadoPor: String(carga?.cargadoPor || "Desconocido"),
+        editadoPor: String(carga?.editadoPor || "")
+      };
+
+      // Modificamos el estado local de React al instante para que la UI responda en el acto
+      setter((prev) => {
+        let movimientosPrevios = {};
+        const movsBase = prev?.movimientos;
+        if (movsBase) {
+          if (Array.isArray(movsBase)) {
+            movsBase.forEach((m, idx) => { if (m) movimientosPrevios[m.id || `key_${idx}`] = m; });
+          } else if (typeof movsBase === "object") {
+            movimientosPrevios = { ...movsBase };
+          }
+        }
+        movimientosPrevios[idMovimiento] = movimientoSeguro;
+        return { ...prev, movimientos: movimientosPrevios };
+      });
+
+      // Guardamos directamente en la ruta exacta de la base de datos de Firebase
+      try {
+        const db = getDatabase();
+        const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
+        await set(movimientoRef, movimientoSeguro);
+      } catch (error) {
+        console.error("Error al impactar en Firebase Realtime DB:", error);
+      }
+    },
+    [setNacion, setProvincia]
+  );
+
+  const eliminarCarga = useCallback(
+    async (seccion, carga) => {
+      const docId = seccion === "nacion" ? DOC_IDS.nacion : DOC_IDS.provincia;
+      const setter = seccion === "nacion" ? setNacion : setProvincia;
+      const idMovimiento = carga?.id;
+      if (!idMovimiento) return;
+
+      setter((prev) => {
+        const movsBase = prev?.movimientos;
+        if (!movsBase) return prev;
+        let movimientosPrevios = {};
+
+        if (Array.isArray(movsBase)) {
+          movsBase.filter(Boolean).forEach((mov) => {
+            if (mov.id && mov.id !== idMovimiento) movimientosPrevios[mov.id] = mov;
+          });
+        } else if (typeof movsBase === "object") {
+          movimientosPrevios = { ...movsBase };
+          delete movimientosPrevios[idMovimiento];
+        }
+
+        return { ...prev, movimientos: movimientosPrevios };
+      });
+
+      try {
+        const db = getDatabase();
+        const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
+        await remove(movimientoRef);
+      } catch (error) {
+        console.error("Error al eliminar en Firebase Realtime DB:", error);
+      }
+    },
+    [setNacion, setProvincia]
+  );
+
+  const esAdmin = usuarioActual?.rol === "admin";
+
+  const abrirDetalle = (mov, seccion) => {
+    setDetalleMovimiento({ mov, seccion });
+  };
+
+  const cerrarDetalle = () => setDetalleMovimiento(null);
+
+  // ⚡ INICIO ASÍNCRONO SEGURO: Si los usuarios no cargaron de la red, usamos los por defecto para no trabar
+  const usuariosSeguros = usuariosListo && Array.isArray(usuarios) && usuarios.length > 0 
+    ? usuarios 
+    : USUARIOS_INICIALES;
+
+  if (!usuarioActual) {
+    return <Login usuarios={usuariosSeguros} onLogin={setUsuarioActual} onAudit={registrarAuditoria} />;
+  }
+
+  const sincLabel = (() => {
+    const diff = Math.floor((new Date() - ultimaSync) / 1000);
+    if (diff < 10) return "ahora";
+    if (diff < 60) return `${diff}s`;
+    return `${Math.floor(diff / 60)}m`;
+  })();
+
+  const nacionMovs = nacion && nacion.movimientos
+    ? (Array.isArray(nacion.movimientos) ? nacion.movimientos : Object.values(nacion.movimientos)).filter(Boolean)
+    : [];
+    
+  const provinciaMovs = provincia && provincia.movimientos
+    ? (Array.isArray(provincia.movimientos) ? provincia.movimientos : Object.values(provincia.movimientos)).filter(Boolean)
+    : [];
+    
+  const listaUsuarios = Array.isArray(usuarios) ? usuarios.filter(Boolean) : [];
+  const articulosNacionUnicos = new Set(nacionMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
+  const articulosProvinciaUnicos = new Set(provinciaMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
 
   return (
-    <div style={{ maxWidth: 920, margin: '0 auto', padding: '18px 14px', fontFamily: "'Inter',system-ui,sans-serif" }}>
-      
-      {/* Encabezado */}
-      <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: 20, justifyContent: 'space-between' }}>
-        <button onClick={onVolver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1A3A5C', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-          <ArrowLeft size={16} /> Volver al Inventario
-        </button>
-        <div style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 700, color: '#64748B', trackingSpace: 1 }}>
-          Panel Analítico SGI
-        </div>
-      </div>
-
-      {/* Tarjetas Dinámicas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "Artículos Únicos (Nac)", val: articulosNacionUnicos, icon: Package, col: "#1A3A5C" },
-          { label: "Artículos Únicos (Prov)", val: articulosProvinciaUnicos, icon: Package, col: "#2E7DC4" },
-          { label: "Total Ingresos", val: totalIngresos, icon: Download, col: "#10B981" },
-          { label: "Total Egresos", val: totalEgresos, icon: Upload, col: "#F97316" },
-          { label: "Movimientos Totales", val: totalMovimientos, icon: FileText, col: "#C8993A" },
-          { label: "Usuarios Registrados", val: listaUsuarios.length, icon: Users, col: "#6366F1" },
-          { label: "Registros Auditoría", val: auditoria.length, icon: Activity, col: "#475569" },
-        ].map((card, i) => {
-          const Icon = card.icon;
-          return (
-            <div key={i} style={{ background: '#fff', borderRadius: 12, padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderTop: `4px solid ${card.col}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{card.label}</span>
-                <Icon size={16} color={card.col} />
+    <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "'Inter',system-ui,sans-serif" }}>
+      {/* Navbar */}
+      <div style={{ background: "linear-gradient(135deg,#0F2540,#1A3A5C)", position: "sticky", top: 0, zIndex: 200, boxShadow: "0 2px 16px rgba(0,0,0,0.3)" }}>
+        <div style={{ maxWidth: 920, margin: "0 auto", padding: "13px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <img src={logo} alt="Logo Gobierno de Chubut" style={{ width: 48, height: 48, objectFit: "contain" }} />
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, letterSpacing: 1.5, fontWeight: 700, textTransform: "uppercase" }}>
+                Gobierno de la Provincia del Chubut
               </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#1E293B', marginTop: 6 }}>{card.val}</div>
+              <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginTop: 3 }}>
+                Ministerio de Desarrollo Humano
+              </div>
             </div>
-          )
-        })}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "5px 9px", color: "rgba(255,255,255,0.7)", fontSize: 11 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: firebaseConfigurado ? "#22C55E" : "#F59E0B" }} />
+              {firebaseConfigurado ? sincLabel : "local"}
+            </div>
+
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setMenuAbierto(!menuAbierto)} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10, padding: "6px 10px", cursor: "pointer", color: "#fff" }}>
+                <div style={{ width: 26, height: 26, borderRadius: 7, background: esAdmin ? "linear-gradient(135deg,#C8993A,#E8B84B)" : "linear-gradient(135deg,#2E7DC4,#4DA3D4)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12 }}>
+                  {usuarioActual?.nombre ? usuarioActual.nombre.charAt(0) : "U"}
+                </div>
+              </button>
+
+              {menuAbierto && (
+                <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.2)", padding: "8px", minWidth: 210, zIndex: 300 }}>
+                  <div style={{ padding: "8px 12px 12px", borderBottom: "1px solid #F1F5F9", marginBottom: 4 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{usuarioActual?.nombre}</div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>{esAdmin ? "🔑 Administrador" : "👤 Usuario"}</div>
+                  </div>
+                  {esAdmin && (
+                    <>
+                      <button onClick={() => { setPanelAudit(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
+                        🔍 Auditoría <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{auditoria.length}</span>
+                      </button>
+                      <button onClick={() => { setPanelUsers(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
+                        👥 Gestionar Usuarios <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{listaUsuarios.length}</span>
+                      </button>
+                    </>
+                  )}
+                  <button onClick={logout} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "#DC2626" }}>
+                    🚪 Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Gráficos */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 16, marginBottom: 20 }}>
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
+        {/* KPIs */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+          {[
+            { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
+            { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
+            { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
+          ].map((stat) => (
+            <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
+              <div style={{ fontSize: 18 }}>{stat.icon}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+              <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <Seccion 
+          nombre="Inventario — Nación" 
+          color="#1A3A5C" 
+          colorClaro="#2E7DC4" 
+          datos={{ movimientos: nacionMovs }} 
+          onCarga={() => setModalCarga({ seccion: "nacion", datos: null })} 
+          onEditar={(mov) => setModalCarga({ seccion: "nacion", datos: mov })} 
+          onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
+          usuarioActual={usuarioActual} 
+          onAudit={registrarAuditoria} 
+          auditoria={auditoria} 
+        />
         
-        {/* Grafico 1 */}
-        <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>Flujo: Ingresos vs Egresos</h3>
-          <div style={{ width: '100%', height: 240 }}>
-            <ResponsiveContainer>
-              <BarChart data={dataComparativa}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis fontSize={12} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Ingresos" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Egresos" fill="#F97316" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Grafico 2 */}
-        <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>Productos con Mayor Frecuencia de Carga</h3>
-          <div style={{ width: '100%', height: 240 }}>
-            <ResponsiveContainer>
-              <AreaChart data={productosTop} margin={{ left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" fontSize={11} />
-                <YAxis fontSize={12} />
-                <Tooltip />
-                <Area type="monotone" dataKey="cantidad" name="Movimientos" stroke="#1A3A5C" fill="#E2E8F0" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
+        <Seccion 
+          nombre="Inventario — Provincia" 
+          color="#1B6EB5" 
+          colorClaro="#4DA3D4" 
+          datos={{ movimientos: provinciaMovs }} 
+          onCarga={() => setModalCarga({ seccion: "provincia", datos: null })} 
+          onEditar={(mov) => setModalCarga({ seccion: "provincia", datos: mov })} 
+          onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
+          usuarioActual={usuarioActual} 
+          onAudit={registrarAuditoria} 
+          auditoria={auditoria} 
+        />
       </div>
 
-      {/* Tabla Recientes */}
-      <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-        <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>Últimos 5 Movimientos Registrados</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textLeft: 'left' }}>
-          <thead>
-            <tr style={{ background: '#F8FAFC', color: '#64748B', textAlign: 'left' }}>
-              <th style={{ padding: 8 }}>Depósito</th>
-              <th style={{ padding: 8 }}>Tipo</th>
-              <th style={{ padding: 8 }}>Descripción</th>
-              <th style={{ padding: 8 }}>Cantidad</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ultimosMovimientos.map((m, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                <td style={{ padding: 8, fontWeight: 600 }}>{m.origen}</td>
-                <td style={{ padding: 8 }}>
-                  <span style={{ padding: '2px 6px', borderRadius: 4, fontWeight: 700, fontSize: 10, background: m.tipo === 'ingreso' ? '#D1FAE5' : '#FFEDD5', color: m.tipo === 'ingreso' ? '#065F46' : '#9A3412' }}>
-                    {m.tipo.toUpperCase()}
-                  </span>
-                </td>
-                <td style={{ padding: 8 }}>{m.descripcion}</td>
-                <td style={{ padding: 8, fontWeight: 700 }}>{m.cantidad} {m.unidad}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {modalCarga && (
+        <ModalRemito
+          seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
+          datosEdicion={modalCarga.datos}
+          onClose={() => setModalCarga(null)}
+          onGuardar={(carga) => {
+            const conUsuario = { 
+              ...carga, 
+              id: modalCarga.datos?.id || carga.id, 
+              cargadoPor: modalCarga.datos?.cargadoPor || usuarioActual?.nombre || "Desconocido" 
+            };
+            agregarCarga(modalCarga.seccion, conUsuario);
+            registrarAuditoria({
+              tipo: modalCarga.datos ? "edicion" : "carga",
+              usuario: usuarioActual?.nombre || "Desconocido",
+              rol: usuarioActual?.rol || "usuario",
+              detalle: `${modalCarga.datos ? "Editó" : "Cargó"} "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) en ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
+            });
+            setModalCarga(null);
+          }}
+          onEliminar={(carga) => {
+            if (!modalCarga?.datos) return;
+            eliminarCarga(modalCarga.seccion, carga);
+            registrarAuditoria({
+              tipo: "eliminacion",
+              usuario: usuarioActual?.nombre || "Desconocido",
+              rol: usuarioActual?.rol || "usuario",
+              detalle: `Eliminó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) de ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
+            });
+            setModalCarga(null);
+          }}
+        />
+      )}
 
+      {detalleMovimiento && (
+        <ModalDetalle
+          mov={detalleMovimiento.mov}
+          esAdmin={esAdmin}
+          onClose={cerrarDetalle}
+          onEditar={() => {
+            setModalCarga({ seccion: detalleMovimiento.seccion, datos: detalleMovimiento.mov });
+            cerrarDetalle();
+          }}
+          onEliminar={(carga) => {
+            eliminarCarga(detalleMovimiento.seccion, carga);
+            registrarAuditoria({
+              tipo: "eliminacion",
+              usuario: usuarioActual?.nombre || "Desconocido",
+              rol: usuarioActual?.rol || "usuario",
+              detalle: `Eliminó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) de ${detalleMovimiento.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
+            });
+            cerrarDetalle();
+          }}
+        />
+      )}
+
+      {panelAudit && <PanelAuditoria logs={auditoria} onClose={() => setPanelAudit(false)} />}
+      {panelUsers && <PanelUsuarios usuarios={listaUsuarios} setUsuarios={setUsuarios} onClose={() => setPanelUsers(false)} onAudit={registrarAuditoria} usuarioActual={usuarioActual} />}
     </div>
   );
 }
