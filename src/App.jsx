@@ -8,6 +8,7 @@ import ModalRemito from "./components/ModalRemito.jsx";
 import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
+import Dashboard from "./components/Dashboard.jsx"; 
 import logo from "./assets/logo.png";
 import { getDatabase, ref, remove, set } from "firebase/database";
 
@@ -19,10 +20,11 @@ export default function App() {
   const [auditoriaRaw, setAuditoriaRaw] = useSharedState(COLECCION, DOC_IDS.auditoria, []);
 
   const [usuarioActual, setUsuarioActual] = useState(null);
-  const [modalCarga, setModalCarga] = useState(null); // Ahora guarda objeto: { seccion: "nacion"|"provincia", datos: mov|null }
+  const [modalCarga, setModalCarga] = useState(null); 
   const [detalleMovimiento, setDetalleMovimiento] = useState(null);
   const [panelAudit, setPanelAudit] = useState(false);
   const [panelUsers, setPanelUsers] = useState(false);
+  const [verDashboard, setVerDashboard] = useState(false); 
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [ultimaSync, setUltimaSync] = useState(new Date());
   const [, setTick] = useState(0);
@@ -72,9 +74,9 @@ export default function App() {
     }
     setUsuarioActual(null);
     setMenuAbierto(false);
+    setVerDashboard(false); 
   };
 
-  // 🔥 FIJACIÓN DE EDICIÓN: Reescribe el estado local inmediatamente y actualiza Firebase sin intermediarios
   const agregarCarga = useCallback(
     async (seccion, carga) => {
       const docId = seccion === "nacion" ? DOC_IDS.nacion : DOC_IDS.provincia;
@@ -99,7 +101,6 @@ export default function App() {
         editadoPor: String(carga?.editadoPor || "")
       };
 
-      // Modificamos el estado local de React al instante para que la UI responda en el acto
       setter((prev) => {
         let movimientosPrevios = {};
         const movsBase = prev?.movimientos;
@@ -114,7 +115,6 @@ export default function App() {
         return { ...prev, movimientos: movimientosPrevios };
       });
 
-      // Guardamos directamente en la ruta exacta de la base de datos de Firebase
       try {
         const db = getDatabase();
         const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
@@ -169,7 +169,6 @@ export default function App() {
 
   const cerrarDetalle = () => setDetalleMovimiento(null);
 
-  // ⚡ INICIO ASÍNCRONO SEGURO: Si los usuarios no cargaron de la red, usamos los por defecto para no trabar
   const usuariosSeguros = usuariosListo && Array.isArray(usuarios) && usuarios.length > 0 
     ? usuarios 
     : USUARIOS_INICIALES;
@@ -233,6 +232,12 @@ export default function App() {
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{usuarioActual?.nombre}</div>
                     <div style={{ fontSize: 11, color: "#64748B" }}>{esAdmin ? "🔑 Administrador" : "👤 Usuario"}</div>
                   </div>
+                  
+                  {/* Botón de acceso al Dashboard */}
+                  <button onClick={() => { setVerDashboard(!verDashboard); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: "600", color: "#1B6EB5" }}>
+                    {verDashboard ? "📋 Ver Inventario" : "📊 Ver Dashboard Analítico"}
+                  </button>
+
                   {esAdmin && (
                     <>
                       <button onClick={() => { setPanelAudit(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
@@ -254,46 +259,59 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
-        {/* KPIs */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-          {[
-            { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
-            { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
-            { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
-          ].map((stat) => (
-            <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
-              <div style={{ fontSize: 18 }}>{stat.icon}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-              <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        <Seccion 
-          nombre="Inventario — Nación" 
-          color="#1A3A5C" 
-          colorClaro="#2E7DC4" 
-          datos={{ movimientos: nacionMovs }} 
-          onCarga={() => setModalCarga({ seccion: "nacion", datos: null })} 
-          onEditar={(mov) => setModalCarga({ seccion: "nacion", datos: mov })} 
-          onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
-          usuarioActual={usuarioActual} 
-          onAudit={registrarAuditoria} 
-          auditoria={auditoria} 
-        />
         
-        <Seccion 
-          nombre="Inventario — Provincia" 
-          color="#1B6EB5" 
-          colorClaro="#4DA3D4" 
-          datos={{ movimientos: provinciaMovs }} 
-          onCarga={() => setModalCarga({ seccion: "provincia", datos: null })} 
-          onEditar={(mov) => setModalCarga({ seccion: "provincia", datos: mov })} 
-          onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
-          usuarioActual={usuarioActual} 
-          onAudit={registrarAuditoria} 
-          auditoria={auditoria} 
-        />
+        {verDashboard ? (
+          <Dashboard 
+            nacionMovs={nacionMovs}
+            provinciaMovs={provinciaMovs}
+            listaUsuarios={listaUsuarios}
+            auditoria={auditoria}
+            onVolver={() => setVerDashboard(false)}
+          />
+        ) : (
+          <>
+            {/* KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+              {[
+                { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
+                { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
+                { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
+              ].map((stat) => (
+                <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
+                  <div style={{ fontSize: 18 }}>{stat.icon}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                  <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <Seccion 
+              nombre="Inventario — Nación" 
+              color="#1A3A5C" 
+              colorClaro="#2E7DC4" 
+              datos={{ movimientos: nacionMovs }} 
+              onCarga={() => setModalCarga({ seccion: "nacion", datos: null })} 
+              onEditar={(mov) => setModalCarga({ seccion: "nacion", datos: mov })} 
+              onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
+              usuarioActual={usuarioActual} 
+              onAudit={registrarAuditoria} 
+              auditoria={auditoria} 
+            />
+            
+            <Seccion 
+              nombre="Inventario — Provincia" 
+              color="#1B6EB5" 
+              colorClaro="#4DA3D4" 
+              datos={{ movimientos: provinciaMovs }} 
+              onCarga={() => setModalCarga({ seccion: "provincia", datos: null })} 
+              onEditar={(mov) => setModalCarga({ seccion: "provincia", datos: mov })} 
+              onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
+              usuarioActual={usuarioActual} 
+              onAudit={registrarAuditoria} 
+              auditoria={auditoria} 
+            />
+          </>
+        )}
       </div>
 
       {modalCarga && (
