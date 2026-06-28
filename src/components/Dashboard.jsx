@@ -1,8 +1,8 @@
-import React from 'react';
-import { Package, Download, Upload, FileText, Users, Activity, ArrowLeft } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Package, Download, Upload, Copy, FileText, Users, Activity, ArrowLeft } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
-export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, auditoria, onVolver }) {
+export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, auditoria, onVolver, onCrearCopiaAhora, onDescargarRespaldo, onRestaurarRespaldo }) {
   
   // 1. Cálculos de métricas en tiempo real basados en tu Firebase
   const totalMovimientos = nacionMovs.length + provinciaMovs.length;
@@ -36,22 +36,59 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
     .sort((a, b) => b.cantidad - a.cantidad)
     .slice(0, 5);
 
+  const fileInputRef = useRef(null);
+
   // 4. Tabla: Últimos 5 movimientos globales en tiempo real
   const ultimosMovimientos = [...nacionMovs.map(m => ({ ...m, origen: 'Nación' })), ...provinciaMovs.map(m => ({ ...m, origen: 'Provincia' }))]
     .sort((a, b) => new Date(b.fechaCarga || b.fecha) - new Date(a.fechaCarga || a.fecha))
     .slice(0, 5);
 
+  const manejarArchivoRespaldo = async (event) => {
+    const archivo = event.target.files?.[0];
+    if (!archivo) return;
+
+    try {
+      const texto = await archivo.text();
+      const data = JSON.parse(texto);
+      if (onRestaurarRespaldo) onRestaurarRespaldo(data);
+      window.alert('Respaldo restaurado correctamente.');
+    } catch (err) {
+      console.error('Error al leer el respaldo:', err);
+      window.alert('No se pudo restaurar el respaldo. Verifique el archivo.');
+    } finally {
+      event.target.value = null;
+    }
+  };
+
+  const abrirSelectorRestaurar = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div style={{ maxWidth: 920, margin: '0 auto', padding: '18px 14px', fontFamily: "'Inter',system-ui,sans-serif" }}>
       
       {/* Encabezado */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <button onClick={onVolver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1A3A5C', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           <ArrowLeft size={16} /> Volver al Inventario
         </button>
         <div style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '1px' }}>
           Panel Analítico SGI
         </div>
+      </div>
+
+      {/* Acciones de respaldo */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+        <button onClick={() => onCrearCopiaAhora && onCrearCopiaAhora()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#E2E8F0', color: '#0F172A', border: 'none', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+          <Copy size={16} /> Crear copia ahora
+        </button>
+        <button onClick={() => onDescargarRespaldo && onDescargarRespaldo()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1A3A5C', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+          <Download size={16} /> Descargar respaldo
+        </button>
+        <button onClick={abrirSelectorRestaurar} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#2563EB', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+          <Upload size={16} /> Restaurar respaldo
+        </button>
+        <input ref={fileInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={manejarArchivoRespaldo} />
       </div>
 
       {/* Tarjetas Dinámicas */}

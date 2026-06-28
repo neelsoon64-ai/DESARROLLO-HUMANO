@@ -28,6 +28,7 @@ export default function App() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [ultimaSync, setUltimaSync] = useState(new Date());
   const [, setTick] = useState(0);
+  const [copiaRespaldo, setCopiaRespaldo] = useState(null);
 
   const auditoria = Array.isArray(auditoriaRaw) ? auditoriaRaw.filter(Boolean) : [];
 
@@ -76,6 +77,59 @@ export default function App() {
     setMenuAbierto(false);
     setVerDashboard(false); 
   };
+
+  const crearCopiaAhora = useCallback(() => {
+    const usuariosSeguros = Array.isArray(usuarios) ? usuarios.filter(Boolean) : USUARIOS_INICIALES;
+    const copia = {
+      nacion: nacion || { movimientos: {} },
+      provincia: provincia || { movimientos: {} },
+      usuarios: usuariosSeguros,
+      auditoria,
+      fecha: new Date().toISOString(),
+    };
+    setCopiaRespaldo(copia);
+    registrarAuditoria({
+      tipo: "respaldo",
+      usuario: usuarioActual?.nombre || "Sistema",
+      rol: usuarioActual?.rol || "sistema",
+      detalle: "Creó copia ahora",
+    });
+    return copia;
+  }, [auditoria, nacion, provincia, registrarAuditoria, usuarioActual, usuarios]);
+
+  const descargarRespaldo = useCallback((backup = null) => {
+    const copia = backup || crearCopiaAhora();
+    const json = JSON.stringify(copia, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `respaldo_inventario_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    registrarAuditoria({
+      tipo: "exportar",
+      usuario: usuarioActual?.nombre || "Sistema",
+      rol: usuarioActual?.rol || "sistema",
+      detalle: "Descargó respaldo",
+    });
+  }, [crearCopiaAhora, registrarAuditoria, usuarioActual]);
+
+  const restaurarRespaldo = useCallback(async (backup) => {
+    if (!backup || typeof backup !== "object") return;
+    if (backup.nacion) setNacion(backup.nacion);
+    if (backup.provincia) setProvincia(backup.provincia);
+    if (backup.usuarios) setUsuarios(backup.usuarios);
+    if (backup.auditoria) setAuditoria(() => backup.auditoria);
+    registrarAuditoria({
+      tipo: "restauracion",
+      usuario: usuarioActual?.nombre || "Sistema",
+      rol: usuarioActual?.rol || "sistema",
+      detalle: "Restauró respaldo",
+    });
+  }, [registrarAuditoria, setAuditoria, setNacion, setProvincia, setUsuarios, usuarioActual]);
 
   const agregarCarga = useCallback(
     async (seccion, carga) => {
@@ -267,6 +321,9 @@ export default function App() {
             listaUsuarios={listaUsuarios}
             auditoria={auditoria}
             onVolver={() => setVerDashboard(false)}
+            onCrearCopiaAhora={crearCopiaAhora}
+            onDescargarRespaldo={descargarRespaldo}
+            onRestaurarRespaldo={restaurarRespaldo}
           />
         ) : (
           <>
