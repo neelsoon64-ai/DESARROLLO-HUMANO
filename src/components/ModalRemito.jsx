@@ -23,6 +23,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     unidad: inicial.unidad || "unidades",
     estado: inicial.estado || "Activo",
     motivo: inicial.motivo || "",
+    fechaCompra: inicial.fechaCompra ? new Date(inicial.fechaCompra).toISOString().slice(0, 10) : "",
+    fechaVencimiento: inicial.fechaVencimiento ? new Date(inicial.fechaVencimiento).toISOString().slice(0, 10) : "",
+    estadoRemito: inicial.estadoRemito || "Pendiente",
+    fechaCierre: inicial.fechaCierre ? new Date(inicial.fechaCierre).toISOString().slice(0, 10) : "",
     listaFotos: fotosIniciales.map((foto, idx) => ({
       id: `foto-inicial-${idx}`,
       url: foto,
@@ -102,6 +106,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     if (!form.cantidad || isNaN(Number(form.cantidad)) || Number(form.cantidad) <= 0)
       return setError("Ingresá una cantidad válida.");
     if (form.estado === "Dado de baja" && !form.motivo) return setError("Seleccioná un motivo para Dado de baja.");
+    if (form.estadoRemito === "Cerrado" && !form.fechaCierre) return setError("Ingresá la fecha de cierre del remito.");
     setError("");
 
     const id = inicial?.id || generarId();
@@ -159,6 +164,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         unidad: form.unidad,
         estado: form.estado,
         motivo: form.estado === "Dado de baja" ? form.motivo : "",
+        fechaCompra: form.fechaCompra ? new Date(form.fechaCompra).toISOString() : "",
+        fechaVencimiento: form.fechaVencimiento ? new Date(form.fechaVencimiento).toISOString() : "",
+        estadoRemito: form.estadoRemito,
+        fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre ? new Date(form.fechaCierre).toISOString() : new Date().toISOString()) : "",
         foto: fotoFinal 
       });
 
@@ -255,6 +264,17 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
             />
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={fieldGroup}>
+              <label style={labelStyle}>Fecha de compra</label>
+              <input type="date" value={form.fechaCompra} onChange={(e) => set("fechaCompra", e.target.value)} style={inputStyle} />
+            </div>
+            <div style={fieldGroup}>
+              <label style={labelStyle}>Fecha de vencimiento</label>
+              <input type="date" value={form.fechaVencimiento} onChange={(e) => set("fechaVencimiento", e.target.value)} style={inputStyle} />
+            </div>
+          </div>
+
           <div style={fieldGroup}>
             <label style={labelStyle}>Categoría</label>
             <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)} style={inputStyle}>
@@ -288,7 +308,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           </div>
 
           <div style={fieldGroup}>
-            <label style={labelStyle}>Estado</label>
+            <label style={labelStyle}>Estado del producto</label>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
                 { value: "Activo", label: "Activo", color: "#0F172A", bg: "#D1FAE5" },
@@ -327,6 +347,44 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
                 <option value="pérdida">pérdida</option>
                 <option value="donación">donación</option>
               </select>
+            </div>
+          )}
+
+          <div style={fieldGroup}>
+            <label style={labelStyle}>Estado del remito</label>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {[
+                { value: "Pendiente", label: "Pendiente", color: "#A16207", bg: "#FEF3C7" },
+                { value: "Recibido", label: "Recibido", color: "#0F766E", bg: "#D1FAE5" },
+                { value: "Cerrado", label: "Cerrado", color: "#1D4ED8", bg: "#DBEAFE" }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => set("estadoRemito", option.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: 120,
+                    padding: "10px",
+                    borderRadius: 8,
+                    border: `2px solid ${form.estadoRemito === option.value ? option.color : "#E2E8F0"}`,
+                    background: form.estadoRemito === option.value ? option.bg : "#F8FAFC",
+                    color: form.estadoRemito === option.value ? option.color : "#475569",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 12
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {form.estadoRemito === "Cerrado" && (
+            <div style={fieldGroup}>
+              <label style={labelStyle}>Fecha de cierre</label>
+              <input type="date" value={form.fechaCierre} onChange={(e) => set("fechaCierre", e.target.value)} style={inputStyle} />
             </div>
           )}
 

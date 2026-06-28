@@ -33,6 +33,19 @@ export default function App() {
 
   const auditoria = Array.isArray(auditoriaRaw) ? auditoriaRaw.filter(Boolean) : [];
 
+  const stringify = (value) => {
+    if (value == null) return "";
+    return typeof value === "string" ? value : JSON.stringify(value);
+  };
+
+  const obtenerContexto = () => {
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    return {
+      navegador: ua,
+      dispositivo: /Mobi|Android|iPhone|iPad|Tablet/i.test(ua) ? "Móvil" : "PC",
+    };
+  };
+
   const setAuditoria = useCallback((actualizador) => {
     if (!setAuditoriaRaw) return;
     setAuditoriaRaw((prev) => {
@@ -40,23 +53,34 @@ export default function App() {
       const siguiente = typeof actualizador === "function" ? actualizador(previoValido) : actualizador;
       return (Array.isArray(siguiente) ? siguiente : [])
         .filter(Boolean)
-        .map(log => ({
+        .map((log) => ({
           tipo: String(log?.tipo || "accion"),
           usuario: String(log?.usuario || "Sistema"),
           rol: String(log?.rol || "sistema"),
           detalle: String(log?.detalle || "Acción registrada"),
-          fecha: String(log?.fecha || new Date().toISOString())
+          fecha: String(log?.fecha || new Date().toISOString()),
+          antes: stringify(log?.antes),
+          despues: stringify(log?.despues),
+          ip: String(log?.ip || ""),
+          navegador: String(log?.navegador || ""),
+          dispositivo: String(log?.dispositivo || ""),
         }));
     });
   }, [setAuditoriaRaw]);
 
   const registrarAuditoria = useCallback((evento) => {
+    const contexto = obtenerContexto();
     const eventoSeguro = {
       tipo: String(evento?.tipo || "accion"),
       usuario: String(evento?.usuario || usuarioActual?.nombre || "Sistema"),
       rol: String(evento?.rol || usuarioActual?.rol || "sistema"),
       detalle: String(evento?.detalle || "Acción del sistema"),
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      antes: stringify(evento?.antes),
+      despues: stringify(evento?.despues),
+      ip: String(evento?.ip || ""),
+      navegador: String(evento?.navegador || contexto.navegador),
+      dispositivo: String(evento?.dispositivo || contexto.dispositivo),
     };
     setAuditoria((prev) => [...prev, eventoSeguro]);
   }, [setAuditoria, usuarioActual]);
@@ -163,6 +187,10 @@ export default function App() {
         tipo: String(carga?.tipo || "ingreso"),
         estado: String(carga?.estado || "Activo"),
         motivo: String(carga?.motivo || ""),
+        fechaCompra: String(carga?.fechaCompra || ""),
+        fechaVencimiento: String(carga?.fechaVencimiento || ""),
+        estadoRemito: String(carga?.estadoRemito || "Pendiente"),
+        fechaCierre: String(carga?.fechaCierre || ""),
         foto: carga?.foto || "",
         cargadoPor: String(carga?.cargadoPor || "Desconocido"),
         editadoPor: String(carga?.editadoPor || "")

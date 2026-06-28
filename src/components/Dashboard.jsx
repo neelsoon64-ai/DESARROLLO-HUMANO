@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Package, Download, Upload, Copy, FileText, Users, Activity, ArrowLeft } from 'lucide-react';
+import { Package, Download, Upload, Copy, FileText, Users, Activity, ArrowLeft, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, auditoria, onVolver, onCrearCopiaAhora, onDescargarRespaldo, onDescargarRespaldoExcel, onDescargarRespaldoPDF, onRestaurarRespaldo }) {
@@ -11,6 +11,21 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
   const egresosNacion = nacionMovs.filter(m => m.tipo === 'egreso').length;
   const ingresosProv = provinciaMovs.filter(m => m.tipo === 'ingreso').length;
   const egresosProv = provinciaMovs.filter(m => m.tipo === 'egreso').length;
+
+  const allMovs = [...nacionMovs, ...provinciaMovs];
+  const hoy = new Date();
+  const diferenciaDias = (fecha) => {
+    if (!fecha) return null;
+    const venc = new Date(fecha);
+    const ms = venc.setHours(0, 0, 0, 0) - hoy.setHours(0, 0, 0, 0);
+    return Math.ceil(ms / (1000 * 60 * 60 * 24));
+  };
+
+  const productosVencidos = allMovs.filter((m) => m.fechaVencimiento && diferenciaDias(m.fechaVencimiento) < 0).length;
+  const productosPorVencer = allMovs.filter((m) => m.fechaVencimiento && diferenciaDias(m.fechaVencimiento) >= 0 && diferenciaDias(m.fechaVencimiento) <= 30).length;
+  const remitosPendientes = allMovs.filter((m) => String(m.estadoRemito || 'Pendiente') === 'Pendiente').length;
+  const remitosRecibidos = allMovs.filter((m) => String(m.estadoRemito || 'Pendiente') === 'Recibido').length;
+  const remitosCerrados = allMovs.filter((m) => String(m.estadoRemito || 'Pendiente') === 'Cerrado').length;
 
   const totalIngresos = ingresosNacion + ingresosProv;
   const totalEgresos = egresosNacion + egresosProv;
@@ -105,6 +120,10 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
           { label: "Total Ingresos", val: totalIngresos, icon: Download, col: "#10B981" },
           { label: "Total Egresos", val: totalEgresos, icon: Upload, col: "#F97316" },
           { label: "Movimientos Totales", val: totalMovimientos, icon: FileText, col: "#C8993A" },
+          { label: "Remitos Pendientes", val: remitosPendientes, icon: Clock, col: "#F59E0B" },
+          { label: "Remitos Cerrados", val: remitosCerrados, icon: CheckCircle, col: "#10B981" },
+          { label: "Productos Vencidos", val: productosVencidos, icon: AlertTriangle, col: "#DC2626" },
+          { label: "Por vencer (30d)", val: productosPorVencer, icon: AlertTriangle, col: "#F59E0B" },
           { label: "Usuarios Registrados", val: listaUsuarios.length, icon: Users, col: "#6366F1" },
           { label: "Registros Auditoría", val: auditoria.length, icon: Activity, col: "#475569" },
         ].map((card, i) => {
@@ -119,6 +138,71 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
             </div>
           )
         })}
+      </div>
+
+      {/* Alertas de vencimiento */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
+        <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Productos vencidos</div>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>Items con fecha de vencimiento pasada</div>
+            </div>
+            <AlertTriangle size={24} color="#DC2626" />
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#DC2626' }}>{productosVencidos}</div>
+        </div>
+
+        <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Vencen en 30 días</div>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>Items próximos a expirar</div>
+            </div>
+            <Clock size={24} color="#D97706" />
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#D97706' }}>{productosPorVencer}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
+        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+          <div style={{ padding: 16, borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Productos próximos a vencer</div>
+          </div>
+          <div style={{ padding: 16 }}>
+            {allMovs.filter((m) => m.fechaVencimiento && diferenciaDias(m.fechaVencimiento) >= 0 && diferenciaDias(m.fechaVencimiento) <= 30).slice(0, 5).map((mov, idx) => (
+              <div key={mov.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: idx < 4 ? 12 : 0, paddingBottom: idx < 4 ? 12 : 0, borderBottom: idx < 4 ? '1px solid #F1F5F9' : 'none' }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#1E293B' }}>{mov.descripcion}</div>
+                  <div style={{ fontSize: 11, color: '#64748B' }}>{mov.categoria} · {mov.cantidad} {mov.unidad}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>{new Date(mov.fechaVencimiento).toLocaleDateString()}</div>
+                  <div style={{ fontSize: 11, color: '#94A3B8' }}>{diferenciaDias(mov.fechaVencimiento)} días</div>
+                </div>
+              </div>
+            ))}
+            {productosPorVencer === 0 && <div style={{ color: '#94A3B8', fontSize: 13 }}>No hay productos próximos a vencer.</div>}
+          </div>
+        </div>
+
+        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+          <div style={{ padding: 16, borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Remitos pendientes</div>
+          </div>
+          <div style={{ padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontWeight: 700, color: '#1E293B' }}>Pendientes</span><span style={{ color: '#D97706' }}>{remitosPendientes}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontWeight: 700, color: '#1E293B' }}>Recibidos</span><span style={{ color: '#0F766E' }}>{remitosRecibidos}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 700, color: '#1E293B' }}>Cerrados</span><span style={{ color: '#1D4ED8' }}>{remitosCerrados}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Gráficos */}
@@ -183,6 +267,15 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
                 </td>
                 <td style={{ padding: 8 }}>{m.descripcion}</td>
                 <td style={{ padding: 8, fontWeight: 700 }}>{m.cantidad} {m.unidad}</td>
+                <td style={{ padding: 8 }}><span style={{ padding: '4px 8px', borderRadius: 6, background: '#EFF6FF', color: '#1E40AF', fontWeight: 700, fontSize: 11 }}>{m.estadoRemito || 'Pendiente'}</span></td>
+                <td style={{ padding: 8 }}>
+                  {m.fechaVencimiento ? (
+                    <span style={{ padding: '4px 8px', borderRadius: 6, background: new Date(m.fechaVencimiento) < new Date() ? '#FEE2E2' : '#F8FAFC', color: new Date(m.fechaVencimiento) < new Date() ? '#B91C1C' : '#0F172A', fontWeight: 700, fontSize: 11 }}>
+                      {new Date(m.fechaVencimiento).toLocaleDateString()}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#94A3B8', fontSize: 11 }}>Sin fecha</span>) }
+                </td>
               </tr>
             ))}
           </tbody>

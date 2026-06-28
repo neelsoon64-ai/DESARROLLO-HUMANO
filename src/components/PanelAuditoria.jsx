@@ -52,6 +52,23 @@ export default function PanelAuditoria({ logs, onClose }) {
                     {log.rol && <span style={{ color: "#94A3B8", fontSize: 11 }}>({log.rol})</span>}
                   </div>
                   <div style={{ fontSize: 12, color: "#334155", marginTop: 3 }}>{log.detalle}</div>
+                  {log.antes && (
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 6, background: "#F8FAFC", padding: "8px", borderRadius: 10, border: "1px solid #E2E8F0" }}>
+                      <strong>Antes:</strong> {log.antes}
+                    </div>
+                  )}
+                  {log.despues && (
+                    <div style={{ fontSize: 11, color: "#475569", marginTop: 6, background: "#F8FAFC", padding: "8px", borderRadius: 10, border: "1px solid #E2E8F0" }}>
+                      <strong>Después:</strong> {log.despues}
+                    </div>
+                  )}
+                  {(log.ip || log.navegador || log.dispositivo) && (
+                    <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 6 }}>
+                      {log.ip && <span>IP: {log.ip} · </span>}
+                      {log.dispositivo && <span>Dispositivo: {log.dispositivo} · </span>}
+                      {log.navegador && <span>Navegador: {log.navegador}</span>}
+                    </div>
+                  )}
                   <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>{formatFecha(log.fecha)}</div>
                 </div>
               </div>
