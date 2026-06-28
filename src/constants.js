@@ -1,8 +1,16 @@
 // ─── DATOS INICIALES ──────────────────────────────────────────────────────────
+export const ROLES = [
+  { value: "Administrador", label: "🔑 Administrador" },
+  { value: "Supervisor", label: "🛠️ Supervisor" },
+  { value: "Operador", label: "👷 Operador" },
+  { value: "Auditor", label: "🔍 Auditor" },
+  { value: "Consulta", label: "👁️ Consulta" },
+];
+
 export const USUARIOS_INICIALES = [
-  { id: "u1", usuario: "admin", password: "admin123", nombre: "Administrador General", rol: "admin" },
-  { id: "u2", usuario: "operador1", password: "op123", nombre: "María González", rol: "usuario" },
-  { id: "u3", usuario: "operador2", password: "op456", nombre: "Carlos Pérez", rol: "usuario" },
+  { id: "u1", usuario: "admin", password: "admin123", nombre: "Administrador General", rol: "Administrador" },
+  { id: "u2", usuario: "operador1", password: "op123", nombre: "María González", rol: "Operador" },
+  { id: "u3", usuario: "operador2", password: "op456", nombre: "Carlos Pérez", rol: "Operador" },
 ];
 
 export const CATEGORIAS = [

@@ -26,7 +26,7 @@ export function exportarExcel(movimientos, seccion, auditoria, usuarioActual, on
   const ws = XLSX.utils.json_to_sheet(datos.length ? datos : [{ "Sin datos": "No hay movimientos registrados" }]);
   XLSX.utils.book_append_sheet(wb, ws, `Inventario ${seccion}`);
 
-  if (usuarioActual.rol === "admin" && auditoria.length) {
+  if (usuarioActual.rol === "Administrador" && auditoria.length) {
     const audDatos = auditoria.map((l) => ({ "Fecha": formatFecha(l.fecha), "Usuario": l.usuario, "Rol": l.rol, "Tipo": l.tipo, "Detalle": l.detalle }));
     const wsAud = XLSX.utils.json_to_sheet(audDatos);
     XLSX.utils.book_append_sheet(wb, wsAud, "Auditoría");

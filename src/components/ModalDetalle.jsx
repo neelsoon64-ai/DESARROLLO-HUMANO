@@ -5,7 +5,7 @@ import { InfoItem } from "./Common.jsx";
 // 📄 Importamos la función encargada de armar el PDF oficial de Desarrollo Humano
 import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 
-export default function ModalDetalle({ mov, onClose, esAdmin, onEditar }) {
+export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar }) {
   // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
   if (!mov) return null;
 
@@ -190,12 +190,12 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar }) {
               </button>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", width: "100%" }}>
-                {esAdmin && (
+                {puedeEditar && (
                   <button onClick={onEditar} style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#0F172A", borderColor: "#CBD5E1" }}>
                     ✏️ Editar
                   </button>
                 )}
-                {esAdmin && (
+                {puedeEditar && (
                   <button onClick={onEditar} style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#1E40AF", borderColor: "#BFDBFE" }}>
                     ✏️ Editar
                   </button>

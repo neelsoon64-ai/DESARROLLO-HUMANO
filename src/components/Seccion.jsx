@@ -90,7 +90,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
           </div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={onCarga} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}>+ Nueva Carga</button>
+          <button onClick={onCarga} disabled={!onCarga} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: onCarga ? "pointer" : "not-allowed", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", opacity: onCarga ? 1 : 0.55 }}>+ Nueva Carga</button>
           <button onClick={exportarExcel} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📊 Excel</button>
           <button onClick={exportarPDF} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📄 Exportar PDF</button>
         </div>
@@ -168,12 +168,14 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
                     <td className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
-                        <button 
-                          onClick={() => onEditar(mov)} 
-                          style={{ padding: "4px 8px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, color: "#2563EB", cursor: "pointer", fontWeight: 600, fontSize: 11 }}
-                        >
-                          ✏️ Editar
-                        </button>
+                        {onEditar && (
+                          <button 
+                            onClick={() => onEditar(mov)} 
+                            style={{ padding: "4px 8px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, color: "#2563EB", cursor: "pointer", fontWeight: 600, fontSize: 11 }}
+                          >
+                            ✏️ Editar
+                          </button>
+                        )}
                         <button
                           onClick={() => onVerDetalle && onVerDetalle(mov)}
                           style={{ padding: "4px 8px", background: "#F8FAFC", border: "1px solid #CBD5E1", borderRadius: 6, color: "#0F172A", cursor: "pointer", fontWeight: 600, fontSize: 11 }}

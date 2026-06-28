@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { USUARIOS_INICIALES, COLECCION, DOC_IDS } from "./constants.js";
+import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES } from "./constants.js";
 import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
 import Login from "./components/Login.jsx";
@@ -256,7 +256,13 @@ export default function App() {
     [setNacion, setProvincia]
   );
 
-  const esAdmin = usuarioActual?.rol === "admin";
+  const rolActual = usuarioActual?.rol || "";
+  const roleLabels = Object.fromEntries(ROLES.map((role) => [role.value, role.label]));
+  const rolLabel = roleLabels[rolActual] || "👤 Usuario";
+  const esAdministrador = rolActual === "Administrador";
+  const puedeEscribir = ["Administrador", "Supervisor", "Operador"].includes(rolActual);
+  const puedeVerAuditoria = ["Administrador", "Supervisor", "Auditor"].includes(rolActual);
+  const puedeGestionarUsuarios = rolActual === "Administrador";
 
   const abrirDetalle = (mov, seccion) => {
     setDetalleMovimiento({ mov, seccion });
@@ -316,7 +322,7 @@ export default function App() {
 
             <div style={{ position: "relative" }}>
               <button onClick={() => setMenuAbierto(!menuAbierto)} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10, padding: "6px 10px", cursor: "pointer", color: "#fff" }}>
-                <div style={{ width: 26, height: 26, borderRadius: 7, background: esAdmin ? "linear-gradient(135deg,#C8993A,#E8B84B)" : "linear-gradient(135deg,#2E7DC4,#4DA3D4)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 7, background: esAdministrador ? "linear-gradient(135deg,#C8993A,#E8B84B)" : "linear-gradient(135deg,#2E7DC4,#4DA3D4)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12 }}>
                   {usuarioActual?.nombre ? usuarioActual.nombre.charAt(0) : "U"}
                 </div>
               </button>
@@ -325,7 +331,7 @@ export default function App() {
                 <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.2)", padding: "8px", minWidth: 210, zIndex: 300 }}>
                   <div style={{ padding: "8px 12px 12px", borderBottom: "1px solid #F1F5F9", marginBottom: 4 }}>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{usuarioActual?.nombre}</div>
-                    <div style={{ fontSize: 11, color: "#64748B" }}>{esAdmin ? "🔑 Administrador" : "👤 Usuario"}</div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>{rolLabel}</div>
                   </div>
                   
                   {/* Botón de acceso al Dashboard */}
@@ -333,15 +339,15 @@ export default function App() {
                     {verDashboard ? "📋 Ver Inventario" : "📊 Ver Dashboard Analítico"}
                   </button>
 
-                  {esAdmin && (
-                    <>
-                      <button onClick={() => { setPanelAudit(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
-                        🔍 Auditoría <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{auditoria.length}</span>
-                      </button>
-                      <button onClick={() => { setPanelUsers(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
-                        👥 Gestionar Usuarios <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{listaUsuarios.length}</span>
-                      </button>
-                    </>
+                  {puedeVerAuditoria && (
+                    <button onClick={() => { setPanelAudit(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
+                      🔍 Auditoría <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{auditoria.length}</span>
+                    </button>
+                  )}
+                  {puedeGestionarUsuarios && (
+                    <button onClick={() => { setPanelUsers(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
+                      👥 Gestionar Usuarios <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{listaUsuarios.length}</span>
+                    </button>
                   )}
                   <button onClick={logout} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "#DC2626" }}>
                     🚪 Cerrar sesión
@@ -390,8 +396,8 @@ export default function App() {
               color="#1A3A5C" 
               colorClaro="#2E7DC4" 
               datos={{ movimientos: nacionMovs }} 
-              onCarga={() => setModalCarga({ seccion: "nacion", datos: null })} 
-              onEditar={(mov) => setModalCarga({ seccion: "nacion", datos: mov })} 
+              onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
+              onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
               onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
               usuarioActual={usuarioActual} 
               onAudit={registrarAuditoria} 
@@ -403,8 +409,8 @@ export default function App() {
               color="#1B6EB5" 
               colorClaro="#4DA3D4" 
               datos={{ movimientos: provinciaMovs }} 
-              onCarga={() => setModalCarga({ seccion: "provincia", datos: null })} 
-              onEditar={(mov) => setModalCarga({ seccion: "provincia", datos: mov })} 
+              onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
+              onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
               onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
               usuarioActual={usuarioActual} 
               onAudit={registrarAuditoria} 
@@ -440,7 +446,7 @@ export default function App() {
       {detalleMovimiento && (
         <ModalDetalle
           mov={detalleMovimiento.mov}
-          esAdmin={esAdmin}
+          puedeEditar={puedeEscribir}
           onClose={cerrarDetalle}
           onEditar={() => {
             setModalCarga({ seccion: detalleMovimiento.seccion, datos: detalleMovimiento.mov });

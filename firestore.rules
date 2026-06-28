@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return request.auth.token.role != null ? request.auth.token.role : "";
+    }
+
+    function canReadInventory() {
+      return isLoggedIn() && (
+        role() == "Administrador" ||
+        role() == "Supervisor" ||
+        role() == "Operador" ||
+        role() == "Consulta" ||
+        role() == "Auditor"
+      );
+    }
+
+    function canWriteInventory() {
+      return isLoggedIn() && (
+        role() == "Administrador" ||
+        role() == "Supervisor" ||
+        role() == "Operador"
+      );
+    }
+
+    function canDeleteInventory() {
+      return isLoggedIn() && (
+        role() == "Administrador" ||
+        role() == "Supervisor"
+      );
+    }
+
+    function canReadAudit() {
+      return isLoggedIn() && (
+        role() == "Administrador" ||
+        role() == "Supervisor" ||
+        role() == "Auditor"
+      );
+    }
+
+    function canCreateAudit() {
+      return isLoggedIn() && (
+        role() == "Administrador" ||
+        role() == "Supervisor" ||
+        role() == "Auditor"
+      );
+    }
+
+    function isValidAudit(data) {
+      return data.keys().hasAll(["tipo", "usuario", "detalle", "fecha"]) &&
+        data.tipo is string &&
+        data.usuario is string &&
+        data.detalle is string &&
+        data.fecha is string;
+    }
+
+    function isValidInventory(data) {
+      return data.keys().hasAny(["descripcion", "categoria", "cantidad", "unidad", "nroRemito"]) &&
+        data.descripcion is string &&
+        data.categoria is string &&
+        data.cantidad is number &&
+        data.unidad is string &&
+        data.nroRemito is string &&
+        (data.estado is string || !data.keys().hasAny(["estado"])) &&
+        (data.motivo is string || !data.keys().hasAny(["motivo"])) &&
+        (data.fechaCompra is string || !data.keys().hasAny(["fechaCompra"])) &&
+        (data.fechaVencimiento is string || !data.keys().hasAny(["fechaVencimiento"])) &&
+        (data.estadoRemito is string || !data.keys().hasAny(["estadoRemito"])) &&
+        (data.fechaCierre is string || !data.keys().hasAny(["fechaCierre"]));
+    }
+
+    // Colección principal del inventario
+    match /inventario_mdh/{document=**} {
+      allow read: if canReadInventory();
+      allow create, update: if canWriteInventory() && isValidInventory(request.resource.data);
+      allow delete: if canDeleteInventory() && isValidInventory(request.resource.data);
+    }
+
+    // Colección de auditoría (por si la usás en Firestore en el futuro)
+    match /auditoria/{auditId} {
+      allow read: if canReadAudit();
+      allow create: if canCreateAudit() && isValidAudit(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    // Por defecto, negar todo lo que no esté explícitamente permitido.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
