@@ -3,7 +3,7 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNombre, datosEdicion }) {
+export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   
@@ -21,15 +21,21 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
     descripcion: inicial.descripcion || "",
     cantidad: inicial.cantidad || "",
     unidad: inicial.unidad || "unidades",
-    listaFotos: fotosIniciales.map((f, i) => ({ id: `id-${i}-${Date.now()}`, preview: f, url: f }))
+    estado: inicial.estado || "Activo",
+    motivo: inicial.motivo || "",
+    listaFotos: fotosIniciales.map((foto, idx) => ({
+      id: `foto-inicial-${idx}`,
+      url: foto,
+      preview: foto
+    })),
   });
-  
-  const [error, setError] = useState("");
+
   const [cargandoFoto, setCargandoFoto] = useState(false);
-  const [subiendo, setSubiendo] = useState(false);
   const [arrastrandoFoto, setArrastrandoFoto] = useState(false);
-  const fileInputGaleriaRef = useRef();
-  const fileInputCamaraRef = useRef();
+  const [subiendo, setSubiendo] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputGaleriaRef = useRef(null);
+  const fileInputCamaraRef = useRef(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -95,6 +101,7 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
     if (!form.descripcion.trim()) return setError("Ingresá una descripción.");
     if (!form.cantidad || isNaN(Number(form.cantidad)) || Number(form.cantidad) <= 0)
       return setError("Ingresá una cantidad válida.");
+    if (form.estado === "Dado de baja" && !form.motivo) return setError("Seleccioná un motivo para Dado de baja.");
     setError("");
 
     const id = inicial?.id || generarId();
@@ -150,6 +157,8 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
         descripcion: form.descripcion.trim(),
         cantidad: Number(form.cantidad),
         unidad: form.unidad,
+        estado: form.estado,
+        motivo: form.estado === "Dado de baja" ? form.motivo : "",
         foto: fotoFinal 
       });
 
@@ -278,6 +287,49 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
             <textarea placeholder="Notas adicionales sobre este registro..." value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} />
           </div>
 
+          <div style={fieldGroup}>
+            <label style={labelStyle}>Estado</label>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {[
+                { value: "Activo", label: "Activo", color: "#0F172A", bg: "#D1FAE5" },
+                { value: "Dado de baja", label: "Dado de baja", color: "#B91C1C", bg: "#FEE2E2" }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => set("estado", option.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: 120,
+                    padding: "10px",
+                    borderRadius: 8,
+                    border: `2px solid ${form.estado === option.value ? option.color : "#E2E8F0"}`,
+                    background: form.estado === option.value ? option.bg : "#F8FAFC",
+                    color: form.estado === option.value ? option.color : "#475569",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 12
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {form.estado === "Dado de baja" && (
+            <div style={fieldGroup}>
+              <label style={labelStyle}>Motivo</label>
+              <select value={form.motivo} onChange={(e) => set("motivo", e.target.value)} style={inputStyle}>
+                <option value="">Seleccioná un motivo</option>
+                <option value="roto">roto</option>
+                <option value="vencido">vencido</option>
+                <option value="pérdida">pérdida</option>
+                <option value="donación">donación</option>
+              </select>
+            </div>
+          )}
+
           {/* ── SECCIÓN MULTI-FOTO ── */}
           <div style={fieldGroup}>
             <label style={labelStyle}>📷 Fotos adjuntas ({form.listaFotos.length})</label>
@@ -351,15 +403,6 @@ export default function ModalRemito({ onClose, onGuardar, onEliminar, seccionNom
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button type="button" onClick={onClose} style={{ ...btnSecundario, flex: 1, minWidth: 120 }}>Cancelar</button>
-          {esEdicion && (
-            <button
-              type="button"
-              onClick={() => onEliminar({ ...inicial, ...form })}
-              style={{ ...btnSecundario, flex: 1, minWidth: 120, background: "#FEE2E2", borderColor: "#FCA5A5", color: "#B91C1C" }}
-            >
-              🗑️ Eliminar
-            </button>
-          )}
           <button type="button" onClick={handleGuardar} disabled={procesando} style={{ ...btnPrincipal, flex: 2, minWidth: 140, opacity: procesando ? 0.7 : 1 }}>
             {subiendo ? "⏳ Guardando..." : esEdicion ? "✅ Guardar Cambios" : "✅ Guardar Carga"}
           </button>

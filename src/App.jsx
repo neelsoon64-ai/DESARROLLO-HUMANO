@@ -161,6 +161,8 @@ export default function App() {
         proveedor: String(carga?.proveedor || "No informado"),
         observaciones: String(carga?.observaciones || ""),
         tipo: String(carga?.tipo || "ingreso"),
+        estado: String(carga?.estado || "Activo"),
+        motivo: String(carga?.motivo || ""),
         foto: carga?.foto || "",
         cargadoPor: String(carga?.cargadoPor || "Desconocido"),
         editadoPor: String(carga?.editadoPor || "")
@@ -404,17 +406,6 @@ export default function App() {
             });
             setModalCarga(null);
           }}
-          onEliminar={(carga) => {
-            if (!modalCarga?.datos) return;
-            eliminarCarga(modalCarga.seccion, carga);
-            registrarAuditoria({
-              tipo: "eliminacion",
-              usuario: usuarioActual?.nombre || "Desconocido",
-              rol: usuarioActual?.rol || "usuario",
-              detalle: `Eliminó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) de ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
-            });
-            setModalCarga(null);
-          }}
         />
       )}
 
@@ -425,16 +416,6 @@ export default function App() {
           onClose={cerrarDetalle}
           onEditar={() => {
             setModalCarga({ seccion: detalleMovimiento.seccion, datos: detalleMovimiento.mov });
-            cerrarDetalle();
-          }}
-          onEliminar={(carga) => {
-            eliminarCarga(detalleMovimiento.seccion, carga);
-            registrarAuditoria({
-              tipo: "eliminacion",
-              usuario: usuarioActual?.nombre || "Desconocido",
-              rol: usuarioActual?.rol || "usuario",
-              detalle: `Eliminó "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) de ${detalleMovimiento.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
-            });
             cerrarDetalle();
           }}
         />

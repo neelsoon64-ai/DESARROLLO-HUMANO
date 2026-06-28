@@ -5,7 +5,7 @@ import { InfoItem } from "./Common.jsx";
 // 📄 Importamos la función encargada de armar el PDF oficial de Desarrollo Humano
 import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 
-export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onEliminar }) {
+export default function ModalDetalle({ mov, onClose, esAdmin, onEditar }) {
   // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
   if (!mov) return null;
 
@@ -88,6 +88,11 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                   <div style={{ color: "#64748B", fontSize: 12, marginTop: 6 }}>{formatFechaCorta(mov.fechaEdicion)}</div>
                 </div>
               )}
+              <div style={{ background: mov.estado === "Dado de baja" ? "#FEE2E2" : "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
+                <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Estado</div>
+                <div style={{ color: mov.estado === "Dado de baja" ? "#991B1B" : "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.estado || "Activo"}</div>
+                {mov.motivo && <div style={{ color: "#475569", fontSize: 12, marginTop: 6 }}>Motivo: {mov.motivo}</div>}
+              </div>
             </div>
 
             {mov.observaciones && (
@@ -191,8 +196,8 @@ export default function ModalDetalle({ mov, onClose, esAdmin, onEditar, onElimin
                   </button>
                 )}
                 {esAdmin && (
-                  <button onClick={onEliminar} style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#B91C1C", borderColor: "#FCA5A5" }}>
-                    🗑️ Eliminar
+                  <button onClick={onEditar} style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#1E40AF", borderColor: "#BFDBFE" }}>
+                    ✏️ Editar
                   </button>
                 )}
                 <button onClick={onClose} style={{ ...btnPrincipal, flex: 1, minWidth: 120 }}>
