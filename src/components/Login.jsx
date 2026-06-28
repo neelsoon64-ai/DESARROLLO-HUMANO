@@ -10,7 +10,8 @@ export default function Login({ usuarios, onLogin, onAudit }) {
   const [verPass, setVerPass] = useState(false);
 
   const handleLogin = () => {
-    const found = usuarios.find((u) => u.usuario === user.trim() && u.password === pass);
+    const userInput = user.trim().toLowerCase();
+    const found = usuarios.find((u) => String(u.usuario).toLowerCase() === userInput && u.password === pass);
     if (!found) {
       setError("Usuario o contraseña incorrectos.");
       return;

@@ -9,7 +9,7 @@ export const ROLES = [
 
 export const USUARIOS_INICIALES = [
   { id: "u1", usuario: "admin", password: "admin123", nombre: "Administrador General", rol: "Administrador" },
-  { id: "u2", usuario: "Juaniparraguirre", password: "juan123", nombre: "Juan Parraguirre", rol: "Administrador" },
+  { id: "u2", usuario: "juaniparraguirre", password: "juan123", nombre: "Juan Parraguirre", rol: "Administrador" },
   { id: "u3", usuario: "operador1", password: "op123", nombre: "María González", rol: "Operador" },
   { id: "u4", usuario: "operador2", password: "op456", nombre: "Carlos Pérez", rol: "Operador" },
 ];
