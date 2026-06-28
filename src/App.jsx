@@ -9,6 +9,7 @@ import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import Dashboard from "./components/Dashboard.jsx"; 
+import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
 import logo from "./assets/logo.png";
 import { getDatabase, ref, remove, set } from "firebase/database";
 
@@ -113,9 +114,19 @@ export default function App() {
       tipo: "exportar",
       usuario: usuarioActual?.nombre || "Sistema",
       rol: usuarioActual?.rol || "sistema",
-      detalle: "Descargó respaldo",
+      detalle: "Descargó respaldo JSON",
     });
   }, [crearCopiaAhora, registrarAuditoria, usuarioActual]);
+
+  const descargarRespaldoExcel = useCallback(() => {
+    const copia = crearCopiaAhora();
+    exportarRespaldoExcel(copia, usuarioActual || { nombre: "Sistema", rol: "sistema" }, registrarAuditoria);
+  }, [crearCopiaAhora, exportarRespaldoExcel, registrarAuditoria, usuarioActual]);
+
+  const descargarRespaldoPDF = useCallback(() => {
+    const copia = crearCopiaAhora();
+    exportarRespaldoPDF(copia, usuarioActual || { nombre: "Sistema", rol: "sistema" }, registrarAuditoria);
+  }, [crearCopiaAhora, exportarRespaldoPDF, registrarAuditoria, usuarioActual]);
 
   const restaurarRespaldo = useCallback(async (backup) => {
     if (!backup || typeof backup !== "object") return;
@@ -323,6 +334,8 @@ export default function App() {
             onVolver={() => setVerDashboard(false)}
             onCrearCopiaAhora={crearCopiaAhora}
             onDescargarRespaldo={descargarRespaldo}
+            onDescargarRespaldoExcel={descargarRespaldoExcel}
+            onDescargarRespaldoPDF={descargarRespaldoPDF}
             onRestaurarRespaldo={restaurarRespaldo}
           />
         ) : (

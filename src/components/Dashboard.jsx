@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Package, Download, Upload, Copy, FileText, Users, Activity, ArrowLeft } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
-export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, auditoria, onVolver, onCrearCopiaAhora, onDescargarRespaldo, onRestaurarRespaldo }) {
+export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, auditoria, onVolver, onCrearCopiaAhora, onDescargarRespaldo, onDescargarRespaldoExcel, onDescargarRespaldoPDF, onRestaurarRespaldo }) {
   
   // 1. Cálculos de métricas en tiempo real basados en tu Firebase
   const totalMovimientos = nacionMovs.length + provinciaMovs.length;
@@ -83,7 +83,13 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
           <Copy size={16} /> Crear copia ahora
         </button>
         <button onClick={() => onDescargarRespaldo && onDescargarRespaldo()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1A3A5C', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-          <Download size={16} /> Descargar respaldo
+          <Download size={16} /> Descargar respaldo JSON
+        </button>
+        <button onClick={() => onDescargarRespaldoExcel && onDescargarRespaldoExcel()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#047857', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+          <FileText size={16} /> Descargar respaldo Excel
+        </button>
+        <button onClick={() => onDescargarRespaldoPDF && onDescargarRespaldoPDF()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#9333EA', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+          <FileText size={16} /> Descargar respaldo PDF
         </button>
         <button onClick={abrirSelectorRestaurar} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#2563EB', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
           <Upload size={16} /> Restaurar respaldo
