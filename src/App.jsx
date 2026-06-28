@@ -45,11 +45,11 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
     <div style={{ maxWidth: 920, margin: '0 auto', padding: '18px 14px', fontFamily: "'Inter',system-ui,sans-serif" }}>
       
       {/* Encabezado */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: 20, justifyContent: 'space-between' }}>
         <button onClick={onVolver} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1A3A5C', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           <ArrowLeft size={16} /> Volver al Inventario
         </button>
-        <div style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '1px' }}>
+        <div style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 700, color: '#64748B', trackingSpace: 1 }}>
           Panel Analítico SGI
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
       {/* Gráficos */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 16, marginBottom: 20 }}>
         
-        {/* Gráfico 1: Barras */}
+        {/* Grafico 1 */}
         <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>Flujo: Ingresos vs Egresos</h3>
           <div style={{ width: '100%', height: 240 }}>
@@ -99,7 +99,7 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
           </div>
         </div>
 
-        {/* Gráfico 2: Área */}
+        {/* Grafico 2 */}
         <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>Productos con Mayor Frecuencia de Carga</h3>
           <div style={{ width: '100%', height: 240 }}>
@@ -120,7 +120,7 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
       {/* Tabla Recientes */}
       <div style={{ background: '#fff', padding: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>Últimos 5 Movimientos Registrados</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textLeft: 'left' }}>
           <thead>
             <tr style={{ background: '#F8FAFC', color: '#64748B', textAlign: 'left' }}>
               <th style={{ padding: 8 }}>Depósito</th>
