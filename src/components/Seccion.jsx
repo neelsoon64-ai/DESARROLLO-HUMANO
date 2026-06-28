@@ -183,7 +183,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                       </div>
                     </td>
                   </tr>
-                ))}
+               ))}
               </tbody>
             </table>
           )
