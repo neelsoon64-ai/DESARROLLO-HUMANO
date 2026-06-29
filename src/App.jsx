@@ -261,6 +261,7 @@ export default function App() {
   const rolLabel = roleLabels[rolActual] || "👤 Usuario";
   const esAdministrador = rolActual === "Administrador";
   const puedeEscribir = ["Administrador", "Supervisor", "Operador"].includes(rolActual);
+  const puedeEliminar = ["Administrador", "Supervisor"].includes(rolActual);
   const puedeVerAuditoria = ["Administrador", "Supervisor", "Auditor"].includes(rolActual);
   const puedeGestionarUsuarios = rolActual === "Administrador";
 
@@ -414,6 +415,8 @@ export default function App() {
               datos={{ movimientos: nacionMovs }} 
               onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
               onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
+              onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
+              puedeEliminar={puedeEliminar}
               onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
               usuarioActual={usuarioActual} 
               onAudit={registrarAuditoria} 
@@ -427,6 +430,8 @@ export default function App() {
               datos={{ movimientos: provinciaMovs }} 
               onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
               onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
+              onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
+              puedeEliminar={puedeEliminar}
               onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
               usuarioActual={usuarioActual} 
               onAudit={registrarAuditoria} 
@@ -462,10 +467,17 @@ export default function App() {
       {detalleMovimiento && (
         <ModalDetalle
           mov={detalleMovimiento.mov}
+          seccion={detalleMovimiento.seccion}
           puedeEditar={puedeEscribir}
+          puedeEliminar={puedeEliminar}
           onClose={cerrarDetalle}
           onEditar={() => {
             setModalCarga({ seccion: detalleMovimiento.seccion, datos: detalleMovimiento.mov });
+            cerrarDetalle();
+          }}
+          onEliminar={(mov) => {
+            eliminarCarga(detalleMovimiento.seccion, mov);
+            registrarAuditoria({ tipo: "eliminacion", usuario: usuarioActual?.nombre || "Desconocido", rol: usuarioActual?.rol || "sistema", detalle: `Eliminó "${mov.descripcion}"` });
             cerrarDetalle();
           }}
         />

@@ -14,7 +14,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     return [];
   })();
 
-  const esAdmin = usuarioActual?.rol === "admin";
+  const esAdmin = usuarioActual?.rol === "Administrador";
 
   // Procesar stock consolidado (Agrupar por Categoría + Descripción)
   const stockConsolidado = {};
@@ -174,6 +174,19 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                             style={{ padding: "4px 8px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, color: "#2563EB", cursor: "pointer", fontWeight: 600, fontSize: 11 }}
                           >
                             ✏️ Editar
+                          </button>
+                        )}
+                        {typeof onEliminar === "function" && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`¿Confirmás eliminar "${mov.descripcion}"?`)) {
+                                onEliminar(mov);
+                                if (onAudit) onAudit({ tipo: "eliminacion", detalle: `Eliminó ${mov.descripcion}` });
+                              }
+                            }}
+                            style={{ padding: "4px 8px", background: "#FEE2E2", border: "1px solid #FECACA", borderRadius: 6, color: "#B91C1C", cursor: "pointer", fontWeight: 700, fontSize: 11 }}
+                          >
+                            🗑️ Eliminar
                           </button>
                         )}
                         <button
