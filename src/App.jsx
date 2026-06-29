@@ -12,6 +12,7 @@ import Dashboard from "./components/Dashboard.jsx";
 import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
 import logo from "./assets/logo.png";
 import { getDatabase, ref, remove, set } from "firebase/database";
+import { eliminarFotoRemito } from "./fotoStorage.js";
 
 export default function App() {
   // Mantienen sus escuchas activos en segundo plano
@@ -218,7 +219,7 @@ export default function App() {
         console.error("Error al impactar en Firebase Realtime DB:", error);
       }
     },
-    [setNacion, setProvincia]
+    [setNacion, setProvincia, registrarAuditoria, usuarioActual]
   );
 
   const eliminarCarga = useCallback(
@@ -227,30 +228,44 @@ export default function App() {
       const setter = seccion === "nacion" ? setNacion : setProvincia;
       const idMovimiento = carga?.id;
       if (!idMovimiento) return;
-
-      setter((prev) => {
-        const movsBase = prev?.movimientos;
-        if (!movsBase) return prev;
-        let movimientosPrevios = {};
-
-        if (Array.isArray(movsBase)) {
-          movsBase.filter(Boolean).forEach((mov) => {
-            if (mov.id && mov.id !== idMovimiento) movimientosPrevios[mov.id] = mov;
-          });
-        } else if (typeof movsBase === "object") {
-          movimientosPrevios = { ...movsBase };
-          delete movimientosPrevios[idMovimiento];
+      try {
+        // 1) Intentamos eliminar fotos asociadas (si las hay)
+        const fotos = carga?.foto ? (Array.isArray(carga.foto) ? carga.foto : [carga.foto]) : [];
+        if (fotos.length > 0) {
+          await Promise.all(fotos.map(async (f) => {
+            try {
+              const res = await eliminarFotoRemito(f);
+              registrarAuditoria({ tipo: res.ok ? "archivo_eliminado" : "archivo_error", usuario: usuarioActual?.nombre || "Sistema", rol: usuarioActual?.rol || "sistema", detalle: `Foto ${f} -> ${res.message}` });
+            } catch (err) {
+              console.error("Error eliminando foto:", err);
+            }
+          }));
         }
 
-        return { ...prev, movimientos: movimientosPrevios };
-      });
+        // 2) Actualizamos estado local removiendo el movimiento
+        setter((prev) => {
+          const movsBase = prev?.movimientos;
+          if (!movsBase) return prev;
+          let movimientosPrevios = {};
 
-      try {
+          if (Array.isArray(movsBase)) {
+            movsBase.filter(Boolean).forEach((mov) => {
+              if (mov.id && mov.id !== idMovimiento) movimientosPrevios[mov.id] = mov;
+            });
+          } else if (typeof movsBase === "object") {
+            movimientosPrevios = { ...movsBase };
+            delete movimientosPrevios[idMovimiento];
+          }
+
+          return { ...prev, movimientos: movimientosPrevios };
+        });
+
+        // 3) Eliminamos del Realtime DB si está configurado
         const db = getDatabase();
         const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
         await remove(movimientoRef);
       } catch (error) {
-        console.error("Error al eliminar en Firebase Realtime DB:", error);
+        console.error("Error al eliminar en Firebase Realtime DB o borrar fotos:", error);
       }
     },
     [setNacion, setProvincia]
