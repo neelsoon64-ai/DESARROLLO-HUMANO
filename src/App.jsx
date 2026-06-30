@@ -14,6 +14,7 @@ import logo from "./assets/logo.png";
 import { getDatabase, ref, remove } from "firebase/database";
 import { commitMovement, commitDeleteMovement } from "./dataService.js";
 import { eliminarFotoRemito } from "./fotoStorage.js";
+import { imprimirRemitoOficial } from "./components/ImpresorRemito.js";
 
 export default function App() {
   // Mantienen sus escuchas activos en segundo plano
@@ -531,6 +532,10 @@ export default function App() {
             eliminarCarga(detalleMovimiento.seccion, mov);
             registrarAuditoria({ tipo: "eliminacion", usuario: usuarioActual?.nombre || "Desconocido", rol: usuarioActual?.rol || "sistema", detalle: `Eliminó "${mov.descripcion}"` });
             cerrarDetalle();
+          }}
+          onImprimir={(mov) => {
+            imprimirRemitoOficial(mov);
+            registrarAuditoria({ tipo: "impresion", usuario: usuarioActual?.nombre || "Desconocido", rol: usuarioActual?.rol || "sistema", detalle: `Imprimió remito "${mov.descripcion}"` });
           }}
         />
       )}
