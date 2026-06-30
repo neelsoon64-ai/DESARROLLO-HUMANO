@@ -75,7 +75,10 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #111827; padding: 24px; }
     .page { width: 100%; max-width: 1200px; margin: 0 auto; background: #FFFFFF; padding: 24px; border-radius: 12px; box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08); }
     .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 14px; border-bottom: 2px solid #E2E8F0; padding-bottom: 18px; margin-bottom: 20px; }
-    .header-left { max-width: 72%; }
+    .header-left { max-width: 72%; display: flex; gap: 18px; align-items: center; }
+    .logo-container { width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; background: #F8FAFC; border-radius: 18px; border: 1px solid #E2E8F0; }
+    .logo-container img { max-width: 72px; max-height: 72px; object-fit: contain; }
+    .header-text { min-width: 0; }
     .header h1 { margin: 0; font-size: 24px; line-height: 1.1; color: #0F172A; }
     .header p { margin: 8px 0 0; color: #475569; font-size: 13px; }
     .header-meta { display: grid; gap: 8px; min-width: 240px; }
@@ -105,11 +108,16 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
   <div class="page">
     <div class="header">
       <div class="header-left">
-        <h1>Ministerio de Desarrollo Humano</h1>
-        <p>Inventario ${seccion} · Reporte institucional</p>
-        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
-          <span class="badge">Generado: ${fecha}</span>
-          <span class="badge">Usuario: ${usuarioActual.nombre}</span>
+        <div class="logo-container">
+          <img src="${logo}" alt="Logo MDH" />
+        </div>
+        <div class="header-text">
+          <h1>Ministerio de Desarrollo Humano</h1>
+          <p>Inventario ${seccion} · Reporte institucional</p>
+          <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
+            <span class="badge">Generado: ${fecha}</span>
+            <span class="badge">Usuario: ${usuarioActual.nombre}</span>
+          </div>
         </div>
       </div>
       <div class="header-meta">
