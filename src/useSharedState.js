@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ref, onValue, set as rtdbSet } from "firebase/database";
 import { db, firebaseConfigurado } from "./firebase.js";
 
@@ -9,7 +9,8 @@ import { db, firebaseConfigurado } from "./firebase.js";
 // Si Firebase no está configurado, persiste localmente en localStorage.
 // ════════════════════════════════════════════════════════════════════════════
 export function useSharedState(coleccion, idDocumento, valorInicial) {
-  const [estado, setEstado] = useState(valorInicial);
+  const initialValueRef = useRef(valorInicial);
+  const [estado, setEstado] = useState(initialValueRef.current);
   const [listo, setListo] = useState(false);
   const rtdbPath = `${coleccion}/${idDocumento}`;
 
@@ -19,6 +20,8 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
         const guardado = window.localStorage.getItem(rtdbPath);
         if (guardado) {
           setEstado(JSON.parse(guardado));
+        } else {
+          setEstado(initialValueRef.current);
         }
       } catch (err) {
         console.warn("No se pudo cargar desde localStorage:", err);
