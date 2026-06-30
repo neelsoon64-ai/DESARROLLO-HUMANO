@@ -38,7 +38,7 @@ export function exportarExcel(movimientos, seccion, auditoria, usuarioActual, on
 }
 
 export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
-  const cat = (id) => CATEGORIAS.find((c) => c.id === id)?.label || id;
+  const getCategoriaLabel = (id) => CATEGORIAS.find((c) => c.id === id)?.label || id || "General";
   const fecha = new Date().toLocaleDateString("es-AR");
 
   const stock = {};
@@ -46,7 +46,7 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
     const k = `${m.categoria}||${m.descripcion}`;
     if (!stock[k]) stock[k] = { cat: cat(m.categoria), desc: m.descripcion, unidad: m.unidad, total: 0 };
     stock[k].total += m.tipo === "ingreso" ? m.cantidad : -m.cantidad;
-  });
+  });  const cat = (id) => CATEGORIAS.find((c) => c.id === id)?.label || id;
 
   const stockRows = Object.values(stock)
     .map(
@@ -64,7 +64,7 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
       (m) =>
         `<tr><td>${formatFechaCorta(m.fecha)}</td><td>${m.nroRemito || "—"}</td><td style="color:${
           m.tipo === "ingreso" ? "#059669" : "#DC2626"
-        };font-weight:600">${m.tipo === "ingreso" ? "▲ Ingreso" : "▼ Egreso"}</td><td>${cat(m.categoria)}</td><td>${m.descripcion}</td><td style="text-align:center;font-weight:700">${m.cantidad} ${m.unidad}</td><td>${m.cargadoPor || "—"}</td></tr>`
+        };font-weight:600">${m.tipo === "ingreso" ? "▲ Ingreso" : "▼ Egreso"}</td><td>${getCategoriaLabel(m.categoria)}</td><td>${m.descripcion}</td><td style="text-align:center;font-weight:700">${m.cantidad} ${m.unidad}</td><td>${m.cargadoPor || "—"}</td></tr>`
     )
     .join("");
 
@@ -72,36 +72,37 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
   <style>
     @page { size: A4; margin: 18mm; }
     html, body { width: 100%; margin: 0; padding: 0; background: #F8FAFC; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #111827; padding: 24px; }
-    .page { width: 100%; max-width: 1200px; margin: 0 auto; background: #FFFFFF; padding: 24px; border-radius: 12px; box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08); }
-    .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 14px; border-bottom: 2px solid #E2E8F0; padding-bottom: 18px; margin-bottom: 20px; }
-    .header-left { max-width: 72%; display: flex; gap: 18px; align-items: center; }
-    .logo-container { width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; background: #F8FAFC; border-radius: 18px; border: 1px solid #E2E8F0; }
-    .logo-container img { max-width: 72px; max-height: 72px; object-fit: contain; }
-    .header-text { min-width: 0; }
-    .header h1 { margin: 0; font-size: 24px; line-height: 1.1; color: #0F172A; }
-    .header p { margin: 8px 0 0; color: #475569; font-size: 13px; }
-    .header-meta { display: grid; gap: 8px; min-width: 240px; }
-    .meta-card { background: #F8FAFC; padding: 12px 14px; border-radius: 12px; border: 1px solid #E2E8F0; color: #0F172A; font-size: 13px; }
-    .meta-card strong { display: block; font-size: 18px; margin-bottom: 4px; color: #1E293B; }
-    .section-title { margin: 0 0 12px; color: #0F172A; font-size: 16px; letter-spacing: 0.3px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px 12px; border: 1px solid #E2E8F0; font-size: 12px; }
-    th { background: #0F172A; color: #FFFFFF; text-align: left; font-weight: 700; letter-spacing: 0.02em; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1E293B; padding: 0; }
+    .page { width: 100%; max-width: 1200px; margin: 0 auto; background: #FFFFFF; padding: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border-bottom: 2px solid #E2E8F0; padding-bottom: 18px; margin-bottom: 20px; }
+    .header-left { display: flex; gap: 18px; align-items: center; }
+    .logo-container { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; }
+    .logo-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .header-text h1 { margin: 0; font-size: 22px; line-height: 1.1; color: #0F172A; }
+    .header-text p { margin: 4px 0 0; color: #475569; font-size: 13px; }
+    .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 280px; }
+    .meta-card { background: #F8FAFC; padding: 10px 14px; border-radius: 12px; border: 1px solid #E2E8F0; color: #0F172A; font-size: 12px; }
+    .meta-card strong { display: block; font-size: 16px; margin-bottom: 2px; color: #1E293B; }
+    .section-title { margin: 24px 0 12px; color: #0F172A; font-size: 16px; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #CBD5E1; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    thead { display: table-header-group; }
+    th, td { padding: 9px 12px; border-bottom: 1px solid #E2E8F0; font-size: 11px; text-align: left; }
+    th { background: #F1F5F9; color: #475569; text-transform: uppercase; font-size: 10px; font-weight: 600; }
     tbody tr:nth-child(even) { background: #F8FAFC; }
-    tbody tr:hover { background: #E2E8F0; }
-    .badge { display: inline-flex; align-items: center; gap: 6px; background: #0F172A; color: #FFFFFF; padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+    .footer {
+      position: fixed; bottom: 10mm; left: 18mm; right: 18mm;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 10px; color: #64748B;
+    }
+    .footer .page-number::after { content: counter(page) ' de ' counter(pages); }
     .status-positive { color: #047857; font-weight: 700; }
     .status-warning { color: #B45309; font-weight: 700; }
     .status-negative { color: #B91C1C; font-weight: 700; }
-    .footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid #E2E8F0; color: #475569; font-size: 11px; text-align: center; }
-    .page-number { position: fixed; bottom: 12mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #64748B; }
     @media print {
-      body { padding: 0; background: #FFF; }
+      body { padding: 0; background: #FFF; counter-reset: page; }
       .page { box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
       .header-meta, .meta-card { page-break-inside: avoid; }
-      .footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; }
-      .page-number { display: block; }
       body * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style></head><body>
@@ -112,16 +113,14 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
           <img src="${logo}" alt="Logo MDH" />
         </div>
         <div class="header-text">
-          <p style="margin:0;color:#64748B;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;">Gobierno de la Provincia del Chubut</p>
-          <h1 style="margin:6px 0 0; font-size:24px; line-height:1.1;">Ministerio de Desarrollo Humano</h1>
-          <p style="margin:10px 0 0; color:#475569; font-size:13px;">Inventario ${seccion} · Reporte institucional</p>
-          <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
-            <span class="badge">Generado: ${fecha}</span>
-            <span class="badge">Usuario: ${usuarioActual.nombre}</span>
-          </div>
+          <p style="margin:0;color:#64748B;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;">Gobierno de la Provincia del Chubut</p>
+          <h1 style="margin:4px 0 0;">Ministerio de Desarrollo Humano</h1>
+          <p style="margin:8px 0 0;">Reporte de Inventario: <strong>${seccion}</strong></p>
         </div>
       </div>
       <div class="header-meta">
+        <div class="meta-card"><strong>${fecha}</strong> Fecha de Emisión</div>
+        <div class="meta-card"><strong>${usuarioActual.nombre}</strong> Emitido por</div>
         <div class="meta-card"><strong>${Object.values(stock).length}</strong> Líneas de stock</div>
         <div class="meta-card"><strong>${movimientos.length}</strong> Movimientos totales</div>
       </div>
@@ -137,9 +136,11 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
       movRows || "<tr><td colspan='7' style='text-align:center;color:#475569;padding:16px 0;'>Sin datos</td></tr>"
     }</tbody></table>
 
-    <div class="footer">Sistema de Inventario MDH · Ministerio de Desarrollo Humano · Página 1</div>
+    <div class="footer">
+      <span>Sistema de Inventario MDH · Ministerio de Desarrollo Humano</span>
+      <span class="page-number"></span>
+    </div>
   </div>
-  <div class="page-number">Página 1</div>
   </body></html>`;
 
   const win = window.open("", "_blank");
