@@ -112,8 +112,9 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
           <img src="${logo}" alt="Logo MDH" />
         </div>
         <div class="header-text">
-          <h1>Ministerio de Desarrollo Humano</h1>
-          <p>Inventario ${seccion} · Reporte institucional</p>
+          <p style="margin:0;color:#64748B;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;">Gobierno de la Provincia del Chubut</p>
+          <h1 style="margin:6px 0 0; font-size:24px; line-height:1.1;">Ministerio de Desarrollo Humano</h1>
+          <p style="margin:10px 0 0; color:#475569; font-size:13px;">Inventario ${seccion} · Reporte institucional</p>
           <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
             <span class="badge">Generado: ${fecha}</span>
             <span class="badge">Usuario: ${usuarioActual.nombre}</span>
