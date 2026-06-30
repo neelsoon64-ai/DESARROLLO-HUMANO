@@ -247,33 +247,79 @@ export function exportarRespaldoPDF(copia, usuarioActual = { nombre: "Sistema", 
   const usuarios = Array.isArray(copia.usuarios) ? copia.usuarios.filter(Boolean) : [];
   const auditoria = Array.isArray(copia.auditoria) ? copia.auditoria.filter(Boolean) : [];
   const totalMovs = nacionMovs.length + provinciaMovs.length;
+  const getCategoriaLabel = (id) => CATEGORIAS.find((c) => c.id === id)?.label || id || "General";
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Respaldo Inventario</title>
+  const nacionRows = nacionMovs.slice(0, 25).map(m => `<tr><td>${formatFechaCorta(m.fecha)}</td><td>${m.nroRemito || "—"}</td><td>${m.tipo}</td><td>${getCategoriaLabel(m.categoria)}</td><td>${m.descripcion}</td><td style="text-align:right;">${m.cantidad} ${m.unidad}</td></tr>`).join("") || '<tr><td colspan="6" class="empty-row">Sin datos en Nación</td></tr>';
+  const provinciaRows = provinciaMovs.slice(0, 25).map(m => `<tr><td>${formatFechaCorta(m.fecha)}</td><td>${m.nroRemito || "—"}</td><td>${m.tipo}</td><td>${getCategoriaLabel(m.categoria)}</td><td>${m.descripcion}</td><td style="text-align:right;">${m.cantidad} ${m.unidad}</td></tr>`).join("") || '<tr><td colspan="6" class="empty-row">Sin datos en Provincia</td></tr>';
+  const usuariosRows = usuarios.map(u => `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${u.rol}</td></tr>`).join("") || '<tr><td colspan="3" class="empty-row">Sin usuarios</td></tr>';
+  const auditoriaRows = auditoria.slice(-25).reverse().map(log => `<tr><td>${formatFecha(log.fecha)}</td><td>${log.usuario}</td><td>${log.tipo}</td><td>${log.detalle}</td></tr>`).join("") || '<tr><td colspan="4" class="empty-row">Sin registros de auditoría</td></tr>';
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Respaldo Completo de Inventario</title>
   <style>
-    body{font-family:Arial,sans-serif;color:#1E293B;margin:0;padding:24px;font-size:12px}
-    .header{padding-bottom:20px;border-bottom:2px solid #E2E8F0;margin-bottom:20px}
-    .header h1{margin:0;font-size:20px}
-    .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px}
-    .card{background:#F8FAFC;padding:14px;border-radius:12px;box-shadow:0 2px 10px rgba(15,23,42,0.06)}
-    .card strong{display:block;font-size:18px;margin-bottom:4px;color:#0F172A}
-    table{width:100%;border-collapse:collapse;margin-top:16px}
-    th,td{padding:8px;border:1px solid #E2E8F0;text-align:left;font-size:11px}
-    th{background:#1A3A5C;color:#fff}
-    .footer{margin-top:20px;color:#64748B;font-size:10px;text-align:center}
+    @page { size: A4; margin: 18mm; }
+    html, body { width: 100%; margin: 0; padding: 0; background: #FFF; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1E293B; padding: 0; counter-reset: page; }
+    .page { width: 100%; max-width: 1200px; margin: 0 auto; background: #FFFFFF; padding: 24px; page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border-bottom: 2px solid #E2E8F0; padding-bottom: 18px; margin-bottom: 20px; }
+    .header-left { display: flex; gap: 18px; align-items: center; }
+    .logo-container { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; }
+    .logo-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .header-text h1 { margin: 0; font-size: 22px; line-height: 1.1; color: #0F172A; }
+    .header-text p { margin: 4px 0 0; color: #475569; font-size: 13px; }
+    .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 280px; page-break-inside: avoid; }
+    .meta-card { background: #F8FAFC; padding: 10px 14px; border-radius: 12px; border: 1px solid #E2E8F0; color: #0F172A; font-size: 12px; }
+    .meta-card strong { display: block; font-size: 16px; margin-bottom: 2px; color: #1E293B; }
+    .section-title { margin: 24px 0 12px; color: #0F172A; font-size: 16px; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #CBD5E1; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    thead { display: table-header-group; }
+    th, td { padding: 9px 12px; border-bottom: 1px solid #E2E8F0; font-size: 11px; text-align: left; }
+    th { background: #F1F5F9; color: #475569; text-transform: uppercase; font-size: 10px; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #F8FAFC; }
+    .empty-row { text-align: center; color: #64748B; padding: 16px 0; }
+    .footer { position: fixed; bottom: 10mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748B; }
+    .footer .page-number::after { content: counter(page) ' de ' counter(pages); }
+    @media print { body * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   </style></head><body>
-  <div class="header"><h1>Respaldo de Inventario</h1><p>Generado el ${fecha} por ${usuarioActual.nombre}</p></div>
-  <div class="summary">
-    <div class="card"><strong>${totalMovs}</strong>Movimientos totales</div>
-    <div class="card"><strong>${nacionMovs.length}</strong>Movimientos Nación</div>
-    <div class="card"><strong>${provinciaMovs.length}</strong>Movimientos Provincia</div>
-    <div class="card"><strong>${usuarios.length}</strong>Usuarios</div>
-    <div class="card"><strong>${auditoria.length}</strong>Registros de auditoría</div>
+  <div class="page">
+    <div class="header">
+      <div class="header-left">
+        <div class="logo-container"><img src="${logo}" alt="Logo MDH" /></div>
+        <div class="header-text">
+          <p style="margin:0;color:#64748B;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;">Gobierno de la Provincia del Chubut</p>
+          <h1 style="margin:4px 0 0;">Ministerio de Desarrollo Humano</h1>
+          <p style="margin:8px 0 0;"><strong>Respaldo Completo del Sistema</strong></p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="meta-card"><strong>${fecha}</strong> Fecha de Emisión</div>
+        <div class="meta-card"><strong>${usuarioActual.nombre}</strong> Emitido por</div>
+      </div>
+    </div>
+    <h2 class="section-title">Resumen del Respaldo</h2>
+    <div class="header-meta" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+      <div class="meta-card"><strong>${totalMovs}</strong> Movimientos Totales</div>
+      <div class="meta-card"><strong>${nacionMovs.length}</strong> en Nación</div>
+      <div class="meta-card"><strong>${provinciaMovs.length}</strong> en Provincia</div>
+      <div class="meta-card"><strong>${usuarios.length}</strong> Usuarios</div>
+      <div class="meta-card"><strong>${auditoria.length}</strong> Registros de Auditoría</div>
+    </div>
+    <h2 class="section-title">Movimientos Recientes: Nación (últimos 25)</h2>
+    <table><thead><tr><th>Fecha</th><th>Remito</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th style="text-align:right;">Cantidad</th></tr></thead><tbody>${nacionRows}</tbody></table>
+    <h2 class="section-title">Movimientos Recientes: Provincia (últimos 25)</h2>
+    <table><thead><tr><th>Fecha</th><th>Remito</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th style="text-align:right;">Cantidad</th></tr></thead><tbody>${provinciaRows}</tbody></table>
   </div>
-  <h2>Movimientos recientes (Nación)</h2>
-  <table><thead><tr><th>Fecha</th><th>Remito</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Cantidad</th></tr></thead><tbody>${nacionMovs.slice(0, 10).map(m => `<tr><td>${m.fecha || ""}</td><td>${m.nroRemito || ""}</td><td>${m.tipo || ""}</td><td>${m.categoria || ""}</td><td>${m.descripcion || ""}</td><td>${m.cantidad ?? ""}</td></tr>`).join("") || '<tr><td colspan="6">Sin datos</td></tr>'}</tbody></table>
-  <h2>Movimientos recientes (Provincia)</h2>
-  <table><thead><tr><th>Fecha</th><th>Remito</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Cantidad</th></tr></thead><tbody>${provinciaMovs.slice(0, 10).map(m => `<tr><td>${m.fecha || ""}</td><td>${m.nroRemito || ""}</td><td>${m.tipo || ""}</td><td>${m.categoria || ""}</td><td>${m.descripcion || ""}</td><td>${m.cantidad ?? ""}</td></tr>`).join("") || '<tr><td colspan="6">Sin datos</td></tr>'}</tbody></table>
-  <div class="footer">Inventario - Ministerio de Desarrollo Humano</div>
+  <div class="page">
+    <h2 class="section-title">Usuarios Registrados</h2>
+    <table><thead><tr><th>Nombre Completo</th><th>Usuario</th><th>Rol</th></tr></thead><tbody>${usuariosRows}</tbody></table>
+    <h2 class="section-title">Últimos Registros de Auditoría (últimos 25)</h2>
+    <table><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>${auditoriaRows}</tbody></table>
+  </div>
+  <div class="footer">
+    <span>Respaldo Sistema de Inventario MDH · Ministerio de Desarrollo Humano</span>
+    <span class="page-number"></span>
+  </div>
   </body></html>`;
 
   const win = window.open("", "_blank");
@@ -285,6 +331,7 @@ export function exportarRespaldoPDF(copia, usuarioActual = { nombre: "Sistema", 
   win.document.close();
   setTimeout(() => {
     win.focus();
+    win.document.body.style.counterReset = `pages ${win.document.querySelectorAll('.page').length}`;
     win.print();
   }, 400);
   if (typeof onAudit === "function") {
