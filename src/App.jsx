@@ -12,6 +12,7 @@ import Dashboard from "./components/Dashboard.jsx";
 import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
 import logo from "./assets/logo.png";
 import { getDatabase, ref, remove, set } from "firebase/database";
+import dbQueue from "./dbQueue.js";
 import { eliminarFotoRemito } from "./fotoStorage.js";
 
 export default function App() {
@@ -211,12 +212,62 @@ export default function App() {
         return { ...prev, movimientos: movimientosPrevios };
       });
 
+      // Si Firebase no está configurado en este dispositivo, avisamos y no intentamos escribir en RTDB
+      if (!firebaseConfigurado) {
+        try {
+          registrarAuditoria({ tipo: "carga_local", usuario: usuarioActual?.nombre || "Sistema", rol: usuarioActual?.rol || "sistema", detalle: `Cargó (LOCAL) ${movimientoSeguro.descripcion}` });
+        } catch (e) {
+          console.warn("No se pudo registrar auditoría local:", e);
+        }
+        try {
+          alert("Nota: Firebase no está configurado en este dispositivo. El movimiento se guardó localmente pero no se sincronizará.");
+        } catch (e) {
+          /* ignore */
+        }
+        return;
+      }
+
       try {
         const db = getDatabase();
         const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
         await set(movimientoRef, movimientoSeguro);
+        // si existía en la cola (reintento) intentamos limpiar
+        try {
+          const q = dbQueue.list();
+          const filtered = q.filter((it) => it.path !== `${COLECCION}/${docId}/movimientos/${idMovimiento}` || JSON.stringify(it.data) !== JSON.stringify(movimientoSeguro));
+          if (filtered.length !== q.length) {
+            // sobrescribimos la cola sin el item ya exitoso
+            window.localStorage.setItem("rtdb_write_queue", JSON.stringify(filtered));
+            window.dispatchEvent(new CustomEvent("dbQueueUpdated", { detail: { count: filtered.length } }));
+          }
+        } catch (e) {
+          console.warn("No se pudo limpiar la cola tras éxito:", e);
+        }
+        try {
+          registrarAuditoria({ tipo: "carga", usuario: usuarioActual?.nombre || "Sistema", rol: usuarioActual?.rol || "sistema", detalle: `Cargó ${movimientoSeguro.descripcion}` });
+        } catch (audErr) {
+          console.warn("No se pudo registrar auditoría de carga:", audErr);
+        }
       } catch (error) {
         console.error("Error al impactar en Firebase Realtime DB:", error);
+        try {
+          // Encolamos el intento para reintentar automáticamente luego
+          dbQueue.add({ path: `${COLECCION}/${docId}/movimientos/${idMovimiento}`, data: movimientoSeguro });
+          console.log("Movimiento encolado para reintento automático (guardado localmente)");
+        } catch (qErr) {
+          console.warn("No se pudo encolar el intento:", qErr);
+        }
+        try {
+          registrarAuditoria({ tipo: "error_db", usuario: usuarioActual?.nombre || "Sistema", rol: usuarioActual?.rol || "sistema", detalle: `Fallo al guardar movimiento ${movimientoSeguro.descripcion}: ${String(error)}` });
+        } catch (audErr) {
+          console.warn("No se pudo registrar auditoría de error:", audErr);
+        }
+        // Notificamos al usuario para facilitar diagnóstico en el dispositivo donde falla
+        try {
+          alert("Error al guardar el movimiento en la base de datos remota. Revisá la conexión o las reglas de Firebase. Mirá la consola para más detalles.");
+        } catch (e) {
+          /* silent if alert unavailable */
+        }
       }
     },
     [setNacion, setProvincia, registrarAuditoria, usuarioActual]
@@ -390,6 +441,13 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* Banner visible si Firebase no está configurado */}
+      {!firebaseConfigurado && (
+        <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", color: "#92400E", padding: "10px 14px", textAlign: "center" }}>
+          ⚠️ Firebase no está configurado en este dispositivo — los movimientos se guardan solo localmente y no se sincronizarán entre equipos. Ver <a href="/INSTRUCCIONES.md">INSTRUCCIONES</a> para configuración.
+        </div>
+      )}
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
         

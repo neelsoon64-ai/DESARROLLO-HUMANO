@@ -2,6 +2,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBBVQ-n7UaegnUv2PDdiZ9zN3CZgETrp0U",
@@ -35,3 +36,27 @@ export const firestore = firebaseConfigurado ? getFirestore(app) : null;
 
 // 4. Almacenamiento de archivos/fotos
 export const storage = firebaseConfigurado ? getStorage(app) : null;
+
+// 5. Autenticación mínima: sign-in anónimo para que las reglas que requieren
+// request.auth != null permitan escrituras básicas desde clientes.
+export const auth = firebaseConfigurado ? getAuth(app) : null;
+
+if (firebaseConfigurado && auth) {
+  try {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log("Firebase Auth: usuario activo ->", user.uid, user.isAnonymous ? "(anónimo)" : "");
+      } else {
+        console.log("Firebase Auth: sin usuario autenticado");
+      }
+    });
+
+    if (!auth.currentUser) {
+      signInAnonymously(auth)
+        .then(() => console.log("Firebase Auth: sesión anónima iniciada"))
+        .catch((err) => console.warn("Firebase Auth: no se pudo iniciar sesión anónima:", err));
+    }
+  } catch (err) {
+    console.warn("Error inicializando Auth anónimo:", err);
+  }
+}
