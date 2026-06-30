@@ -5,13 +5,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
+  apiKey: "AIzaSyBBVQ-n7UaegnUv2PDdiZ9zN3CZgETrp0U",
+  authDomain: "desarrollo-humano-af808.firebaseapp.com",
+  databaseURL: "https://desarrollo-humano-af808-default-rtdb.firebaseio.com",
+  projectId: "desarrollo-humano-af808",
+  storageBucket: "desarrollo-humano-af808.firebasestorage.app",
+  messagingSenderId: "812070980942",
+  appId: "1:812070980942:web:bc3400184a3a32610fe21f"
 };
 
 // Validamos si la configuración completa de Firebase está cargada
