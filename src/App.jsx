@@ -11,8 +11,8 @@ import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import Dashboard from "./components/Dashboard.jsx"; 
 import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
 import logo from "./assets/logo.png";
-import { getDatabase, ref, remove, set } from "firebase/database";
-import dbQueue from "./dbQueue.js";
+import { getDatabase, ref, remove } from "firebase/database";
+import { commitMovement, commitDeleteMovement } from "./dataService.js";
 import { eliminarFotoRemito } from "./fotoStorage.js";
 
 export default function App() {
@@ -228,20 +228,9 @@ export default function App() {
       }
 
       try {
-        const db = getDatabase();
-        const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
-        await set(movimientoRef, movimientoSeguro);
-        // si existía en la cola (reintento) intentamos limpiar
-        try {
-          const q = dbQueue.list();
-          const filtered = q.filter((it) => it.path !== `${COLECCION}/${docId}/movimientos/${idMovimiento}` || JSON.stringify(it.data) !== JSON.stringify(movimientoSeguro));
-          if (filtered.length !== q.length) {
-            // sobrescribimos la cola sin el item ya exitoso
-            window.localStorage.setItem("rtdb_write_queue", JSON.stringify(filtered));
-            window.dispatchEvent(new CustomEvent("dbQueueUpdated", { detail: { count: filtered.length } }));
-          }
-        } catch (e) {
-          console.warn("No se pudo limpiar la cola tras éxito:", e);
+        const resultado = await commitMovement(docId, idMovimiento, movimientoSeguro);
+        if (!resultado.ok) {
+          console.warn("Commit movement no exitoso, queda en cola:", resultado.error);
         }
         try {
           registrarAuditoria({ tipo: "carga", usuario: usuarioActual?.nombre || "Sistema", rol: usuarioActual?.rol || "sistema", detalle: `Cargó ${movimientoSeguro.descripcion}` });
@@ -251,18 +240,10 @@ export default function App() {
       } catch (error) {
         console.error("Error al impactar en Firebase Realtime DB:", error);
         try {
-          // Encolamos el intento para reintentar automáticamente luego
-          dbQueue.add({ path: `${COLECCION}/${docId}/movimientos/${idMovimiento}`, data: movimientoSeguro });
-          console.log("Movimiento encolado para reintento automático (guardado localmente)");
-        } catch (qErr) {
-          console.warn("No se pudo encolar el intento:", qErr);
-        }
-        try {
           registrarAuditoria({ tipo: "error_db", usuario: usuarioActual?.nombre || "Sistema", rol: usuarioActual?.rol || "sistema", detalle: `Fallo al guardar movimiento ${movimientoSeguro.descripcion}: ${String(error)}` });
         } catch (audErr) {
           console.warn("No se pudo registrar auditoría de error:", audErr);
         }
-        // Notificamos al usuario para facilitar diagnóstico en el dispositivo donde falla
         try {
           alert("Error al guardar el movimiento en la base de datos remota. Revisá la conexión o las reglas de Firebase. Mirá la consola para más detalles.");
         } catch (e) {
@@ -312,9 +293,7 @@ export default function App() {
         });
 
         // 3) Eliminamos del Realtime DB si está configurado
-        const db = getDatabase();
-        const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
-        await remove(movimientoRef);
+        await commitDeleteMovement(docId, idMovimiento);
       } catch (error) {
         console.error("Error al eliminar en Firebase Realtime DB o borrar fotos:", error);
       }

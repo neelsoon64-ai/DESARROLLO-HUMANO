@@ -60,35 +60,49 @@ service cloud.firestore {
     }
 
     function isValidInventory(data) {
-      return data.keys().hasAny(["descripcion", "categoria", "cantidad", "unidad", "nroRemito"]) &&
+      return data.keys().hasAll([
+          "id",
+          "descripcion",
+          "categoria",
+          "cantidad",
+          "unidad",
+          "nroRemito",
+          "fecha",
+          "fechaCarga",
+          "tipo",
+          "estado",
+          "estadoRemito"
+        ]) &&
+        data.id is string &&
         data.descripcion is string &&
         data.categoria is string &&
         data.cantidad is number &&
         data.unidad is string &&
         data.nroRemito is string &&
-        (data.estado is string || !data.keys().hasAny(["estado"])) &&
+        data.fecha is string &&
+        data.fechaCarga is string &&
+        data.tipo is string &&
+        data.estado is string &&
+        data.estadoRemito is string &&
         (data.motivo is string || !data.keys().hasAny(["motivo"])) &&
         (data.fechaCompra is string || !data.keys().hasAny(["fechaCompra"])) &&
         (data.fechaVencimiento is string || !data.keys().hasAny(["fechaVencimiento"])) &&
-        (data.estadoRemito is string || !data.keys().hasAny(["estadoRemito"])) &&
-        (data.fechaCierre is string || !data.keys().hasAny(["fechaCierre"]));
+        (data.fechaCierre is string || !data.keys().hasAny(["fechaCierre"])) &&
+        (data.foto is string || data.foto is list || !data.keys().hasAny(["foto"]));
     }
 
-    // Colección principal del inventario
-    match /inventario_mdh/{document=**} {
+    match /inventario_mdh/{docId} {
       allow read: if canReadInventory();
       allow create, update: if canWriteInventory() && isValidInventory(request.resource.data);
       allow delete: if canDeleteInventory() && isValidInventory(request.resource.data);
     }
 
-    // Colección de auditoría (por si la usás en Firestore en el futuro)
     match /auditoria/{auditId} {
       allow read: if canReadAudit();
       allow create: if canCreateAudit() && isValidAudit(request.resource.data);
       allow update, delete: if false;
     }
 
-    // Por defecto, negar todo lo que no esté explícitamente permitido.
     match /{document=**} {
       allow read, write: if false;
     }

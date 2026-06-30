@@ -51,47 +51,66 @@ export default function PanelUsuarios({ usuarios, setUsuarios, onClose, onAudit,
       }}
     >
       <div style={{ ...modal, maxWidth: 540 }}>
-        <div style={{ background: "linear-gradient(135deg,#0F2540,#1A3A5C)", borderRadius: "14px 14px 0 0", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ background: "linear-gradient(135deg,#0F2540,#1A3A5C)", borderRadius: "14px 14px 0 0", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div>
             <div style={{ color: "#C8993A", fontSize: 11, fontWeight: 700, letterSpacing: 2 }}>ADMINISTRACIÓN</div>
             <div style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>👥 Gestión de Usuarios</div>
+            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 6 }}>Solo administradores pueden crear o eliminar usuarios.</div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>×</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>Usuario actual:</div>
+            <div style={{ background: "rgba(255,255,255,0.14)", color: "#fff", borderRadius: 12, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>{usuarioActual.nombre} · {roleLabels[usuarioActual.rol] || usuarioActual.rol}</div>
+            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>×</button>
+          </div>
         </div>
         <div style={{ padding: 22, overflowY: "auto", maxHeight: "70vh", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ background: "#F8FAFC", borderRadius: 12, padding: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#1A3A5C", marginBottom: 12 }}>➕ Nuevo Usuario</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <input placeholder="Nombre completo" value={nuevo.nombre} onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))} style={{ ...inputStyle, fontSize: 13 }} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <input placeholder="Usuario" value={nuevo.usuario} onChange={(e) => setNuevo((n) => ({ ...n, usuario: e.target.value }))} style={{ ...inputStyle, fontSize: 13 }} />
-                <input placeholder="Contraseña" type="password" value={nuevo.password} onChange={(e) => setNuevo((n) => ({ ...n, password: e.target.value }))} style={{ ...inputStyle, fontSize: 13 }} />
+          <div style={{ background: "#F8FAFC", borderRadius: 12, padding: 18, border: "1px solid #E2E8F0" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#1A3A5C", marginBottom: 14 }}>➕ Nuevo Usuario</div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={fieldGroup}>
+                <label style={labelStyle}>Nombre completo</label>
+                <input placeholder="Nombre completo" value={nuevo.nombre} onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))} style={inputStyle} />
               </div>
-              <select value={nuevo.rol} onChange={(e) => setNuevo((n) => ({ ...n, rol: e.target.value }))} style={{ ...inputStyle, fontSize: 13 }}>
-                {ROLES.map((role) => (
-                  <option key={role.value} value={role.value}>{role.label}</option>
-                ))}
-              </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Usuario</label>
+                  <input placeholder="Usuario" value={nuevo.usuario} onChange={(e) => setNuevo((n) => ({ ...n, usuario: e.target.value }))} style={inputStyle} />
+                </div>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Contraseña</label>
+                  <input placeholder="Contraseña" type="password" value={nuevo.password} onChange={(e) => setNuevo((n) => ({ ...n, password: e.target.value }))} style={inputStyle} />
+                </div>
+              </div>
+              <div style={fieldGroup}>
+                <label style={labelStyle}>Rol</label>
+                <select value={nuevo.rol} onChange={(e) => setNuevo((n) => ({ ...n, rol: e.target.value }))} style={inputStyle}>
+                  {ROLES.map((role) => (
+                    <option key={role.value} value={role.value}>{role.label}</option>
+                  ))}
+                </select>
+              </div>
               {error && <div style={{ color: "#DC2626", fontSize: 12 }}>⚠️ {error}</div>}
               {mensaje && <div style={{ color: "#047857", fontSize: 12 }}>✅ {mensaje}</div>}
-              <button onClick={agregar} style={{ ...btnPrincipal, fontSize: 13 }}>Agregar Usuario</button>
+              <button onClick={agregar} style={{ ...btnPrincipal, fontSize: 13, padding: "12px" }}>Agregar Usuario</button>
             </div>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#475569", marginBottom: 8 }}>Usuarios activos ({usuarios.length})</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#475569", marginBottom: 10 }}>Usuarios activos ({usuarios.length})</div>
             {usuarios.map((u) => (
-              <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#fff", borderRadius: 10, border: "1px solid #E2E8F0", marginBottom: 8 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: u.rol === "Administrador" ? "linear-gradient(135deg,#C8993A,#E8B84B)" : "linear-gradient(135deg,#2E7DC4,#4DA3D4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+              <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", marginBottom: 10 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: u.rol === "Administrador" ? "linear-gradient(135deg,#C8993A,#E8B84B)" : "linear-gradient(135deg,#2E7DC4,#4DA3D4)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
                   {u.nombre.charAt(0)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#1E293B" }}>{u.nombre}</div>
-                  <div style={{ fontSize: 11, color: "#94A3B8" }}>@{u.usuario} · {roleLabels[u.rol] || u.rol}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#1E293B" }}>{u.nombre}</div>
+                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>@{u.usuario} · {roleLabels[u.rol] || u.rol}</div>
                 </div>
-                {u.id !== usuarioActual.id && (
-                  <button onClick={() => eliminar(u)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+                {u.id !== usuarioActual.id ? (
+                  <button onClick={() => eliminar(u)} style={{ ...btnSecundario, background: "#FEE2E2", color: "#B91C1C", borderColor: "#FECACA", padding: "8px 12px" }}>
                     Eliminar
                   </button>
+                ) : (
+                  <span style={{ fontSize: 11, color: "#94A3B8", padding: "6px 10px", borderRadius: 10, background: "#F8FAFC" }}>Usuario activo</span>
                 )}
               </div>
             ))}

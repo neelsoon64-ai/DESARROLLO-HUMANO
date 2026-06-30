@@ -3,16 +3,19 @@ import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBBVQ-n7UaegnUv2PDdiZ9zN3CZgETrp0U",
-  authDomain: "desarrollo-humano-af808.firebaseapp.com",
-  databaseURL: "https://desarrollo-humano-af808-default-rtdb.firebaseio.com",
-  projectId: "desarrollo-humano-af808",
-  storageBucket: "desarrollo-humano-af808.firebasestorage.app",
-  messagingSenderId: "812070980942",
-  appId: "1:812070980942:web:bc3400184a3a32610fe21f"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
+
+const firebaseAppCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY;
 
 // Validamos si la configuración completa de Firebase está cargada
 export const firebaseConfigurado = [
@@ -22,7 +25,7 @@ export const firebaseConfigurado = [
   firebaseConfig.projectId,
   firebaseConfig.storageBucket,
   firebaseConfig.messagingSenderId,
-  firebaseConfig.appId
+  firebaseConfig.appId,
 ].every(Boolean);
 
 // Inicialización segura de la App
@@ -30,21 +33,23 @@ const app = firebaseConfigurado ? (getApps().length === 0 ? initializeApp(fireba
 
 // --- EXPORTACIONES DE INSTANCIAS ---
 
-// 1. Mantenemos 'db' como Realtime Database para que no rompa tus componentes/hooks existentes
-export const db = firebaseConfigurado ? getDatabase(app) : null; 
+export const db = firebaseConfigurado && app ? getDatabase(app) : null;
+export const rtdb = db;
+export const firestore = firebaseConfigurado && app ? getFirestore(app) : null;
+export const storage = firebaseConfigurado && app ? getStorage(app) : null;
+export const auth = firebaseConfigurado && app ? getAuth(app) : null;
 
-// 2. Dejamos 'rtdb' como alias por compatibilidad
-export const rtdb = db; 
-
-// 3. Exportamos Firestore por separado si necesitas usarlo en el futuro
-export const firestore = firebaseConfigurado ? getFirestore(app) : null; 
-
-// 4. Almacenamiento de archivos/fotos
-export const storage = firebaseConfigurado ? getStorage(app) : null;
-
-// 5. Autenticación mínima: sign-in anónimo para que las reglas que requieren
-// request.auth != null permitan escrituras básicas desde clientes.
-export const auth = firebaseConfigurado ? getAuth(app) : null;
+if (firebaseConfigurado && app && firebaseAppCheckKey) {
+  try {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(firebaseAppCheckKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+    console.log("Firebase App Check configurado");
+  } catch (err) {
+    console.warn("No se pudo inicializar Firebase App Check:", err);
+  }
+}
 
 if (firebaseConfigurado && auth) {
   try {

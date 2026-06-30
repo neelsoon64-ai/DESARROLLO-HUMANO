@@ -74,18 +74,20 @@ const firebaseConfig = {
 ### 4.3 Pegar la configuración en el proyecto
 
 1. En VS Code, abrí el archivo: **`src/firebase.js`**
-2. Reemplazá el objeto `firebaseConfig` de ejemplo por el que copiaste de Firebase.
+2. Copiá `.env.example` a `.env` y pegá las credenciales de Firebase en ese archivo.
 3. Guardá el archivo (Ctrl+S / Cmd+S).
 
-### 4.4 Activar Firestore (la base de datos)
+> Nota: `src/firebase.js` ya lee desde variables de entorno, por lo que no debes editar credenciales en el código.
 
-1. En la consola de Firebase, en el menú izquierdo, hacé clic en **"Firestore Database"**.
+### 4.4 Activar Firebase Realtime Database
+
+1. En la consola de Firebase, en el menú izquierdo, hacé clic en **"Realtime Database"**.
 2. Hacé clic en **"Crear base de datos"**.
-3. Elegí **"Iniciar en modo de prueba"** (test mode) — esto permite leer/escribir sin configurar reglas complejas al principio.
+3. Elegí **"Iniciar en modo de prueba"** si es la primera vez, pero recordá que esto deja reglas muy abiertas.
 4. Elegí la ubicación del servidor, por ejemplo `southamerica-east1` (São Paulo, la más cercana a Argentina).
 5. Hacé clic en **"Habilitar"**.
 
-⚠️ **Importante sobre seguridad:** el modo de prueba deja la base de datos abierta por 30 días. Como esta app ya tiene su propio sistema de usuarios y contraseñas adentro, es aceptable para uso interno, pero si querés reforzarlo más adelante, pedime ayuda para configurar las reglas de Firestore correctamente.
+⚠️ **Importante sobre seguridad:** para producción se recomienda aplicar reglas de Realtime Database. Un ejemplo de reglas seguras se encuentra en `database.rules.json`.
 
 ### 4.5 Activar Storage (para las fotos de los remitos)
 

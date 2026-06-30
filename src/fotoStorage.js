@@ -10,44 +10,96 @@ export function generarPreviewDesdeArchivo(file) {
   });
 }
 
+const PUENTE_DRIVE_URL = import.meta.env.VITE_GOOGLE_DRIVE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbyOOOlVQwsAQLsKnYtWL2OA7MroSjOstUkqT9ERSDCNe3yN23uyE5mAhIKxR0rzbTI0/exec";
+
+function extraerBase64DesdeDataUrl(dataUrl) {
+  const match = /^data:(image\/[^;]+);base64,(.*)$/i.exec(dataUrl);
+  if (!match) return null;
+  return {
+    mimeType: match[1],
+    base64: match[2],
+  };
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // 2. Sube el Base64 procesado directamente a tu Google Drive
 // ════════════════════════════════════════════════════════════════════════════
 export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
   if (!dataUrlBase64) return "";
-  
-  // Si por alguna razón ya es una URL de internet, la dejamos pasar intacta
-  if (dataUrlBase64.startsWith("http")) return dataUrlBase64;
 
-  // URL de tu aplicación web de Google Apps Script (¡Ya integrada!)
-  const URL_PUENTE_DRIVE = "https://script.google.com/macros/s/AKfycbyOOOlVQwsAQLsKnYtWL2OA7MroSjOstUkqT9ERSDCNe3yN23uyE5mAhIKxR0rzbTI0/exec";
+  if (typeof dataUrlBase64 === "string" && dataUrlBase64.startsWith("http")) {
+    return dataUrlBase64;
+  }
+
+  let mimeType = "image/jpeg";
+  let base64Data = "";
+
+  if (typeof dataUrlBase64 === "string") {
+    const extraido = extraerBase64DesdeDataUrl(dataUrlBase64);
+    if (extraido) {
+      mimeType = extraido.mimeType;
+      base64Data = extraido.base64;
+    } else {
+      base64Data = dataUrlBase64;
+    }
+  } else if (dataUrlBase64 instanceof Blob || dataUrlBase64 instanceof File) {
+    base64Data = await new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onload = () => {
+        const resultado = lector.result;
+        const extraido = extraerBase64DesdeDataUrl(resultado);
+        if (extraido) {
+          mimeType = extraido.mimeType;
+          resolve(extraido.base64);
+        } else {
+          reject(new Error("No se pudo extraer Base64 del archivo"));
+        }
+      };
+      lector.onerror = () => reject(lector.error);
+      lector.readAsDataURL(dataUrlBase64);
+    });
+  } else {
+    console.warn("subirFotoRemito recibió un tipo no soportado:", typeof dataUrlBase64);
+    return "";
+  }
+
+  if (!base64Data) {
+    console.warn("subirFotoRemito: no hay datos Base64 válidos");
+    return "";
+  }
 
   try {
     console.log("Enviando petición POST a Google Apps Script...");
-    
-    const respuesta = await fetch(URL_PUENTE_DRIVE, {
+
+    const respuesta = await fetch(PUENTE_DRIVE_URL, {
       method: "POST",
       mode: "cors",
       headers: {
-        "Content-Type": "text/plain;charset=utf-8",
+        "Content-Type": "application/json;charset=utf-8",
       },
       body: JSON.stringify({
-        idMovimiento: idMovimiento,
-        mimeType: "image/jpeg",
-        base64: dataUrlBase64 
-      })
+        idMovimiento,
+        mimeType,
+        base64: base64Data,
+      }),
     });
 
     const textoRespuesta = await respuesta.text();
-    const resultado = JSON.parse(textoRespuesta);
-
-    if (resultado.status === "success") {
-      console.log("¡Foto guardada exitosamente en Google Drive!", resultado.url);
-      return resultado.url; // Retorna el enlace directo uc?export=view...
-    } else {
-      console.error("El script de Google Apps Script devolvió un error:", resultado.message);
+    let resultado = {};
+    try {
+      resultado = JSON.parse(textoRespuesta);
+    } catch (err) {
+      console.error("subirFotoRemito: respuesta inválida de servidor:", textoRespuesta, err);
       return "";
     }
+
+    if (resultado.status === "success" && resultado.url) {
+      console.log("¡Foto guardada exitosamente en Google Drive!", resultado.url);
+      return resultado.url;
+    }
+
+    console.error("El script de Google Apps Script devolvió un error:", resultado.message || resultado);
+    return "";
   } catch (error) {
     console.error("Error de red o CORS al conectar con Google Drive:", error);
     return "";

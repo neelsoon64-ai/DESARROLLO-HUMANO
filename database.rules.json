@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "inventario_mdh": {
+      "usuarios": {
+        ".validate": "newData.isString() || newData.isNumber() || newData.hasChildren()"
+      },
+      "auditoria": {
+        "$auditId": {
+          ".validate": "newData.hasChildren(['tipo','usuario','detalle','fecha'])"
+        }
+      },
+      "$section": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

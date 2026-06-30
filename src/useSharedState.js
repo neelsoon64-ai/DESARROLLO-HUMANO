@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ref, onValue, set as rtdbSet } from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import { db, firebaseConfigurado } from "./firebase.js";
+import { writePath } from "./dataService.js";
 
 // ════════════════════════════════════════════════════════════════════════════
 // useSharedState — Sincroniza un valor con Realtime Database en TIEMPO REAL.
@@ -40,8 +41,7 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
         if (snap.exists()) {
           setEstado(snap.val());
         } else {
-          // Si el nodo no existe en la base de datos, lo inicializamos
-          rtdbSet(referencia, valorInicial).catch((err) =>
+          writePath(rtdbPath, valorInicial).catch((err) =>
             console.error("Error al inicializar nodo en RTDB:", err)
           );
         }
@@ -62,8 +62,7 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
         const nuevo = typeof actualizador === "function" ? actualizador(prev) : actualizador;
 
         if (firebaseConfigurado && db) {
-          const referencia = ref(db, rtdbPath);
-          rtdbSet(referencia, nuevo).catch((err) =>
+          writePath(rtdbPath, nuevo).catch((err) =>
             console.error("Error guardando en Realtime Database:", err)
           );
         } else {

@@ -194,14 +194,15 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
   return (
     <div style={overlay}>
       <div style={modal}>
-        <div style={{ background: headerBg, borderRadius: "14px 14px 0 0", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "background 0.3s ease" }}>
+        <div style={{ background: headerBg, borderRadius: "14px 14px 0 0", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", transition: "background 0.3s ease" }}>
           <div>
             <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>{seccionNombre}</div>
             <div style={{ color: "#fff", fontSize: 17, fontWeight: 700, marginTop: 2 }}>
               {esEdicion ? "✏️ Editar Movimiento" : form.tipo === "inicial" ? "💾 Carga de Stock Inicial" : "Nueva Carga de Remito"}
             </div>
+            <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 6 }}>{form.descripcion ? `Artículo: ${form.descripcion}` : "Completá la información del remito para continuar."}</div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>×</button>
+          <button onClick={onClose} type="button" style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
 
         <div style={{ padding: "22px", overflowY: "auto", maxHeight: "68vh", display: "flex", flexDirection: "column", gap: 14 }}>
