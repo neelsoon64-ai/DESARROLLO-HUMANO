@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { CATEGORIAS, formatFecha, formatFechaCorta } from "./constants.js";
+import logo from "./assets/logo.png";
 
 export function exportarExcel(movimientos, seccion, auditoria, usuarioActual, onAudit) {
   const wb = XLSX.utils.book_new();
@@ -69,28 +70,67 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Inventario ${seccion}</title>
   <style>
-    body{font-family:Arial,sans-serif;color:#1E293B;margin:0;padding:24px;font-size:12px}
-    .header{background:linear-gradient(135deg,#1A3A5C,#2E7DC4);color:#fff;padding:20px 24px;border-radius:8px;margin-bottom:20px}
-    .header h1{margin:0;font-size:20px}.header p{margin:4px 0 0;opacity:.8;font-size:12px}
-    .badge{display:inline-block;background:#C8993A;color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:8px}
-    h2{color:#1A3A5C;font-size:14px;border-bottom:2px solid #E2E8F0;padding-bottom:6px;margin-top:22px}
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th{background:#1A3A5C;color:#fff;padding:7px 8px;text-align:left;font-size:11px}
-    td{padding:6px 8px;border-bottom:1px solid #F1F5F9;font-size:11px}
-    tr:nth-child(even) td{background:#F8FAFC}
-    .footer{margin-top:24px;color:#94A3B8;font-size:10px;text-align:center;border-top:1px solid #E2E8F0;padding-top:10px}
+    @page { size: A4; margin: 18mm; }
+    html, body { width: 100%; margin: 0; padding: 0; background: #F8FAFC; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #111827; padding: 24px; }
+    .page { width: 100%; max-width: 1200px; margin: 0 auto; background: #FFFFFF; padding: 24px; border-radius: 12px; box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08); }
+    .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 14px; border-bottom: 2px solid #E2E8F0; padding-bottom: 18px; margin-bottom: 20px; }
+    .header-left { max-width: 72%; }
+    .header h1 { margin: 0; font-size: 24px; line-height: 1.1; color: #0F172A; }
+    .header p { margin: 8px 0 0; color: #475569; font-size: 13px; }
+    .header-meta { display: grid; gap: 8px; min-width: 240px; }
+    .meta-card { background: #F8FAFC; padding: 12px 14px; border-radius: 12px; border: 1px solid #E2E8F0; color: #0F172A; font-size: 13px; }
+    .meta-card strong { display: block; font-size: 18px; margin-bottom: 4px; color: #1E293B; }
+    .section-title { margin: 0 0 12px; color: #0F172A; font-size: 16px; letter-spacing: 0.3px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 12px; border: 1px solid #E2E8F0; font-size: 12px; }
+    th { background: #0F172A; color: #FFFFFF; text-align: left; font-weight: 700; letter-spacing: 0.02em; }
+    tbody tr:nth-child(even) { background: #F8FAFC; }
+    tbody tr:hover { background: #E2E8F0; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: #0F172A; color: #FFFFFF; padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+    .status-positive { color: #047857; font-weight: 700; }
+    .status-warning { color: #B45309; font-weight: 700; }
+    .status-negative { color: #B91C1C; font-weight: 700; }
+    .footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid #E2E8F0; color: #475569; font-size: 11px; text-align: center; }
+    .page-number { position: fixed; bottom: 12mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #64748B; }
+    @media print {
+      body { padding: 0; background: #FFF; }
+      .page { box-shadow: none; border-radius: 0; margin: 0; padding: 0; }
+      .header-meta, .meta-card { page-break-inside: avoid; }
+      .footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; }
+      .page-number { display: block; }
+      body * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style></head><body>
-  <div class="header"><h1>Ministerio de Desarrollo Humano <span class="badge">${seccion}</span></h1>
-  <p>Reporte de Inventario · Generado el ${fecha} por ${usuarioActual.nombre}</p></div>
-  <h2>📊 Stock Actual</h2>
-  <table><thead><tr><th>Categoría</th><th>Descripción</th><th>Stock</th><th>Unidad</th></tr></thead><tbody>${
-    stockRows || "<tr><td colspan='4'>Sin datos</td></tr>"
-  }</tbody></table>
-  <h2>📋 Historial de Movimientos (últimos 50)</h2>
-  <table><thead><tr><th>Fecha</th><th>Remito</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Cantidad</th><th>Operador</th></tr></thead><tbody>${
-    movRows || "<tr><td colspan='7'>Sin datos</td></tr>"
-  }</tbody></table>
-  <div class="footer">Sistema de Inventario · Ministerio de Desarrollo Humano · ${fecha}</div>
+  <div class="page">
+    <div class="header">
+      <div class="header-left">
+        <h1>Ministerio de Desarrollo Humano</h1>
+        <p>Inventario ${seccion} · Reporte institucional</p>
+        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
+          <span class="badge">Generado: ${fecha}</span>
+          <span class="badge">Usuario: ${usuarioActual.nombre}</span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="meta-card"><strong>${Object.values(stock).length}</strong> Líneas de stock</div>
+        <div class="meta-card"><strong>${movimientos.length}</strong> Movimientos totales</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Stock Actual</h2>
+    <table><thead><tr><th>Categoría</th><th>Descripción</th><th>Stock total</th><th>Unidad</th></tr></thead><tbody>${
+      stockRows || "<tr><td colspan='4' style='text-align:center;color:#475569;padding:16px 0;'>Sin datos</td></tr>"
+    }</tbody></table>
+
+    <h2 class="section-title">Historial de Movimientos (últimos 50)</h2>
+    <table><thead><tr><th>Fecha</th><th>Remito</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Cantidad</th><th>Operador</th></tr></thead><tbody>${
+      movRows || "<tr><td colspan='7' style='text-align:center;color:#475569;padding:16px 0;'>Sin datos</td></tr>"
+    }</tbody></table>
+
+    <div class="footer">Sistema de Inventario MDH · Ministerio de Desarrollo Humano · Página 1</div>
+  </div>
+  <div class="page-number">Página 1</div>
   </body></html>`;
 
   const win = window.open("", "_blank");
