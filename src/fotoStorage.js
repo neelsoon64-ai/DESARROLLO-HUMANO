@@ -75,7 +75,7 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
       method: "POST",
       mode: "cors",
       headers: {
-        "Content-Type": "application/json;charset=utf-8",
+        "Content-Type": "text/plain;charset=utf-8",
       },
       body: JSON.stringify({
         idMovimiento,
