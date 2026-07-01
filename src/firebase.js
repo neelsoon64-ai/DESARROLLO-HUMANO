@@ -6,28 +6,47 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: String(import.meta.env.VITE_FIREBASE_API_KEY || "").trim(),
+  authDomain: String(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "").trim(),
+  databaseURL: String(import.meta.env.VITE_FIREBASE_DATABASE_URL || "").trim(),
+  projectId: String(import.meta.env.VITE_FIREBASE_PROJECT_ID || "").trim(),
+  storageBucket: String(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "").trim(),
+  messagingSenderId: String(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "").trim(),
+  appId: String(import.meta.env.VITE_FIREBASE_APP_ID || "").trim(),
 };
 
-const firebaseAppCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY;
+const firebaseAppCheckKey = String(import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY || "").trim();
+
+const requiredFirebaseKeys = {
+  VITE_FIREBASE_API_KEY: firebaseConfig.apiKey,
+  VITE_FIREBASE_AUTH_DOMAIN: firebaseConfig.authDomain,
+  VITE_FIREBASE_DATABASE_URL: firebaseConfig.databaseURL,
+  VITE_FIREBASE_PROJECT_ID: firebaseConfig.projectId,
+  VITE_FIREBASE_STORAGE_BUCKET: firebaseConfig.storageBucket,
+  VITE_FIREBASE_MESSAGING_SENDER_ID: firebaseConfig.messagingSenderId,
+  VITE_FIREBASE_APP_ID: firebaseConfig.appId,
+};
+
+const missingFirebaseKeys = Object.entries(requiredFirebaseKeys)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
 
 // Validamos si la configuración completa de Firebase está cargada.
 // App Check es opcional, pero la app puede funcionar sin él en desarrollo local.
-export const firebaseConfigurado = [
-  firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
-  firebaseConfig.databaseURL,
-  firebaseConfig.projectId,
-  firebaseConfig.storageBucket,
-  firebaseConfig.messagingSenderId,
-  firebaseConfig.appId,
-].every(Boolean);
+export const firebaseConfigurado = missingFirebaseKeys.length === 0;
+
+if (!firebaseConfigurado) {
+  console.warn(
+    "Firebase no está configurado correctamente: faltan variables de entorno",
+    missingFirebaseKeys,
+    requiredFirebaseKeys
+  );
+} else {
+  console.log("Firebase configurado correctamente", {
+    ...requiredFirebaseKeys,
+    VITE_FIREBASE_APP_CHECK_SITE_KEY: !!firebaseAppCheckKey,
+  });
+}
 
 // Inicialización segura de la App
 const app = firebaseConfigurado ? (getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]) : null;
