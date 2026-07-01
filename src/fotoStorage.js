@@ -10,7 +10,7 @@ export function generarPreviewDesdeArchivo(file) {
   });
 }
 
-const PUENTE_DRIVE_URL = import.meta.env.VITE_GOOGLE_DRIVE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbzl3eDGV--gvrB1NFJpdio0W2aHSBH9GhKjtntUMHn3bu3nVD2v6OrbspoKvNy9omTK/exec";
+const PUENTE_DRIVE_URL = import.meta.env.VITE_GOOGLE_DRIVE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwQ28gG7-dsc2ivTQ-yeg3L-SgbLnLiokQ7SEQpu5u2rGLtmy8AKjq2qkXTG0B9bKRJ/exec";
 
 function extraerBase64DesdeDataUrl(dataUrl) {
   const match = /^data:(image\/[^;]+);base64,(.*)$/i.exec(dataUrl);
