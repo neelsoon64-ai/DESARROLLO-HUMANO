@@ -48,6 +48,15 @@ if (!firebaseConfigurado) {
   });
 }
 
+if (typeof window !== "undefined") {
+  window.__firebaseDebug = {
+    firebaseConfigurado,
+    requiredFirebaseKeys,
+    missingFirebaseKeys,
+    hasAppCheckKey: !!firebaseAppCheckKey,
+  };
+}
+
 // Inicialización segura de la App
 const app = firebaseConfigurado ? (getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]) : null;
 
