@@ -73,9 +73,9 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
 
     const respuesta = await fetch(PUENTE_DRIVE_URL, {
       method: "POST",
-      mode: "cors",
+      mode: "no-cors",
       headers: {
-        "Content-Type": "application/json;charset=utf-8",
+        "Content-Type": "text/plain;charset=utf-8",
       },
       body: JSON.stringify({
         idMovimiento,
@@ -134,7 +134,7 @@ export async function eliminarFotoRemito(url) {
 
     const resp = await fetch(URL_PUENTE_DRIVE, {
       method: "POST",
-      mode: "cors",
+      mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
     });
