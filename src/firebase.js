@@ -17,7 +17,8 @@ const firebaseConfig = {
 
 const firebaseAppCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY;
 
-// Validamos si la configuración completa de Firebase está cargada
+// Validamos si la configuración completa de Firebase está cargada.
+// App Check es opcional, pero la app puede funcionar sin él en desarrollo local.
 export const firebaseConfigurado = [
   firebaseConfig.apiKey,
   firebaseConfig.authDomain,

@@ -46,7 +46,7 @@ La app requiere las siguientes variables de entorno en `.env`:
 - `VITE_FIREBASE_STORAGE_BUCKET`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_APP_CHECK_SITE_KEY` (recomendado para App Check)
+- `VITE_FIREBASE_APP_CHECK_SITE_KEY` (opcional, recomendado para App Check en producción)
 
 ## Documentación adicional
 - `INSTRUCCIONES.md`: guía paso a paso para configurar y usar el sistema.
