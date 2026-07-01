@@ -33,12 +33,6 @@ export default function Login({ usuarios, onLogin, onAudit }) {
           <div style={{ color: "#64748B", fontSize: 13, marginTop: 4 }}>Sistema de Control de Inventario</div>
         </div>
 
-        {!firebaseConfigurado && (
-          <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 12px", fontSize: 12, color: "#92400E", marginBottom: 20 }}>
-            ⚠️ Firebase no está configurado todavía. La app funciona localmente pero no sincroniza entre dispositivos. Mirá <strong>INSTRUCCIONES.md</strong>.
-          </div>
-        )}
-
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={fieldGroup}>
             <label style={labelStyle}>Usuario</label>

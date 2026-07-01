@@ -422,13 +422,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Banner visible si Firebase no está configurado */}
-      {!firebaseConfigurado && (
-        <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", color: "#92400E", padding: "10px 14px", textAlign: "center" }}>
-          ⚠️ Firebase no está configurado en este dispositivo — los movimientos se guardan solo localmente y no se sincronizarán entre equipos. Ver <a href="/INSTRUCCIONES.md">INSTRUCCIONES</a> para configuración.
-        </div>
-      )}
-
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
         
         {verDashboard ? (
