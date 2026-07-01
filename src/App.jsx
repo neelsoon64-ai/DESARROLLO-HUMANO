@@ -9,8 +9,6 @@ import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import Dashboard from "./components/Dashboard.jsx"; 
-
-const esLocalHost = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
 import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
 import logo from "./assets/logo.png";
 import { getDatabase, ref, remove } from "firebase/database";
@@ -425,7 +423,7 @@ export default function App() {
       </div>
 
       {/* Banner visible si Firebase no está configurado */}
-      {!firebaseConfigurado && !esLocalHost && (
+      {!firebaseConfigurado && (
         <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", color: "#92400E", padding: "10px 14px", textAlign: "center" }}>
           ⚠️ Firebase no está configurado en este dispositivo — los movimientos se guardan solo localmente y no se sincronizarán entre equipos. Ver <a href="/INSTRUCCIONES.md">INSTRUCCIONES</a> para configuración.
         </div>

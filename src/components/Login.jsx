@@ -9,8 +9,6 @@ export default function Login({ usuarios, onLogin, onAudit }) {
   const [error, setError] = useState("");
   const [verPass, setVerPass] = useState(false);
 
-  const esLocalHost = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
-
   const handleLogin = () => {
     const userInput = user.trim().toLowerCase();
     const found = usuarios.find((u) => String(u.usuario).toLowerCase() === userInput && u.password === pass);
@@ -36,12 +34,8 @@ export default function Login({ usuarios, onLogin, onAudit }) {
         </div>
 
         {!firebaseConfigurado && (
-          <div style={{ background: esLocalHost ? "#EFF6FF" : "#FEF3C7", border: esLocalHost ? "1px solid #BFDBFE" : "1px solid #FDE68A", borderRadius: 10, padding: "10px 12px", fontSize: 12, color: esLocalHost ? "#1D4ED8" : "#92400E", marginBottom: 20 }}>
-            {esLocalHost ? (
-              <>ℹ️ Estás en modo local (localhost). Firebase no se conecta y la app guarda los datos solo en este equipo.</>
-            ) : (
-              <>⚠️ Firebase no está configurado todavía. La app funciona localmente pero no sincroniza entre dispositivos. Mirá <strong>INSTRUCCIONES.md</strong>.</>
-            )}
+          <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 12px", fontSize: 12, color: "#92400E", marginBottom: 20 }}>
+            ⚠️ Firebase no está configurado todavía. La app funciona localmente pero no sincroniza entre dispositivos. Mirá <strong>INSTRUCCIONES.md</strong>.
           </div>
         )}
 
