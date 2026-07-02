@@ -33,6 +33,7 @@ export default function App() {
   const [ultimaSync, setUltimaSync] = useState(new Date());
   const [, setTick] = useState(0);
   const [copiaRespaldo, setCopiaRespaldo] = useState(null);
+  const [ultimaActividad, setUltimaActividad] = useState(new Date());
 
   const auditoria = Array.isArray(auditoriaRaw) ? auditoriaRaw.filter(Boolean) : [];
 
@@ -91,6 +92,49 @@ export default function App() {
   useEffect(() => {
     setUltimaSync(new Date());
   }, [nacion, provincia, usuarios, auditoriaRaw]);
+
+  // Detectar actividad del usuario
+  useEffect(() => {
+    if (!usuarioActual) return;
+
+    const registrarActividad = () => {
+      setUltimaActividad(new Date());
+    };
+
+    const eventos = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    eventos.forEach((evento) => {
+      document.addEventListener(evento, registrarActividad);
+    });
+
+    return () => {
+      eventos.forEach((evento) => {
+        document.removeEventListener(evento, registrarActividad);
+      });
+    };
+  }, [usuarioActual]);
+
+  // Auto-logout después de 5 minutos de inactividad
+  useEffect(() => {
+    if (!usuarioActual) return;
+
+    const intervalo = setInterval(() => {
+      const ahora = new Date();
+      const tiempoInactividadMs = ahora - ultimaActividad;
+      const tiempoInactividadMin = tiempoInactividadMs / 1000 / 60;
+
+      if (tiempoInactividadMin >= 5) {
+        registrarAuditoria({
+          tipo: "logout_timeout",
+          usuario: usuarioActual.nombre,
+          rol: usuarioActual.rol,
+          detalle: "Cerró sesión por inactividad (5 minutos)"
+        });
+        logout();
+      }
+    }, 10000); // Verificar cada 10 segundos
+
+    return () => clearInterval(intervalo);
+  }, [usuarioActual, ultimaActividad, registrarAuditoria]);
 
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 1000);
