@@ -1,11 +1,6 @@
-const PUENTE_DRIVE_URL =
-  import.meta.env.VITE_GOOGLE_DRIVE_SCRIPT_URL ||
-  "https://script.google.com/macros/s/AKfycbzl3eDGV--gvrB1NFJpdio0W2aHSBH9GhKjtntUMHn3bu3nVD2v6OrbspoKvNy9omTK/exec";
+const CLOUD_NAME = "lpuj6622";
+const UPLOAD_PRESET = "remitos_upload";
 
-
-// ─────────────────────────────────────────────
-// PREVIEW DESDE ARCHIVO
-// ─────────────────────────────────────────────
 export function generarPreviewDesdeArchivo(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -15,11 +10,12 @@ export function generarPreviewDesdeArchivo(file) {
   });
 }
 
-
-// ─────────────────────────────────────────────
-// COMPRESIÓN SIMPLE A JPEG
-// ─────────────────────────────────────────────
-async function comprimirImagen(dataUrl, maxWidth = 800, maxHeight = 600, quality = 0.7) {
+async function comprimirImagen(
+  dataUrl,
+  maxWidth = 1200,
+  maxHeight = 1200,
+  calidad = 0.8
+) {
   return new Promise((resolve, reject) => {
     const img = new Image();
 
@@ -40,8 +36,7 @@ async function comprimirImagen(dataUrl, maxWidth = 800, maxHeight = 600, quality
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      const compressed = canvas.toDataURL("image/jpeg", quality);
-      resolve(compressed);
+      resolve(canvas.toDataURL("image/jpeg", calidad));
     };
 
     img.onerror = reject;
@@ -49,110 +44,54 @@ async function comprimirImagen(dataUrl, maxWidth = 800, maxHeight = 600, quality
   });
 }
 
-
-// ─────────────────────────────────────────────
-// EXTRAER BASE64
-// ─────────────────────────────────────────────
-function extraerBase64(dataUrl) {
-  const match = /^data:(image\/[^;]+);base64,(.*)$/i.exec(dataUrl);
-  if (!match) return null;
-
-  return {
-    mimeType: match[1],
-    base64: match[2],
-  };
-}
-
-
-// ─────────────────────────────────────────────
-// SUBIR FOTO A GOOGLE DRIVE (SIN CORS)
-// ─────────────────────────────────────────────
 export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
   try {
     if (!dataUrlBase64) return "";
 
-    let dataUrl = "";
+    let imagen = dataUrlBase64;
 
-    if (typeof dataUrlBase64 === "string") {
-      dataUrl = dataUrlBase64;
-    } else {
-      dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(dataUrlBase64);
-      });
+    if (!(typeof imagen === "string")) {
+      imagen = await generarPreviewDesdeArchivo(imagen);
     }
 
-    // comprimir
-    const compressed = await comprimirImagen(dataUrl);
+    imagen = await comprimirImagen(imagen);
 
-    const extraido = extraerBase64(compressed);
-
-    if (!extraido) {
-      console.error("No se pudo extraer base64");
-      return "";
-    }
-
-    const payload = {
-      idMovimiento,
-      mimeType: "image/jpeg",
-      base64: extraido.base64,
-    };
-
-    // 🔥 IMPORTANTE: FormData evita CORS preflight
     const formData = new FormData();
-    formData.append("data", JSON.stringify(payload));
 
-    const response = await fetch(PUENTE_DRIVE_URL, {
-      method: "POST",
-      body: formData,
-    });
+    formData.append("file", imagen);
+    formData.append("upload_preset", UPLOAD_PRESET);
+    formData.append("folder", "remitos");
+    formData.append("public_id", idMovimiento);
 
-    const result = await response.json();
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData
+      }
+    );
 
-    if (result.status === "success") {
-      return result.url;
+    const resultado = await response.json();
+
+    console.log("Cloudinary:", resultado);
+
+    if (resultado.secure_url) {
+      return resultado.secure_url;
     }
 
-    console.error("Error upload:", result);
+    console.error(resultado);
+
     return "";
 
   } catch (err) {
-    console.error("Error subirFotoRemito:", err);
+    console.error(err);
     return "";
   }
 }
 
-
-// ─────────────────────────────────────────────
-// ELIMINAR FOTO
-// ─────────────────────────────────────────────
-export async function eliminarFotoRemito(url) {
-  try {
-    const response = await fetch(PUENTE_DRIVE_URL, {
-      method: "POST",
-      body: new FormData(
-        Object.entries({
-          data: JSON.stringify({
-            action: "delete",
-            url,
-          }),
-        })
-      ),
-    });
-
-    const result = await response.json();
-
-    return {
-      ok: result.status === "success",
-      message: result.message || "",
-    };
-
-  } catch (err) {
-    return {
-      ok: false,
-      message: String(err),
-    };
-  }
+export async function eliminarFotoRemito() {
+  return {
+    ok: true,
+    message: "La eliminación desde Cloudinary requiere backend."
+  };
 }
