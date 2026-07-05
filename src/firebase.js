@@ -12,9 +12,10 @@ const firebaseConfig = {
     import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ||
     "desarrollo-humano-af808.firebaseapp.com",
 
+  // ✅ CORREGIDO: Ahora tiene las comillas correspondientes y sin la comilla doble corrupta al final
   databaseURL:
     import.meta.env.VITE_FIREBASE_DATABASE_URL ||
-    https://desarrollo-humano-af808-default-rtdb.firebaseio.com,
+    "https://desarrollo-humano-af808-default-rtdb.firebaseio.com",
 
   projectId:
     import.meta.env.VITE_FIREBASE_PROJECT_ID ||
