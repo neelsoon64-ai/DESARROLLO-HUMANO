@@ -29,7 +29,7 @@ const formatearUrlDrive = (idOrUrl) => {
   return idOrUrl;
 };
 
-export default function ModalFormulario({ mov, onClose, puedeEditar, onEditar, puedeEliminar, onEliminar }) {
+export default function ModalRemito({ mov, onClose, puedeEditar, onEditar, puedeEliminar, onEliminar }) {
   // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
   if (!mov) return null;
 
