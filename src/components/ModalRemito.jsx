@@ -113,34 +113,35 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     setSubiendo(true);
 
     try {
-      const inicialFotosArray = Array.isArray(inicial.foto) ? inicial.foto : (inicial.foto ? [inicial.foto] : []);
-      
-      // ─── 🛡️ PROCESAMIENTO SEGURO DE FOTOS PARA GOOGLE DRIVE ───
-      const fotosDesdeForm = await Promise.all(
+      // ─── 📝 PROCESAMIENTO Y SUBIDA EN PARALELO A TU GOOGLE DRIVE ───
+      const fotosProcesadas = await Promise.all(
         form.listaFotos.map(async (f, idx) => {
-          if (f.url) return f.url; // Conserva URLs que ya existen en Drive
+          // Si ya es una URL web existente (modo edición), pasa directo sin re-subir
+          if (f.url && f.url.startsWith("http")) return f.url; 
           
-          if (f.preview && !f.preview.startsWith("http")) {
+          // Si es un archivo local nuevo, enviamos el Base64 a tu Apps Script
+          if (f.preview && f.preview.startsWith("data:image")) {
             try {
-              console.log(`Subiendo foto index ${idx} a Google Drive...`);
-              // Mandamos f.preview (el string Base64 limpio que procesó el FileReader)
-              return await subirFotoRemito(f.preview, `${id}-${idx}`);
+              console.log(`Subiendo adjunto index ${idx} a Google Drive...`);
+              return await subirFotoRemito(f.preview, `remito_${id}_${idx}`);
             } catch (driveErr) {
-              console.error("Fallo la subida a Drive para esta imagen:", driveErr);
-              return ""; // Retorna vacío si falla la red del celu, pero NO traba el flujo
+              console.error("Falló la subida a Drive para esta imagen:", driveErr);
+              return "";
             }
           }
-          return f.preview || "";
+          return "";
         })
       );
 
-      // Limpieza de duplicados y vacíos
-      let fotoFinalArray = [...inicialFotosArray, ...fotosDesdeForm.filter(Boolean)];
-      fotoFinalArray = fotoFinalArray.filter((v, i, a) => a.indexOf(v) === i);
+      // Limpiamos strings vacíos de archivos que hayan fallado
+      const fotosFinalesFiltradas = fotosProcesadas.filter(Boolean);
 
-      const fotoFinal = fotoFinalArray.length === 0 ? "" : (fotoFinalArray.length === 1 ? fotoFinalArray[0] : fotoFinalArray);
+      // Si no hay fotos string vacío; si hay una sola pasamos el string; si hay varias pasamos el array
+      const fotoFinal = fotosFinalesFiltradas.length === 0 
+        ? "" 
+        : (fotosFinalesFiltradas.length === 1 ? fotosFinalesFiltradas[0] : fotosFinalesFiltradas);
 
-      console.debug("ModalRemito: Guardando payload final.", { fotoFinal });
+      console.debug("ModalRemito: Guardando payload final con enlaces limpios.", { fotoFinal });
 
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
         ? "Inventario Físico Inicial" 
@@ -148,7 +149,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
       const fechaFinal = new Date(form.fecha).toISOString();
 
-      // ─── 🚀 INYECCIÓN Y GUARDADO INMUNE EN FIREBASE ───
+      // ─── 🚀 ENVÍO INMUNE A TU BASE DE DATOS ───
       onGuardar({
         ...inicial,
         id,
@@ -286,7 +287,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
           <div style={fieldGroup}>
             <label style={labelStyle}>{catActual?.icon} Descripción del Artículo</label>
-            <input type="text" placeholder={`Ej: ${catActual?.label} 2.44m`} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} style={inputStyle} />
+            <input type="text" placeholder={`Ej: ${catActual?.label}`} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} style={inputStyle} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -422,12 +423,12 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
               }}
             >
               {cargandoFoto ? (
-                <div style={{ color: "#2E7DC4", fontSize: 13 }}>⏳ Comprimiendo archivos adjuntos...</div>
+                <div style={{ color: "#2E7DC4", fontSize: 13 }}>⏳ Procesando archivos adjuntos...</div>
               ) : (
                 <>
                   <div style={{ fontSize: 26, marginBottom: 4 }}>📄📌</div>
                   <div style={{ color: "#475569", fontSize: 12, fontWeight: 600 }}>Arrastrá una o más fotos acá</div>
-                  <div style={{ color: "#94A3B8", fontSize: 10, marginTop: 2 }}>Opcional para justificar el stock actual</div>
+                  <div style={{ color: "#94A3B8", fontSize: 10, marginTop: 2 }}>Directo a tu Google Drive vinculado</div>
                 </>
               )}
             </div>
@@ -456,7 +457,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           </div>
 
           {error && <div style={{ color: "#DC2626", background: "#FEE2E2", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⚠️ {error}</div>}
-          {subiendo && <div style={{ color: "#2E7DC4", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⏳ Registrando movimiento en base de datos...</div>}
+          {subiendo && <div style={{ color: "#2E7DC4", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⏳ Subiendo remitos a Drive y guardando datos...</div>}
         </div>
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
