@@ -3,6 +3,20 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
+// ─── 🛠️ HELPER PARA EXTRAER ID Y DEVOLVER URL DE MINIATURA VALIDA ───
+const formatearUrlDrive = (url) => {
+  if (!url || typeof url !== "string") return "";
+  // Si ya es un base64 o no es de google, lo devuelve intacto
+  if (url.startsWith("data:") || !url.includes("google")) return url;
+
+  // Intenta extraer el ID usando regex buscando el parámetro 'id=' o la ruta '/d/'
+  const matchId = url.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
+  if (matchId && matchId[1]) {
+    return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w800`;
+  }
+  return url;
+};
+
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
@@ -30,7 +44,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     listaFotos: fotosIniciales.map((foto, idx) => ({
       id: `foto-inicial-${idx}`,
       url: foto,
-      preview: foto
+      // Usamos el formateador para asegurarnos de que la preview no use URLs anidadas rompiendo el src
+      preview: formatearUrlDrive(foto)
     })),
   });
 
@@ -123,11 +138,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           if (f.preview && !f.preview.startsWith("http")) {
             try {
               console.log(`Subiendo foto index ${idx} a Google Drive...`);
-              // Mandamos f.preview (el string Base64 limpio que procesó el FileReader)
               return await subirFotoRemito(f.preview, `${id}-${idx}`);
             } catch (driveErr) {
               console.error("Fallo la subida a Drive para esta imagen:", driveErr);
-              return ""; // Retorna vacío si falla la red del celu, pero NO traba el flujo
+              return ""; 
             }
           }
           return f.preview || "";
@@ -396,7 +410,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 {form.listaFotos.map((foto) => (
                   <div key={foto.id} style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F8FAFC" }}>
-                    <img src={foto.preview || foto.url} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
+                    {/* Reemplazado foto.preview || foto.url por el hook sanitizado */}
+                    <img src={formatearUrlDrive(foto.preview || foto.url)} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
                     <button 
                       type="button"
                       onClick={() => quitarFoto(foto.id)} 
