@@ -5,24 +5,25 @@ import { InfoItem } from "./Common.jsx";
 // 📄 Importamos la función encargada de armar el PDF oficial de Desarrollo Humano
 import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 
-// ✅ Función Helper para extraer el ID correcto e impedir URLs duplicadas/corruptas
+// ✅ Función Helper mejorada: compatibilidad con Drive + soporte de buena calidad
 const formatearUrlDrive = (idOrUrl) => {
   if (!idOrUrl || typeof idOrUrl !== "string") return "";
   
-  // Si ya es un base64 o no pertenece a Google Drive, lo dejamos pasar intacto
+  // Si ya es base64 o archivo propio, lo dejamos intacto
   if (idOrUrl.startsWith("data:") || !idOrUrl.includes("google")) {
     return idOrUrl;
   }
 
-  // Expresión regular robusta para capturar el ID de cualquier formato de link de Drive
+  // Extraemos el ID de cualquier formato de enlace de Google Drive
   const matchId = idOrUrl.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
   if (matchId && matchId[1]) {
-    return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w800`;
+    // Usamos vista previa en ALTA CALIDAD, no miniatura
+    return `https://drive.google.com/uc?export=view&id=${matchId[1]}`;
   }
 
-  // Si no hizo match pero no tiene barras de URL, asumimos que es el ID puro
+  // Si es solo el ID
   if (!idOrUrl.includes("/")) {
-    return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w800`;
+    return `https://drive.google.com/uc?export=view&id=${idOrUrl}`;
   }
 
   return idOrUrl;
@@ -32,7 +33,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
   // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
   if (!mov) return null;
 
-  // ✅ CORREGIDO: Ahora procesamos y limpiamos las imágenes de forma segura con la función helper
+  // Procesamos todas las fotos
   const fotosArray = Array.isArray(mov.foto) 
     ? mov.foto.map(item => formatearUrlDrive(item))
     : (mov.foto ? [formatearUrlDrive(mov.foto)] : []);
@@ -42,7 +43,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
   const [zoomLevel, setZoomLevel] = useState(1);
   const cat = CATEGORIAS.find((c) => c.id === mov.categoria);
 
-  // Sincroniza la foto seleccionada de manera segura una vez que el componente monta o cambia
+  // Sincronizamos la foto seleccionada
   useEffect(() => {
     if (fotosArray.length > 0) {
       setFotoSeleccionada(fotosArray[0]);
@@ -131,7 +132,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
               </div>
             )}
 
-            {/* ── SECCIÓN IMÁGENES DEL REMITO ── */}
+            {/* ── SECCIÓN IMÁGENES DEL REMITO (CALIDAD MEJORADA) ── */}
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
               <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
                 <div>
@@ -175,7 +176,8 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                           height: fotosArray.length === 1 ? "auto" : 140, 
                           maxHeight: 340,
                           borderRadius: 14, 
-                          objectFit: "cover", 
+                          objectFit: "contain", // ✅ Cambiado a "contain" para no recortar ni deformar
+                          imageRendering: "crisp-edges", // ✅ Mantiene nitidez
                           cursor: "zoom-in",
                           border: "1px solid #CBD5E1",
                           boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
@@ -194,8 +196,6 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
 
             {/* ── PANEL DE ACCIONES CON BOTÓN DE IMPRESIÓN OFICIAL INTEGRADO ── */}
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", flexDirection: "column" }}>
-              
-              {/* Botón de Impresión de Reporte Oficial (Full Width para jerarquía institucional) */}
               <button
                 onClick={() => imprimirRemitoOficial(mov)}
                 style={{
@@ -234,12 +234,11 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
-      {/* ── VISOR DE ZOOM REPARADO Y OPTIMIZADO PARA PC ── */}
+      {/* ── VISOR DE ZOOM CON CALIDAD MANTENIDA ── */}
       {zoomOpen && (
         <div
           onClick={() => {
@@ -262,7 +261,6 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
               border: "1px solid rgba(255,255,255,0.08)"
             }}
           >
-            {/* Controles superiores fijos (Sticky) */}
             <div style={{ 
               position: "sticky", 
               top: 0, 
@@ -301,7 +299,6 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                   </button>
                 )}
               </div>
-
               <button
                 onClick={() => {
                   setZoomLevel(1);
@@ -313,7 +310,6 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
               </button>
             </div>
             
-            {/* Contenedor del scroll dinámico */}
             <div 
               onWheel={(e) => {
                 if (e.deltaY < 0) {
@@ -347,6 +343,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                       height: "auto", 
                       maxHeight: "72vh", 
                       objectFit: "contain",
+                      imageRendering: "crisp-edges", // ✅ Siempre nítida
                       borderRadius: 6,
                       display: "block"
                     }}
@@ -356,7 +353,6 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                 )}
               </div>
             </div>
-
           </div>
         </div>
       )}
