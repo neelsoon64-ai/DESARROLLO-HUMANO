@@ -5,40 +5,45 @@ import { InfoItem } from "./Common.jsx";
 // 📄 Importamos la función encargada de armar el PDF oficial de Desarrollo Humano
 import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 
+// ✅ Función Helper mejorada: compatibilidad con Drive + soporte de buena calidad
+const formatearUrlDrive = (idOrUrl) => {
+  if (!idOrUrl || typeof idOrUrl !== "string") return "";
+  
+  // Si ya es base64 o archivo propio, lo dejamos intacto
+  if (idOrUrl.startsWith("data:") || !idOrUrl.includes("google")) {
+    return idOrUrl;
+  }
+
+  // Extraemos el ID de cualquier formato de enlace de Google Drive
+  const matchId = idOrUrl.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
+  if (matchId && matchId[1]) {
+    // Usamos vista previa en ALTA CALIDAD, no miniatura
+    return `https://drive.google.com/uc?export=view&id=${matchId[1]}`;
+  }
+
+  // Si es solo el ID
+  if (!idOrUrl.includes("/")) {
+    return `https://drive.google.com/uc?export=view&id=${idOrUrl}`;
+  }
+
+  return idOrUrl;
+};
+
 export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, puedeEliminar, onEliminar }) {
   // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
   if (!mov) return null;
 
- // Normaliza cualquier formato de imagen (ID, Drive, lh3)
-const normalizarFoto = (foto) => {
-  if (!foto) return "";
-
-  // Ya es una URL completa
-  if (
-    foto.startsWith("http://") ||
-    foto.startsWith("https://")
-  ) {
-    return foto;
-  }
-
-  // Sólo viene el ID de Drive
-  return `https://drive.google.com/thumbnail?id=${foto}&sz=w1200`;
-};
-
-const fotosArray = Array.isArray(mov.foto)
-  ? mov.foto.map(normalizarFoto)
-  : mov.foto
-  ? [normalizarFoto(mov.foto)]
-  : [];
-
-
+  // Procesamos todas las fotos
+  const fotosArray = Array.isArray(mov.foto) 
+    ? mov.foto.map(item => formatearUrlDrive(item))
+    : (mov.foto ? [formatearUrlDrive(mov.foto)] : []);
 
   const [zoomOpen, setZoomOpen] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const cat = CATEGORIAS.find((c) => c.id === mov.categoria);
 
-  // Sincroniza la foto seleccionada de manera segura una vez que el componente monta o cambia
+  // Sincronizamos la foto seleccionada
   useEffect(() => {
     if (fotosArray.length > 0) {
       setFotoSeleccionada(fotosArray[0]);
@@ -127,7 +132,7 @@ const fotosArray = Array.isArray(mov.foto)
               </div>
             )}
 
-            {/* ── SECCIÓN IMÁGENES DEL REMITO ── */}
+            {/* ── SECCIÓN IMÁGENES DEL REMITO (CALIDAD MEJORADA) ── */}
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
               <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
                 <div>
@@ -171,7 +176,8 @@ const fotosArray = Array.isArray(mov.foto)
                           height: fotosArray.length === 1 ? "auto" : 140, 
                           maxHeight: 340,
                           borderRadius: 14, 
-                          objectFit: "cover", 
+                          objectFit: "contain",
+                          imageRendering: "crisp-edges",
                           cursor: "zoom-in",
                           border: "1px solid #CBD5E1",
                           boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
@@ -190,8 +196,6 @@ const fotosArray = Array.isArray(mov.foto)
 
             {/* ── PANEL DE ACCIONES CON BOTÓN DE IMPRESIÓN OFICIAL INTEGRADO ── */}
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", flexDirection: "column" }}>
-              
-              {/* Botón de Impresión de Reporte Oficial (Full Width para jerarquía institucional) */}
               <button
                 onClick={() => imprimirRemitoOficial(mov)}
                 style={{
@@ -216,7 +220,10 @@ const fotosArray = Array.isArray(mov.foto)
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", width: "100%" }}>
                 {puedeEditar && (
-                  <button onClick={onEditar} style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#0F172A", borderColor: "#CBD5E1" }}>
+                  <button 
+                    onClick={() => { if (onEditar) { onEditar(mov); } }} 
+                    style={{ ...btnSecundario, flex: 1, minWidth: 120, color: "#0F172A", borderColor: "#CBD5E1" }}
+                  >
                     ✏️ Editar
                   </button>
                 )}
@@ -230,12 +237,11 @@ const fotosArray = Array.isArray(mov.foto)
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
-      {/* ── VISOR DE ZOOM REPARADO Y OPTIMIZADO PARA PC ── */}
+      {/* ── VISOR DE ZOOM CON CALIDAD MANTENIDA ── */}
       {zoomOpen && (
         <div
           onClick={() => {
@@ -258,7 +264,6 @@ const fotosArray = Array.isArray(mov.foto)
               border: "1px solid rgba(255,255,255,0.08)"
             }}
           >
-            {/* Controles superiores fijos (Sticky) */}
             <div style={{ 
               position: "sticky", 
               top: 0, 
@@ -297,7 +302,6 @@ const fotosArray = Array.isArray(mov.foto)
                   </button>
                 )}
               </div>
-
               <button
                 onClick={() => {
                   setZoomLevel(1);
@@ -309,7 +313,6 @@ const fotosArray = Array.isArray(mov.foto)
               </button>
             </div>
             
-            {/* Contenedor del scroll dinámico */}
             <div 
               onWheel={(e) => {
                 if (e.deltaY < 0) {
@@ -343,6 +346,7 @@ const fotosArray = Array.isArray(mov.foto)
                       height: "auto", 
                       maxHeight: "72vh", 
                       objectFit: "contain",
+                      imageRendering: "crisp-edges",
                       borderRadius: 6,
                       display: "block"
                     }}
@@ -352,7 +356,6 @@ const fotosArray = Array.isArray(mov.foto)
                 )}
               </div>
             </div>
-
           </div>
         </div>
       )}
