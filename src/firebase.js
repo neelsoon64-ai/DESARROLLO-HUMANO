@@ -6,7 +6,7 @@ import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBBVQ-n7UaegnUv2PDdiZ9zN3CZgETrp0U",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "desarrollo-humano-af808.firebaseapp.com",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://desarrollo-humano-af808-default-rtdb.firebaseio.com/",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://desarrollo-humano-af808-default-rtdb.firebaseio.com/"
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "desarrollo-humano-af808",
   
   // ─── 🛠️ CORRECCIÓN: Si la variable viene vacía de Vercel/Local, le clava el bucket por defecto
