@@ -173,12 +173,20 @@ export default function App() {
       
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
-      // 🔍 LIMPIADOR DE URL DE DRIVE INTEGRADO
+      // 🔍 LIMPIADOR DE URL DE DRIVE INTEGRADO (REFORZADO Y A PRUEBA DE BALAS)
       let fotoLimpia = carga?.foto || "";
       if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
-        const matchId = fotoLimpia.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
-        if (matchId && matchId[1]) {
-          fotoLimpia = `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w800`;
+        if (fotoLimpia.includes("/d/")) {
+          const partes = fotoLimpia.split("/d/");
+          if (partes[1]) {
+            const idExtraido = partes[1].split(/[&?]/)[0];
+            fotoLimpia = `https://drive.google.com/thumbnail?id=${idExtraido}&sz=w800`;
+          }
+        } else {
+          const matchId = fotoLimpia.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
+          if (matchId && matchId[1]) {
+            fotoLimpia = `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w800`;
+          }
         }
       }
 
@@ -200,7 +208,7 @@ export default function App() {
         fechaVencimiento: String(carga?.fechaVencimiento || ""),
         estadoRemito: String(carga?.estadoRemito || "Pendiente"),
         fechaCierre: String(carga?.fechaCierre || ""),
-        foto: fotoLimpia, // Guardamos la URL formateada y limpia
+        foto: fotoLimpia,
         cargadoPor: String(carga?.cargadoPor || "Desconocido"),
         editadoPor: String(carga?.editadoPor || "")
       };
