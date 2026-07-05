@@ -173,7 +173,7 @@ export default function App() {
       
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
-      // 🔍 LIMPIADOR DE URL DE DRIVE INTEGRADO (REFORZADO Y A PRUEBA DE BALAS)
+      // 🔍 LIMPIADOR DE URL DE DRIVE (A PRUEBA DE DUPLICADOS)
       let fotoLimpia = carga?.foto || "";
       if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
         if (fotoLimpia.includes("/d/")) {
