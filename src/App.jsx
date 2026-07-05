@@ -3,8 +3,8 @@ import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES } from "./constants.js";
 import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
 import Login from "./components/Login.jsx";
-import Seccion from "./components/Seccion.jsx";
-import ModalRemito from "./components/ModalRemito.jsx";
+import Seccion from "./components/Seccion.jsx"; 
+import ModalFormulario from "./components/ModalFormulario.jsx";
 import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
@@ -459,7 +459,7 @@ export default function App() {
       </div>
 
       {modalCarga && (
-        <ModalRemito
+        <ModalFormulario
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           datosEdicion={modalCarga.datos}
           onClose={() => setModalCarga(null)}
