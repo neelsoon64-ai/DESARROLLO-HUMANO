@@ -4,7 +4,7 @@ import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
 import Login from "./components/Login.jsx";
 import Seccion from "./components/Seccion.jsx"; 
-import ModalRemito from "./components/ModalRemito.jsx"; // 🔄 Cambiado aquí
+import ModalRemito from "./components/ModalRemito.jsx";
 import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
@@ -173,20 +173,31 @@ export default function App() {
       
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
-      // 🔍 LIMPIADOR DE URL DE DRIVE (A PRUEBA DE DUPLICADOS)
+      // 🔍 LIMPIADOR DE URL DE DRIVE (VERSIÓN DEFINITIVA Y ULTRA ESTABLE)
       let fotoLimpia = carga?.foto || "";
       if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
+        let idExtraido = "";
+        
         if (fotoLimpia.includes("/d/")) {
           const partes = fotoLimpia.split("/d/");
           if (partes[1]) {
-            const idExtraido = partes[1].split(/[&?]/)[0];
-            fotoLimpia = `https://drive.google.com/thumbnail?id=${idExtraido}&sz=w800`;
+            idExtraido = partes[1].split(/[&?\/]/)[0];
+          }
+        } else if (fotoLimpia.includes("id=")) {
+          const partes = fotoLimpia.split("id=");
+          if (partes[1]) {
+            idExtraido = partes[1].split(/[&?]/)[0];
           }
         } else {
           const matchId = fotoLimpia.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
           if (matchId && matchId[1]) {
-            fotoLimpia = `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w800`;
+            idExtraido = matchId[1];
           }
+        }
+
+        // Si encontramos el ID, generamos el enlace directo del CDN de Google (libre de bloqueos)
+        if (idExtraido) {
+          fotoLimpia = `https://lh3.googleusercontent.com/d/${idExtraido}`;
         }
       }
 
@@ -459,7 +470,7 @@ export default function App() {
       </div>
 
       {modalCarga && (
-        <ModalRemito // 🔄 Cambiado aquí
+        <ModalRemito
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           datosEdicion={modalCarga.datos}
           onClose={() => setModalCarga(null)}
