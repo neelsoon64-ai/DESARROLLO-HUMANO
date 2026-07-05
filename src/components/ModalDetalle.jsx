@@ -9,10 +9,30 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
   // Control de seguridad: Si no hay movimiento, evitamos romper el render de la app
   if (!mov) return null;
 
-  // Convertimos mov.foto a un array estandarizado para iterar sin problemas
-  const fotosArray = Array.isArray(mov.foto) 
-    ? mov.foto.map(id => `https://drive.google.com/thumbnail?id=${id}&sz=w800`)
-    : (mov.foto ? [`https://drive.google.com/thumbnail?id=${mov.foto}&sz=w800`] : []);
+ // Normaliza cualquier formato de imagen (ID, Drive, lh3)
+const normalizarFoto = (foto) => {
+  if (!foto) return "";
+
+  // Ya es una URL completa
+  if (
+    foto.startsWith("http://") ||
+    foto.startsWith("https://")
+  ) {
+    return foto;
+  }
+
+  // Sólo viene el ID de Drive
+  return `https://drive.google.com/thumbnail?id=${foto}&sz=w1200`;
+};
+
+const fotosArray = Array.isArray(mov.foto)
+  ? mov.foto.map(normalizarFoto)
+  : mov.foto
+  ? [normalizarFoto(mov.foto)]
+  : [];
+
+console.log("mov.foto =", mov.foto);
+console.log("fotosArray =", fotosArray);
 
   const [zoomOpen, setZoomOpen] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
