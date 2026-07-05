@@ -31,8 +31,7 @@ const fotosArray = Array.isArray(mov.foto)
   ? [normalizarFoto(mov.foto)]
   : [];
 
-console.log("mov.foto =", mov.foto);
-console.log("fotosArray =", fotosArray);
+
 
   const [zoomOpen, setZoomOpen] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
