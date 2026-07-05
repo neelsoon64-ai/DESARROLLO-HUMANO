@@ -11,8 +11,8 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
 
   // Convertimos mov.foto a un array estandarizado para iterar sin problemas
   const fotosArray = Array.isArray(mov.foto) 
-    ? mov.foto 
-    : (mov.foto ? [mov.foto] : []);
+    ? mov.foto.map(id => `https://drive.google.com/thumbnail?id=${id}&sz=w800`)
+    : (mov.foto ? [`https://drive.google.com/thumbnail?id=${mov.foto}&sz=w800`] : []);
 
   const [zoomOpen, setZoomOpen] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
@@ -64,7 +64,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
           </div>
 
           <div style={{ padding: "22px 26px 18px", display: "grid", gap: 18 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
               <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                 <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Fecha</div>
                 <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{formatFecha(mov.fecha)}</div>
@@ -73,6 +73,12 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                 <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Cantidad</div>
                 <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.cantidad} {mov.unidad}</div>
               </div>
+              {mov.fechaVencimiento && (
+                <div style={{ background: new Date(mov.fechaVencimiento) < new Date() ? "#FEF2F2" : "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
+                  <div style={{ color: new Date(mov.fechaVencimiento) < new Date() ? "#B91C1C" : "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Fecha de Vencimiento</div>
+                  <div style={{ color: new Date(mov.fechaVencimiento) < new Date() ? "#991B1B" : "#0F172A", fontSize: 14, fontWeight: 700 }}>{formatFechaCorta(mov.fechaVencimiento)}</div>
+                </div>
+              )}
               <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                 <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Proveedor</div>
                 <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.proveedor || "No informado"}</div>
