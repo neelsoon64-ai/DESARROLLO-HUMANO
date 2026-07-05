@@ -4,7 +4,7 @@ import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
 import Login from "./components/Login.jsx";
 import Seccion from "./components/Seccion.jsx"; 
-import ModalFormulario from "./components/ModalFormulario.jsx";
+import ModalRemito from "./components/ModalRemito.jsx"; // 🔄 Cambiado aquí
 import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
@@ -373,7 +373,7 @@ export default function App() {
                     {verDashboard ? "📋 Ver Inventario" : "📊 Ver Dashboard Analítico"}
                   </button>
 
-                  {puedeVerAuditoria && (
+                  {puedenVerAuditoria && (
                     <button onClick={() => { setPanelAudit(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
                       🔍 Auditoría <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{auditoria.length}</span>
                     </button>
@@ -459,7 +459,7 @@ export default function App() {
       </div>
 
       {modalCarga && (
-        <ModalFormulario
+        <ModalRemito // 🔄 Cambiado aquí
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           datosEdicion={modalCarga.datos}
           onClose={() => setModalCarga(null)}
