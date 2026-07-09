@@ -19,8 +19,8 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
   // Si por alguna razón ya es una URL de internet, la dejamos pasar intacta
   if (dataUrlBase64.startsWith("http")) return dataUrlBase64;
 
-  // URL de tu aplicación web de Google Apps Script (¡Ya integrada!)
-  const URL_PUENTE_DRIVE = "https://script.google.com/macros/s/AKfycbyOOOlVQwsAQLsKnYtWL2OA7MroSjOstUkqT9ERSDCNe3yN23uyE5mAhIKxR0rzbTI0/exec";
+  // Nueva URL de tu aplicación web de Google Apps Script
+  const URL_PUENTE_DRIVE = "https://script.google.com/macros/s/AKfycbxHKboXiNrskt1svUFZ2xN3bz9SUzTMyk409WETF_SKpMD_6Ac4L6Yk1w20_y8tgx5w/exec";
 
   try {
     console.log("Enviando petición POST a Google Apps Script...");
@@ -44,13 +44,12 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
     if (resultado.status === "success") {
       console.log("¡Foto guardada exitosamente en Google Drive!", resultado.url);
       
-      // ─── 🛡️ FILTRO DE ALTO RENDIMIENTO CORREGIDO ───
-      // Extraemos el ID del archivo que devuelve el script para armar el link inmune al bloqueo
+      // ─── 🛡️ FILTRO DE ALTO RENDIMIENTO PARA EVITAR ENLACES ROTOS ───
       try {
         const match = resultado.url.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]{25,})/);
         if (match && match[1]) {
           const idImagen = match[1];
-          // Corregido: Agregado el '$' para la interpolación de variables y cambiado al endpoint de vista nativa
+          // Retorna el endpoint de vista directa nativo de Drive usando HTTPS
           return `https://drive.google.com/uc?export=view&id=${idImagen}`;
         }
       } catch (e) {
