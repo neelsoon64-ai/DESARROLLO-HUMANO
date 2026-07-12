@@ -196,13 +196,14 @@ export default function App() {
         }
 
         // Guardamos únicamente el ID de la imagen.
-// ModalDetalle se encargará de generar la URL correcta.
-if (idExtraido) {
-  fotoLimpia = idExtraido;
-}
+        // ModalDetalle se encargará de generar la URL correcta.
+        if (idExtraido) {
+          fotoLimpia = idExtraido;
+        }
+      }
 
       const movimientoSeguro = {
-        id: idMovimiento,
+        id: idMovimiento, // Usamos el ID generado o existente
         descripcion: String(carga?.descripcion || "Sin descripción"),
         categoria: String(carga?.categoria || "General"),
         cantidad: Number(carga?.cantidad || 0),
@@ -219,7 +220,7 @@ if (idExtraido) {
         fechaVencimiento: String(carga?.fechaVencimiento || ""),
         estadoRemito: String(carga?.estadoRemito || "Pendiente"),
         fechaCierre: String(carga?.fechaCierre || ""),
-        foto: fotoLimpia,
+        foto: fotoLimpia, // Usamos la URL o ID limpio
         cargadoPor: String(carga?.cargadoPor || "Desconocido"),
         editadoPor: String(carga?.editadoPor || "")
       };
