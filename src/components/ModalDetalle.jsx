@@ -17,13 +17,13 @@ const formatearUrlDrive = (idOrUrl) => {
   // Extraemos el ID de cualquier formato de enlace de Google Drive
   const matchId = idOrUrl.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
   if (matchId && matchId[1]) {
-    // Usamos el endpoint /preview que Google renderiza sin bloqueos de CORS.
-    return `https://drive.google.com/file/d/${matchId[1]}/preview`;
+    // Usamos el endpoint de thumbnail pidiendo una imagen de alta calidad (w1280).
+    return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w1280`;
   }
 
   // Si es solo el ID (sin barras ni parámetros)
   if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
-    return `https://drive.google.com/file/d/${idOrUrl}/preview`;
+    return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
   }
 
   return idOrUrl;

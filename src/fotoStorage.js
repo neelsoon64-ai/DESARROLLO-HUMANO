@@ -49,8 +49,8 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
         const match = resultado.url.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]{25,})/);
         if (match && match[1]) {
           const idImagen = match[1];
-          // Cambiado al endpoint /preview que Google renderiza nativamente sin bloqueos
-          return `https://drive.google.com/file/d/${idImagen}/preview`;
+          // Usamos el endpoint de thumbnail pidiendo una imagen de alta calidad (w1280).
+          return `https://drive.google.com/thumbnail?id=${idImagen}&sz=w1280`;
         }
       } catch (e) {
         console.warn("No se pudo formatear la URL de Drive, se usará la original:", e);
