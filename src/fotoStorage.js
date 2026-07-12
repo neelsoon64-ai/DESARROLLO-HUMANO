@@ -19,7 +19,7 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
   // Si por alguna razón ya es una URL de internet, la dejamos pasar intacta
   if (dataUrlBase64.startsWith("http")) return dataUrlBase64;
 
-  // TU NUEVA URL DE GOOGLE APPS SCRIPT INTEGRADA:
+  // TU URL DE GOOGLE APPS SCRIPT INTEGRADA:
   const URL_PUENTE_DRIVE = "https://script.google.com/macros/s/AKfycbx80RqYtuzMz-FUcZw785wPDWfUseb_wuVQ3P73Wv9FLggcCb1aJiwyjwKtrw4o3KUQlg/exec";
 
   try {
@@ -44,13 +44,13 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
     if (resultado.status === "success") {
       console.log("¡Foto guardada exitosamente en Google Drive!", resultado.url);
       
-      // ─── 🛡️ FILTRO DE ALTO RENDIMIENTO PARA ENLAZAR LA IMAGEN DIRECTA ───
+      // ─── 🛡️ FILTRO BLINDADO CONTRA ERRORES DE IMAGEN ROTA (CORS) ───
       try {
         const match = resultado.url.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]{25,})/);
         if (match && match[1]) {
           const idImagen = match[1];
-          // Retorna el endpoint HTTPS de renderizado nativo directo de Drive
-          return `https://drive.google.com/uc?export=view&id=${idImagen}`;
+          // Cambiado al endpoint /preview que Google renderiza nativamente sin bloqueos
+          return `https://drive.google.com/file/d/${idImagen}/preview`;
         }
       } catch (e) {
         console.warn("No se pudo formatear la URL de Drive, se usará la original:", e);

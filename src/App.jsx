@@ -195,11 +195,11 @@ export default function App() {
           }
         }
 
-        // Si encontramos el ID, generamos el enlace directo del CDN de Google (libre de bloqueos)
-        if (idExtraido) {
-          fotoLimpia = `https://lh3.googleusercontent.com/d/${idExtraido}`;
-        }
-      }
+        // Guardamos únicamente el ID de la imagen.
+// ModalDetalle se encargará de generar la URL correcta.
+if (idExtraido) {
+  fotoLimpia = idExtraido;
+}
 
       const movimientoSeguro = {
         id: idMovimiento,

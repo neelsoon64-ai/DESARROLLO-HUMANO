@@ -8,22 +8,22 @@ import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 // ✅ Función Helper mejorada: compatibilidad con Drive + soporte de buena calidad
 const formatearUrlDrive = (idOrUrl) => {
   if (!idOrUrl || typeof idOrUrl !== "string") return "";
-  
+
   // Si ya es base64 o archivo propio, lo dejamos intacto
-  if (idOrUrl.startsWith("data:") || !idOrUrl.includes("google")) {
+  if (idOrUrl.startsWith("data:")) {
     return idOrUrl;
   }
 
   // Extraemos el ID de cualquier formato de enlace de Google Drive
-  const matchId = idOrUrl.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
+  const matchId = idOrUrl.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
   if (matchId && matchId[1]) {
-    // Usamos vista previa en ALTA CALIDAD, no miniatura
-    return `https://drive.google.com/uc?export=view&id=${matchId[1]}`;
+    // Usamos el endpoint /preview que Google renderiza sin bloqueos de CORS.
+    return `https://drive.google.com/file/d/${matchId[1]}/preview`;
   }
 
-  // Si es solo el ID
-  if (!idOrUrl.includes("/")) {
-    return `https://drive.google.com/uc?export=view&id=${idOrUrl}`;
+  // Si es solo el ID (sin barras ni parámetros)
+  if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
+    return `https://drive.google.com/file/d/${idOrUrl}/preview`;
   }
 
   return idOrUrl;
