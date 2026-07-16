@@ -43,19 +43,8 @@ export async function subirFotoRemito(dataUrlBase64, idMovimiento = "remito") {
 
     if (resultado.status === "success") {
       console.log("¡Foto guardada exitosamente en Google Drive!", resultado.url);
-      
-      // ─── 🛡️ FILTRO BLINDADO CONTRA ERRORES DE IMAGEN ROTA (CORS) ───
-      try {
-        const match = resultado.url.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]{25,})/);
-        if (match && match[1]) {
-          const idImagen = match[1];
-          // Usamos el endpoint de thumbnail pidiendo una imagen de alta calidad (w1280).
-          return `https://drive.google.com/thumbnail?id=${idImagen}&sz=w1280`;
-        }
-      } catch (e) {
-        console.warn("No se pudo formatear la URL de Drive, se usará la original:", e);
-      }
-
+      // Devolvemos la URL original que nos da el script. 
+      // El componente ModalDetalle se encargará de formatearla para su visualización.
       return resultado.url; 
     } else {
       console.error("El script de Google Apps Script devolvió un error:", resultado.message);
