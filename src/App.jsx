@@ -459,13 +459,13 @@ export default function App() {
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           datosEdicion={modalCarga.datos}
           onClose={() => setModalCarga(null)}
-          onGuardar={(carga) => {
+          onGuardar={async (carga) => {
             const conUsuario = { 
               ...carga, 
               id: modalCarga.datos?.id || carga.id, 
               cargadoPor: modalCarga.datos?.cargadoPor || usuarioActual?.nombre || "Desconocido" 
             };
-            agregarCarga(modalCarga.seccion, conUsuario);
+            await agregarCarga(modalCarga.seccion, conUsuario);
             registrarAuditoria({
               tipo: modalCarga.datos ? "edicion" : "carga",
               usuario: usuarioActual?.nombre || "Desconocido",
