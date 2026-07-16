@@ -1,3 +1,4 @@
+import logoChubut from "./assets/logo.png";
 export function imprimirRemitoOficial(remito) {
   const ventanaImpresion = window.open("", "_blank");
 
@@ -214,17 +215,16 @@ export function imprimirRemitoOficial(remito) {
         <div class="header-ministerio">
           <div class="contenedor-identidad">
             <div class="logo-container">
-              <svg viewBox="0 0 460 344" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 17,25 C 10,40 10,55 24,65 C 32,72 25,85 24,96 C 22,118 36,128 32,150 C 26,170 30,190 24,208 C 17,225 35,228 36,242 C 38,255 17,254 24,270 C 30,285 45,286 42,305 C 40,315 28,318 40,332 C 55,345 100,344 140,344 C 180,344 240,335 270,305 C 290,285 305,270 325,250 C 355,210 350,170 365,120 C 375,90 415,90 435,70 C 455,50 440,25 425,25 C 380,25 100,25 17,25 Z" fill="#ffca18"/>
-                
-                <circle cx="105" cy="95" r="45" fill="#ffb100"/>
-                
-                <path d="M 24,150 C 60,110 110,90 170,70 C 240,50 310,90 365,120 C 350,170 355,210 325,250 C 305,270 290,285 270,305 C 240,335 180,344 140,344 C 100,344 55,345 40,332 C 28,318 40,315 42,305 C 45,286 30,285 24,270 C 17,254 38,255 36,242 C 35,228 17,228 24,208 C 30,190 26,170 24,150 Z" fill="#f37023"/>
-                
-                <path d="M 24,208 C 70,225 140,190 210,180 C 280,170 315,220 340,230 C 328,245 315,260 295,278 C 265,305 210,330 140,344 C 100,344 55,344 40,332 C 28,318 40,315 42,305 C 45,286 30,285 24,270 C 17,254 38,255 36,242 C 35,228 17,228 24,208 Z" fill="#5897b2"/>
-                
-                <path d="M 36,242 C 80,255 130,240 190,250 C 240,260 270,290 295,278 C 265,305 210,330 140,344 C 100,344 55,344 40,332 C 28,318 40,315 42,305 C 45,286 30,285 24,270 C 17,254 38,255 36,242 Z" fill="#1b667a"/>
-              </svg>
+              <img
+  src="${logoChubut}"
+  alt="Logo Provincia del Chubut"
+  style="
+    width:75px;
+    height:60px;
+    object-fit:contain;
+    display:block;
+  "
+/>
             </div>
             <div class="logos-izq">
               <div class="txt-gobierno">Provincia del Chubut</div>
