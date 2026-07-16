@@ -247,7 +247,7 @@ export default function App() {
         console.error("Error al impactar en Firebase Realtime DB:", error);
       }
     },
-    [setNacion, setProvincia]
+    [setNacion, setProvincia, registrarAuditoria, usuarioActual]
   );
 
   const eliminarCarga = useCallback(
@@ -282,7 +282,7 @@ export default function App() {
         console.error("Error al eliminar en Firebase Realtime DB:", error);
       }
     },
-    [setNacion, setProvincia]
+    [setNacion, setProvincia, registrarAuditoria, usuarioActual]
   );
 
   const rolActual = usuarioActual?.rol || "";
