@@ -173,30 +173,14 @@ export default function App() {
       
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
-      // 🔍 LIMPIADOR DE URL DE DRIVE (VERSIÓN DEFINITIVA Y ULTRA ESTABLE)
+      // Limpiamos la URL de la foto para guardar solo el ID, si es de Google Drive.
       let fotoLimpia = carga?.foto || "";
       if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
-        let idExtraido = "";
-        
-        if (fotoLimpia.includes("/d/")) {
-          const partes = fotoLimpia.split("/d/");
-          if (partes[1]) {
-            idExtraido = partes[1].split(/[&?\/]/)[0];
-          }
-        } else if (fotoLimpia.includes("id=")) {
-          const partes = fotoLimpia.split("id=");
-          if (partes[1]) {
-            idExtraido = partes[1].split(/[&?]/)[0];
-          }
-        } else {
-          const matchId = fotoLimpia.match(/(?:id=|\/d\/)([a-zA-Z0-9-_]+)/);
-          if (matchId && matchId[1]) {
-            idExtraido = matchId[1];
-          }
-        }
+        // Esta expresión regular extrae el ID de cualquier formato de URL de Drive.
+        const matchId = fotoLimpia.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
+        const idExtraido = matchId ? matchId[1] : null;
 
-        // Guardamos únicamente el ID de la imagen.
-        // ModalDetalle se encargará de generar la URL correcta.
+        // Si se extrajo un ID, lo usamos. Si no, dejamos la URL como estaba.
         if (idExtraido) {
           fotoLimpia = idExtraido;
         }
