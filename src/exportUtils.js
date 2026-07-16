@@ -68,23 +68,6 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
     )
     .join("");
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Inventario ${seccion}</title>
-  <style>
-    body{font-family:Arial,sans-serif;color:#1E293B;margin:0;padding:24px;font-size:12px}
-    .header{background:linear-gradient(135deg,#1A3A5C,#2E7DC4);color:#fff;padding:20px 24px;border-radius:8px;margin-bottom:20px}
-    .header h1{margin:0;font-size:20px}.header p{margin:4px 0 0;opacity:.8;font-size:12px}
-    .badge{display:inline-block;background:#C8993A;color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:8px}
-    h2{color:#1A3A5C;font-size:14px;border-bottom:2px solid #E2E8F0;padding-bottom:6px;margin-top:22px}
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th{background:#1A3A5C;color:#fff;padding:7px 8px;text-align:left;font-size:11px}
-    td{padding:6px 8px;border-bottom:1px solid #F1F5F9;font-size:11px}
-    tr:nth-child(even) td{background:#F8FAFC}
-    .footer{margin-top:24px;color:#94A3B8;font-size:10px;text-align:center;border-top:1px solid #E2E8F0;padding-top:10px}
-  </style></head><body>
-  <div class="header"><h1>Ministerio de Desarrollo Humano <span class="badge">${seccion}</span></h1>
-  <p>Reporte de Inventario · Generado el ${fecha} por ${usuarioActual.nombre}</p></div>
-  <h2>📊 Stock Actual</h2>
-  <table><thead><tr><th>Categoría</th><th>Descripción</th><th>Stock</th><th>Unidad</th></tr></thead><tbody>${
   const html = `
     <!DOCTYPE html>
     <html lang="es">
@@ -195,7 +178,6 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
     movRows || "<tr><td colspan='7'>Sin datos</td></tr>"
   }</tbody></table>
   <div class="footer">Sistema de Inventario · Ministerio de Desarrollo Humano · ${fecha}</div>
-  </body></html>`;
       </div>
     </body></html>`;
 
