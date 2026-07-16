@@ -1,4 +1,4 @@
-import logoChubut from "./assets/logo.png";
+import logoChubut from "../assets/logo.png";
 export function imprimirRemitoOficial(remito) {
   const ventanaImpresion = window.open("", "_blank");
 
