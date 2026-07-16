@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { CATEGORIAS, formatFecha, formatFechaCorta } from "./constants.js";
+import logoChubut from "./assets/logo.png";
 
 export function exportarExcel(movimientos, seccion, auditoria, usuarioActual, onAudit) {
   const wb = XLSX.utils.book_new();
@@ -84,6 +85,109 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
   <p>Reporte de Inventario · Generado el ${fecha} por ${usuarioActual.nombre}</p></div>
   <h2>📊 Stock Actual</h2>
   <table><thead><tr><th>Categoría</th><th>Descripción</th><th>Stock</th><th>Unidad</th></tr></thead><tbody>${
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Reporte de Inventario - ${seccion}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+          font-family: 'Inter', sans-serif;
+          color: #1e293b;
+          background-color: #fff;
+          padding: 40px;
+          font-size: 11px;
+          line-height: 1.5;
+        }
+        .documento-remito { max-width: 800px; margin: 0 auto; }
+        .header-ministerio {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 3px solid #f59e0b;
+          padding-bottom: 20px;
+          margin-bottom: 25px;
+        }
+        .contenedor-identidad { display: flex; align-items: center; gap: 15px; }
+        .logo-container { width: 75px; height: 60px; }
+        .logos-izq { display: flex; flex-direction: column; gap: 2px; }
+        .txt-gobierno { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #64748b; }
+        .txt-ministerio { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 2px; }
+        .txt-subsecretaria { font-size: 12px; color: #334155; }
+        .comprobante-der { text-align: right; }
+        .tipo-comprobante {
+          display: inline-block;
+          border: 2px solid #0284c7;
+          color: #0369a1;
+          font-weight: 700;
+          font-size: 18px;
+          padding: 4px 14px;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          border-radius: 4px;
+          background: #f0f9ff;
+        }
+        .info-num-fecha { font-size: 13px; color: #334155; }
+        .info-num-fecha strong { color: #0f172a; }
+        .titulo-seccion {
+          font-size: 16px;
+          font-weight: 700;
+          color: #0f172a;
+          margin-top: 30px;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+          background-color: #0f172a;
+          color: #ffffff;
+          font-weight: 600;
+          text-align: left;
+          padding: 10px 12px;
+          font-size: 11px;
+          text-transform: uppercase;
+        }
+        td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+        .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+        @media print {
+          body { padding: 0; }
+          th { background-color: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="documento-remito">
+        <div class="header-ministerio">
+          <div class="contenedor-identidad">
+            <div class="logo-container">
+              <img src="${logoChubut}" alt="Logo Provincia del Chubut" style="width:75px; height:60px; object-fit:contain;" />
+            </div>
+            <div class="logos-izq">
+              <div class="txt-gobierno">Provincia del Chubut</div>
+              <div class="txt-ministerio">Ministerio de Desarrollo Humano</div>
+              <div class="txt-subsecretaria">Sistema de Gestión Institucional (SGI)</div>
+            </div>
+          </div>
+          <div class="comprobante-der">
+            <div class="tipo-comprobante">Reporte ${seccion}</div>
+            <div class="info-num-fecha">
+              <p><strong>Fecha:</strong> ${fecha}</p>
+              <p><strong>Generado por:</strong> ${usuarioActual.nombre}</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="titulo-seccion">📊 Resumen de Stock Actual</h2>
+        <table>
+          <thead>
+            <tr><th>Categoría</th><th>Descripción</th><th style="text-align:center;">Stock</th><th style="text-align:center;">Unidad</th></tr>
+          </thead>
+          <tbody>${
     stockRows || "<tr><td colspan='4'>Sin datos</td></tr>"
   }</tbody></table>
   <h2>📋 Historial de Movimientos (últimos 50)</h2>
@@ -92,6 +196,8 @@ export function exportarPDF(movimientos, seccion, usuarioActual, onAudit) {
   }</tbody></table>
   <div class="footer">Sistema de Inventario · Ministerio de Desarrollo Humano · ${fecha}</div>
   </body></html>`;
+      </div>
+    </body></html>`;
 
   const win = window.open("", "_blank");
   win.document.write(html);
