@@ -385,7 +385,7 @@ export default function App() {
                     {verDashboard ? "📋 Ver Inventario" : "📊 Ver Dashboard Analítico"}
                   </button>
 
-                  {puedenVerAuditoria && (
+                  {puedeVerAuditoria && (
                     <button onClick={() => { setPanelAudit(true); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13 }}>
                       🔍 Auditoría <span style={{ background: "#E2E8F0", borderRadius: 10, padding: "1px 7px" }}>{auditoria.length}</span>
                     </button>
