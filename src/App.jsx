@@ -68,12 +68,12 @@ export default function App() {
     });
   }, [setAuditoriaRaw]);
 
-  const registrarAuditoria = useCallback((evento) => {
+  const registrarAuditoria = useCallback((evento, ua = null) => {
     const contexto = obtenerContexto();
     const eventoSeguro = {
       tipo: String(evento?.tipo || "accion"),
-      usuario: String(evento?.usuario || usuarioActual?.nombre || "Sistema"),
-      rol: String(evento?.rol || usuarioActual?.rol || "sistema"),
+      usuario: String(evento?.usuario || ua?.nombre || "Sistema"),
+      rol: String(evento?.rol || ua?.rol || "sistema"),
       detalle: String(evento?.detalle || "Acción del sistema"),
       fecha: new Date().toISOString(),
       antes: stringify(evento?.antes),
@@ -83,7 +83,7 @@ export default function App() {
       dispositivo: String(evento?.dispositivo || contexto.dispositivo),
     };
     setAuditoria((prev) => [...prev, eventoSeguro]);
-  }, [setAuditoria, usuarioActual]);
+  }, [setAuditoria]);
 
   useEffect(() => {
     setUltimaSync(new Date());
@@ -96,7 +96,7 @@ export default function App() {
 
   const logout = () => {
     if (usuarioActual) {
-      registrarAuditoria({ tipo: "logout", usuario: usuarioActual.nombre, rol: usuarioActual.rol, detalle: "Cerró sesión" });
+      registrarAuditoria({ tipo: "logout", usuario: usuarioActual.nombre, rol: usuarioActual.rol, detalle: "Cerró sesión" }, usuarioActual);
     }
     setUsuarioActual(null);
     setMenuAbierto(false);
@@ -115,12 +115,10 @@ export default function App() {
     setCopiaRespaldo(copia);
     registrarAuditoria({
       tipo: "respaldo",
-      usuario: usuarioActual?.nombre || "Sistema",
-      rol: usuarioActual?.rol || "sistema",
       detalle: "Creó copia ahora",
-    });
+    }, usuarioActual);
     return copia;
-  }, [auditoria, nacion, provincia, registrarAuditoria, usuarioActual, usuarios]);
+  }, [auditoria, nacion, provincia, registrarAuditoria, usuarios, usuarioActual]);
 
   const descargarRespaldo = useCallback((backup = null) => {
     const copia = backup || crearCopiaAhora();
@@ -136,21 +134,19 @@ export default function App() {
     URL.revokeObjectURL(url);
     registrarAuditoria({
       tipo: "exportar",
-      usuario: usuarioActual?.nombre || "Sistema",
-      rol: usuarioActual?.rol || "sistema",
       detalle: "Descargó respaldo JSON",
-    });
+    }, usuarioActual);
   }, [crearCopiaAhora, registrarAuditoria, usuarioActual]);
 
   const descargarRespaldoExcel = useCallback(() => {
     const copia = crearCopiaAhora();
-    exportarRespaldoExcel(copia, usuarioActual || { nombre: "Sistema", rol: "sistema" }, registrarAuditoria);
-  }, [crearCopiaAhora, exportarRespaldoExcel, registrarAuditoria, usuarioActual]);
+    exportarRespaldoExcel(copia, usuarioActual || { nombre: "Sistema", rol: "sistema" }, (evento) => registrarAuditoria(evento, usuarioActual));
+  }, [crearCopiaAhora, registrarAuditoria, usuarioActual]);
 
   const descargarRespaldoPDF = useCallback(() => {
     const copia = crearCopiaAhora();
-    exportarRespaldoPDF(copia, usuarioActual || { nombre: "Sistema", rol: "sistema" }, registrarAuditoria);
-  }, [crearCopiaAhora, exportarRespaldoPDF, registrarAuditoria, usuarioActual]);
+    exportarRespaldoPDF(copia, usuarioActual || { nombre: "Sistema", rol: "sistema" }, (evento) => registrarAuditoria(evento, usuarioActual));
+  }, [crearCopiaAhora, registrarAuditoria, usuarioActual]);
 
   const restaurarRespaldo = useCallback(async (backup) => {
     if (!backup || typeof backup !== "object") return;
@@ -160,10 +156,8 @@ export default function App() {
     if (backup.auditoria) setAuditoria(() => backup.auditoria);
     registrarAuditoria({
       tipo: "restauracion",
-      usuario: usuarioActual?.nombre || "Sistema",
-      rol: usuarioActual?.rol || "sistema",
       detalle: "Restauró respaldo",
-    });
+    }, usuarioActual);
   }, [registrarAuditoria, setAuditoria, setNacion, setProvincia, setUsuarios, usuarioActual]);
 
   const agregarCarga = useCallback(
@@ -289,7 +283,7 @@ export default function App() {
   })();
 
   if (!usuarioActual) {
-    return <Login usuarios={usuariosSeguros} onLogin={setUsuarioActual} onAudit={registrarAuditoria} />;
+    return <Login usuarios={usuariosSeguros} onLogin={setUsuarioActual} onAudit={(evento) => registrarAuditoria(evento)} />;
   }
 
   const sincLabel = (() => {
@@ -415,8 +409,8 @@ export default function App() {
               onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
               puedeEliminar={puedeEliminar}
               onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
-              usuarioActual={usuarioActual} 
-              onAudit={registrarAuditoria} 
+              usuarioActual={usuarioActual}
+              onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
               auditoria={auditoria} 
             />
             
@@ -430,8 +424,8 @@ export default function App() {
               onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
               puedeEliminar={puedeEliminar}
               onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
-              usuarioActual={usuarioActual} 
-              onAudit={registrarAuditoria} 
+              usuarioActual={usuarioActual}
+              onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
               auditoria={auditoria} 
             />
           </>
@@ -452,10 +446,8 @@ export default function App() {
             await agregarCarga(modalCarga.seccion, conUsuario);
             registrarAuditoria({
               tipo: modalCarga.datos ? "edicion" : "carga",
-              usuario: usuarioActual?.nombre || "Desconocido",
-              rol: usuarioActual?.rol || "usuario",
               detalle: `${modalCarga.datos ? "Editó" : "Cargó"} "${carga.descripcion}" (${carga.cantidad} ${carga.unidad}) en ${modalCarga.seccion === "nacion" ? "Nación" : "Provincia"} — Rem. ${carga.nroRemito || "s/n"}`,
-            });
+            }, usuarioActual);
             setModalCarga(null);
           }}
         />
@@ -474,14 +466,14 @@ export default function App() {
           }}
           onEliminar={(mov) => {
             eliminarCarga(detalleMovimiento.seccion, mov);
-            registrarAuditoria({ tipo: "eliminacion", usuario: usuarioActual?.nombre || "Desconocido", rol: usuarioActual?.rol || "sistema", detalle: `Eliminó "${mov.descripcion}"` });
+            registrarAuditoria({ tipo: "eliminacion", detalle: `Eliminó "${mov.descripcion}"` }, usuarioActual);
             cerrarDetalle();
           }}
         />
       )}
 
       {panelAudit && <PanelAuditoria logs={auditoria} onClose={() => setPanelAudit(false)} />}
-      {panelUsers && <PanelUsuarios usuarios={listaUsuarios} setUsuarios={setUsuarios} onClose={() => setPanelUsers(false)} onAudit={registrarAuditoria} usuarioActual={usuarioActual} />}
+      {panelUsers && <PanelUsuarios usuarios={listaUsuarios} setUsuarios={setUsuarios} onClose={() => setPanelUsers(false)} onAudit={(evento) => registrarAuditoria(evento, usuarioActual)} usuarioActual={usuarioActual} />}
     </div>
   );
 }
