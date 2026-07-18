@@ -169,7 +169,6 @@ export default function App() {
   const agregarCarga = useCallback(
     async (seccion, carga) => {
       const docId = seccion === "nacion" ? DOC_IDS.nacion : DOC_IDS.provincia;
-      const setter = seccion === "nacion" ? setNacion : setProvincia;
       
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
@@ -209,6 +208,8 @@ export default function App() {
         editadoPor: String(carga?.editadoPor || "")
       };
 
+      const setter = seccion === "nacion" ? setNacion : setProvincia;
+
       setter((prev) => {
         let movimientosPrevios = {};
         const movsBase = prev?.movimientos;
@@ -222,21 +223,12 @@ export default function App() {
         movimientosPrevios[idMovimiento] = movimientoSeguro;
         return { ...prev, movimientos: movimientosPrevios };
       });
-
-      try {
-        const db = getDatabase();
-        const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
-        await set(movimientoRef, movimientoSeguro);
-      } catch (error) {
-        console.error("Error al impactar en Firebase Realtime DB:", error);
-      }
     },
-    [setNacion, setProvincia, registrarAuditoria, usuarioActual]
+    [setNacion, setProvincia]
   );
 
   const eliminarCarga = useCallback(
     async (seccion, carga) => {
-      const docId = seccion === "nacion" ? DOC_IDS.nacion : DOC_IDS.provincia;
       const setter = seccion === "nacion" ? setNacion : setProvincia;
       const idMovimiento = carga?.id;
       if (!idMovimiento) return;
@@ -257,16 +249,8 @@ export default function App() {
 
         return { ...prev, movimientos: movimientosPrevios };
       });
-
-      try {
-        const db = getDatabase();
-        const movimientoRef = ref(db, `${COLECCION}/${docId}/movimientos/${idMovimiento}`);
-        await remove(movimientoRef);
-      } catch (error) {
-        console.error("Error al eliminar en Firebase Realtime DB:", error);
-      }
     },
-    [setNacion, setProvincia, registrarAuditoria, usuarioActual]
+    [setNacion, setProvincia]
   );
 
   const rolActual = usuarioActual?.rol || "";
