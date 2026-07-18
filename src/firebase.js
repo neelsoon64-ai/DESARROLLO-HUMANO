@@ -7,12 +7,12 @@ import { getFirestore } from "firebase/firestore";
 // Reemplaza este objeto de ejemplo con las credenciales que copiaste
 // desde la consola de Firebase del "PASO 4.2" de las instrucciones.
 const firebaseConfig = {
-  apiKey: "AIzaSy... (reemplazar)",
-  authDomain: "tu-proyecto.firebaseapp.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:abcdef123456"
+  apiKey: "AIzaSyBBVQ-n7UaegnUv2PDdiZ9zN3CZgETrp0U",
+  authDomain: "desarrollo-humano-af808.firebaseapp.com",
+  projectId: "desarrollo-humano-af808",
+  storageBucket: "desarrollo-humano-af808.firebasestorage.app",
+  messagingSenderId: "812070980942",
+  appId: "1:812070980942:web:bc3400184a3a32610fe21f"
 };
 
 // ========================================================================
