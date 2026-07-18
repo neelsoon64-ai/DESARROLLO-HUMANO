@@ -28,7 +28,9 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
         unidad: mov.unidad || "unidades",
       };
     }
-    stockConsolidado[clave].cantidad += Number(mov.cantidad || 0);
+    // Aseguramos que la cantidad sea un número válido antes de sumar.
+    const cantidadNumerica = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
+    stockConsolidado[clave].cantidad += cantidadNumerica;
   });
 
   const listaStock = Object.values(stockConsolidado);
