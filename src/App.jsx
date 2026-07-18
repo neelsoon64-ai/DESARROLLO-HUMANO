@@ -181,25 +181,25 @@ export default function App() {
 
       const movimientoSeguro = {
         id: idMovimiento, // Usamos el ID generado o existente
-        descripcion: String(carga?.descripcion || "Sin descripción"),
-        categoria: String(carga?.categoria || "General"),
+        descripcion: String(carga?.descripcion || "Sin descripción").trim(),
+        categoria: carga?.categoria || "General",
         cantidad: Number(carga?.cantidad || 0),
-        unidad: String(carga?.unidad || "unidades"),
-        nroRemito: String(carga?.nroRemito || "s/n"),
-        fecha: String(carga?.fecha || carga?.fechaCarga || new Date().toISOString()),
-        fechaCarga: String(carga?.fechaCarga || carga?.fecha || new Date().toISOString()),
-        proveedor: String(carga?.proveedor || "No informado"),
-        observaciones: String(carga?.observaciones || ""),
-        tipo: String(carga?.tipo || "ingreso"),
-        estado: String(carga?.estado || "Activo"),
-        motivo: String(carga?.motivo || ""),
-        fechaCompra: String(carga?.fechaCompra || ""),
-        fechaVencimiento: String(carga?.fechaVencimiento || ""),
-        estadoRemito: String(carga?.estadoRemito || "Pendiente"),
-        fechaCierre: String(carga?.fechaCierre || ""),
+        unidad: carga?.unidad || "unidades",
+        nroRemito: carga?.nroRemito || null,
+        fecha: carga?.fecha || carga?.fechaCarga || new Date().toISOString(),
+        fechaCarga: carga?.fechaCarga || carga?.fecha || new Date().toISOString(),
+        proveedor: carga?.proveedor || null,
+        observaciones: carga?.observaciones || null,
+        tipo: carga?.tipo || "ingreso",
+        estado: carga?.estado || "Activo",
+        motivo: carga?.motivo || null,
+        fechaCompra: carga?.fechaCompra || null,
+        fechaVencimiento: carga?.fechaVencimiento || null,
+        estadoRemito: carga?.estadoRemito || "Pendiente",
+        fechaCierre: carga?.fechaCierre || null,
         foto: fotoLimpia, // Usamos la URL o ID limpio
-        cargadoPor: String(carga?.cargadoPor || "Desconocido"),
-        editadoPor: String(carga?.editadoPor || "")
+        cargadoPor: carga?.cargadoPor || "Desconocido",
+        editadoPor: carga?.editadoPor || null
       };
 
       const setter = seccion === "nacion" ? setNacion : setProvincia;
