@@ -55,28 +55,31 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
 
   const actualizar = useCallback(
     async (actualizador) => {
-      // 1. Calculamos el nuevo estado de forma segura, sin ejecutarlo aún.
-      // Usamos el setter de estado con una función para obtener el valor previo más reciente.
-      let valorFinal;
-      setEstado((prev) => {
-        valorFinal = typeof actualizador === "function" ? actualizador(prev) : actualizador;
-        return valorFinal;
-      });
-      
-      // 2. Realizamos el efecto secundario (guardar en la DB) fuera del setter.
+      // 1. Obtenemos el estado previo de forma segura usando una función en el setter.
+      const valorPrevio = await new Promise((resolve) => setEstado(p => { resolve(p); return p; }));
+
+      // 2. Calculamos el nuevo valor.
+      const valorFinal = typeof actualizador === "function" ? actualizador(valorPrevio) : actualizador;
+
+      // 3. Guardamos en la base de datos o localStorage.
       if (firebaseConfigurado && db) {
         const referencia = ref(db, rtdbPath);
         try {
           await rtdbSet(referencia, valorFinal);
         } catch (err) {
           console.error("Error guardando en Realtime Database:", err);
+          // Si falla, revertimos el estado local para mantener la consistencia.
+          setEstado(valorPrevio);
+          return; // Detenemos la ejecución
         }
       } else {
-        // Fallback a localStorage si Firebase no está configurado
         window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
       }
+
+      // 4. Si todo fue bien, actualizamos el estado local.
+      setEstado(valorFinal);
     },
-    [rtdbPath, setEstado]
+    [rtdbPath]
   );
 
   return [estado, actualizar, listo];

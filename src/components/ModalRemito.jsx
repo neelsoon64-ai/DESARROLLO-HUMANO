@@ -163,12 +163,12 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         descripcion: form.descripcion.trim(),
         cantidad: Number(form.cantidad),
         unidad: form.unidad,
-        estado: form.estado,
-        motivo: form.estado === "Dado de baja" ? form.motivo : "",
-        fechaCompra: form.fechaCompra ? new Date(form.fechaCompra).toISOString() : "",
-        fechaVencimiento: form.fechaVencimiento ? new Date(form.fechaVencimiento).toISOString() : "",
-        estadoRemito: form.estadoRemito,
-        fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre ? new Date(form.fechaCierre).toISOString() : new Date().toISOString()) : "",
+        estado: form.estado || "Activo",
+        motivo: form.estado === "Dado de baja" ? (form.motivo || "") : "",
+        fechaCompra: form.fechaCompra ? new Date(form.fechaCompra).toISOString() : null,
+        fechaVencimiento: form.fechaVencimiento ? new Date(form.fechaVencimiento).toISOString() : null,
+        estadoRemito: form.estadoRemito || "Pendiente",
+        fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre ? new Date(form.fechaCierre).toISOString() : new Date().toISOString()) : null,
         foto: fotoFinal 
       });
 
