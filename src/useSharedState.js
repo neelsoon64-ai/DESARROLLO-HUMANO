@@ -55,26 +55,28 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
 
   const actualizar = useCallback(
     async (actualizador) => {
+      // 1. Calculamos el nuevo estado de forma segura, sin ejecutarlo aún.
+      // Usamos el setter de estado con una función para obtener el valor previo más reciente.
+      let valorFinal;
       setEstado((prev) => {
-        const nuevo = typeof actualizador === "function" ? actualizador(prev) : actualizador;
-
-        if (firebaseConfigurado && db) {
-          const referencia = ref(db, rtdbPath);
-          rtdbSet(referencia, nuevo).catch((err) =>
-            console.error("Error guardando en Realtime Database:", err)
-          );
-        } else {
-          try {
-            window.localStorage.setItem(rtdbPath, JSON.stringify(nuevo));
-          } catch (err) {
-            console.warn("No se pudo guardar en localStorage:", err);
-          }
-        }
-
-        return nuevo;
+        valorFinal = typeof actualizador === "function" ? actualizador(prev) : actualizador;
+        return valorFinal;
       });
+      
+      // 2. Realizamos el efecto secundario (guardar en la DB) fuera del setter.
+      if (firebaseConfigurado && db) {
+        const referencia = ref(db, rtdbPath);
+        try {
+          await rtdbSet(referencia, valorFinal);
+        } catch (err) {
+          console.error("Error guardando en Realtime Database:", err);
+        }
+      } else {
+        // Fallback a localStorage si Firebase no está configurado
+        window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
+      }
     },
-    [rtdbPath]
+    [rtdbPath, setEstado]
   );
 
   return [estado, actualizar, listo];
