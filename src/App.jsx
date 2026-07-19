@@ -13,7 +13,6 @@ import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
 import logo from "./assets/logo.png";
 
 export default function App() {
-  // Mantienen sus escuchas activos en segundo plano
   const [usuarios, setUsuarios, usuariosListo] = useSharedState(COLECCION, DOC_IDS.usuarios, USUARIOS_INICIALES);
   const [nacion, setNacion] = useSharedState(COLECCION, DOC_IDS.nacion, {});
   const [provincia, setProvincia] = useSharedState(COLECCION, DOC_IDS.provincia, {});
@@ -167,9 +166,7 @@ export default function App() {
       if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
         const matchId = fotoLimpia.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
         const idExtraido = matchId ? matchId[1] : null;
-        if (idExtraido) {
-          fotoLimpia = idExtraido;
-        }
+        if (idExtraido) fotoLimpia = idExtraido;
       }
 
       const movimientoSeguro = {
@@ -195,19 +192,27 @@ export default function App() {
         editadoPor: carga?.editadoPor || null
       };
 
-      if (seccion === "nacion") {
-        await setNacion((prev) => {
-          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
-          actuales[idMovimiento] = movimientoSeguro;
-          return { ...prev, movimientos: actuales };
-        });
-      } else {
-        await setProvincia((prev) => {
-          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
-          actuales[idMovimiento] = movimientoSeguro;
-          return { ...prev, movimientos: actuales };
-        });
-      }
+      const setter = seccion === "nacion" ? setNacion : setProvincia;
+
+      await setter((prev) => {
+        const base = prev || {};
+        const movsOriginales = base.movimientos;
+        
+        if (Array.isArray(movsOriginales)) {
+          const clonArray = [...movsOriginales].filter(Boolean);
+          const idx = clonArray.findIndex(m => m.id === idMovimiento);
+          if (idx !== -1) {
+            clonArray[idx] = movimientoSeguro;
+          } else {
+            clonArray.push(movimientoSeguro);
+          }
+          return { ...base, movimientos: clonArray };
+        } 
+        
+        const clonObjeto = movsOriginales ? { ...movsOriginales } : {};
+        clonObjeto[idMovimiento] = movimientoSeguro;
+        return { ...base, movimientos: clonObjeto };
+      });
     },
     [setNacion, setProvincia]
   );
@@ -217,19 +222,23 @@ export default function App() {
       const idMovimiento = carga?.id;
       if (!idMovimiento) return;
 
-      if (seccion === "nacion") {
-        await setNacion((prev) => {
-          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
-          delete actuales[idMovimiento];
-          return { ...prev, movimientos: actuales };
-        });
-      } else {
-        await setProvincia((prev) => {
-          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
-          delete actuales[idMovimiento];
-          return { ...prev, movimientos: actuales };
-        });
-      }
+      const setter = seccion === "nacion" ? setNacion : setProvincia;
+
+      await setter((prev) => {
+        const base = prev || {};
+        const movsOriginales = base.movimientos;
+
+        if (Array.isArray(movsOriginales)) {
+          const clonArray = [...movsOriginales]
+            .filter(Boolean)
+            .filter(m => m.id !== idMovimiento);
+          return { ...base, movimientos: clonArray };
+        }
+
+        const clonObjeto = movsOriginales ? { ...movsOriginales } : {};
+        delete clonObjeto[idMovimiento];
+        return { ...base, movimientos: clonObjeto };
+      });
     },
     [setNacion, setProvincia]
   );
