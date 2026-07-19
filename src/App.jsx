@@ -163,12 +163,10 @@ export default function App() {
     async (seccion, carga) => {
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
-      // Limpiamos la URL de la foto para guardar solo el ID, si es de Google Drive.
       let fotoLimpia = carga?.foto || "";
       if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
         const matchId = fotoLimpia.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
         const idExtraido = matchId ? matchId[1] : null;
-
         if (idExtraido) {
           fotoLimpia = idExtraido;
         }
@@ -197,51 +195,41 @@ export default function App() {
         editadoPor: carga?.editadoPor || null
       };
 
-      const setter = seccion === "nacion" ? setNacion : setProvincia;
-
-      // Esperamos a que el hook useSharedState procese el estado y lo envíe a RTDB
-      await setter((prev) => {
-        let movimientosPrevios = {};
-        const movsBase = prev?.movimientos;
-        if (movsBase) {
-          if (Array.isArray(movsBase)) {
-            movsBase.forEach((m, idx) => { 
-              if (m && m.id) movimientosPrevios[m.id] = m; 
-            });
-          } else if (typeof movsBase === "object") {
-            movimientosPrevios = { ...movsBase };
-          }
-        }
-        movimientosPrevios[idMovimiento] = movimientoSeguro;
-        return { ...prev, movimientos: movimientosPrevios };
-      });
+      if (seccion === "nacion") {
+        await setNacion((prev) => {
+          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
+          actuales[idMovimiento] = movimientoSeguro;
+          return { ...prev, movimientos: actuales };
+        });
+      } else {
+        await setProvincia((prev) => {
+          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
+          actuales[idMovimiento] = movimientoSeguro;
+          return { ...prev, movimientos: actuales };
+        });
+      }
     },
     [setNacion, setProvincia]
   );
 
   const eliminarCarga = useCallback(
     async (seccion, carga) => {
-      const setter = seccion === "nacion" ? setNacion : setProvincia;
       const idMovimiento = carga?.id;
       if (!idMovimiento) return;
 
-      // Esperamos a que el hook useSharedState procese la eliminación y actualice RTDB
-      await setter((prev) => {
-        const movsBase = prev?.movimientos;
-        if (!movsBase) return prev;
-        let movimientosPrevios = {};
-
-        if (Array.isArray(movsBase)) {
-          movsBase.filter(Boolean).forEach((mov) => {
-            if (mov.id && mov.id !== idMovimiento) movimientosPrevios[mov.id] = mov;
-          });
-        } else if (typeof movsBase === "object") {
-          movimientosPrevios = { ...movsBase };
-          delete movimientosPrevios[idMovimiento];
-        }
-
-        return { ...prev, movimientos: movimientosPrevios };
-      });
+      if (seccion === "nacion") {
+        await setNacion((prev) => {
+          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
+          delete actuales[idMovimiento];
+          return { ...prev, movimientos: actuales };
+        });
+      } else {
+        await setProvincia((prev) => {
+          const actuales = prev && prev.movimientos ? { ...prev.movimientos } : {};
+          delete actuales[idMovimiento];
+          return { ...prev, movimientos: actuales };
+        });
+      }
     },
     [setNacion, setProvincia]
   );
@@ -341,7 +329,6 @@ export default function App() {
                     <div style={{ fontSize: 11, color: "#64748B" }}>{rolLabel}</div>
                   </div>
                   
-                  {/* Botón de acceso al Dashboard */}
                   <button onClick={() => { setVerDashboard(!verDashboard); setMenuAbierto(false); }} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: "600", color: "#1B6EB5" }}>
                     {verDashboard ? "📋 Ver Inventario" : "📊 Ver Dashboard Analítico"}
                   </button>
@@ -357,7 +344,7 @@ export default function App() {
                     </button>
                   )}
                   <button onClick={logout} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "#DC2626" }}>
-                    {`🚪 Cerrar sesión`}
+                    🚪 Cerrar sesión
                   </button>
                 </div>
               )}
