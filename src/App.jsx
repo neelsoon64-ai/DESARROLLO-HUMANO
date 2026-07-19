@@ -11,7 +11,6 @@ import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import Dashboard from "./components/Dashboard.jsx"; 
 import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
 import logo from "./assets/logo.png";
-import { getDatabase, ref, remove, set } from "firebase/database";
 
 export default function App() {
   // Mantienen sus escuchas activos en segundo plano
@@ -162,25 +161,21 @@ export default function App() {
 
   const agregarCarga = useCallback(
     async (seccion, carga) => {
-      const docId = seccion === "nacion" ? DOC_IDS.nacion : DOC_IDS.provincia;
-      
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
       // Limpiamos la URL de la foto para guardar solo el ID, si es de Google Drive.
       let fotoLimpia = carga?.foto || "";
       if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
-        // Esta expresión regular extrae el ID de cualquier formato de URL de Drive.
         const matchId = fotoLimpia.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
         const idExtraido = matchId ? matchId[1] : null;
 
-        // Si se extrajo un ID, lo usamos. Si no, dejamos la URL como estaba.
         if (idExtraido) {
           fotoLimpia = idExtraido;
         }
       }
 
       const movimientoSeguro = {
-        id: idMovimiento, // Usamos el ID generado o existente
+        id: idMovimiento,
         descripcion: String(carga?.descripcion || "Sin descripción").trim(),
         categoria: carga?.categoria || "General",
         cantidad: Number(carga?.cantidad || 0),
@@ -197,19 +192,22 @@ export default function App() {
         fechaVencimiento: carga?.fechaVencimiento || null,
         estadoRemito: carga?.estadoRemito || "Pendiente",
         fechaCierre: carga?.fechaCierre || null,
-        foto: fotoLimpia, // Usamos la URL o ID limpio
+        foto: fotoLimpia,
         cargadoPor: carga?.cargadoPor || "Desconocido",
         editadoPor: carga?.editadoPor || null
       };
 
       const setter = seccion === "nacion" ? setNacion : setProvincia;
 
-      setter((prev) => {
+      // Esperamos a que el hook useSharedState procese el estado y lo envíe a RTDB
+      await setter((prev) => {
         let movimientosPrevios = {};
         const movsBase = prev?.movimientos;
         if (movsBase) {
           if (Array.isArray(movsBase)) {
-            movsBase.forEach((m, idx) => { if (m) movimientosPrevios[m.id || `key_${idx}`] = m; });
+            movsBase.forEach((m, idx) => { 
+              if (m && m.id) movimientosPrevios[m.id] = m; 
+            });
           } else if (typeof movsBase === "object") {
             movimientosPrevios = { ...movsBase };
           }
@@ -227,7 +225,8 @@ export default function App() {
       const idMovimiento = carga?.id;
       if (!idMovimiento) return;
 
-      setter((prev) => {
+      // Esperamos a que el hook useSharedState procese la eliminación y actualice RTDB
+      await setter((prev) => {
         const movsBase = prev?.movimientos;
         if (!movsBase) return prev;
         let movimientosPrevios = {};
@@ -296,11 +295,11 @@ export default function App() {
   const nacionMovs = nacion && nacion.movimientos
     ? (Array.isArray(nacion.movimientos) ? nacion.movimientos : Object.values(nacion.movimientos)).filter(Boolean)
     : [];
-    
+      
   const provinciaMovs = provincia && provincia.movimientos
     ? (Array.isArray(provincia.movimientos) ? provincia.movimientos : Object.values(provincia.movimientos)).filter(Boolean)
     : [];
-    
+      
   const listaUsuarios = Array.isArray(usuarios) ? usuarios.filter(Boolean) : [];
   const articulosNacionUnicos = new Set(nacionMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
   const articulosProvinciaUnicos = new Set(provinciaMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
@@ -358,7 +357,7 @@ export default function App() {
                     </button>
                   )}
                   <button onClick={logout} style={{ width: "100%", textAlign: "left", padding: "9px 12px", border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "#DC2626" }}>
-                    🚪 Cerrar sesión
+                    {`🚪 Cerrar sesión`}
                   </button>
                 </div>
               )}
