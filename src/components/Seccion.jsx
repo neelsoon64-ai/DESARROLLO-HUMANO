@@ -30,7 +30,9 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     }
     // Aseguramos que la cantidad sea un número válido antes de sumar.
     const cantidadNumerica = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-    stockConsolidado[clave].cantidad += cantidadNumerica;
+    // Sumamos si es ingreso, restamos si es egreso.
+    const factor = mov.tipo === 'egreso' ? -1 : 1;
+    stockConsolidado[clave].cantidad += (cantidadNumerica * factor);
   });
 
   const listaStock = Object.values(stockConsolidado);
