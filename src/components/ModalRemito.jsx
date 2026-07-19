@@ -80,6 +80,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       });
     }
 
+    let errorMsg = "";
+    if (errorMsg) setError(errorMsg);
     setCargandoFoto(false);
   };
 
@@ -116,10 +118,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       // ─── 📝 PROCESAMIENTO Y SUBIDA EN PARALELO A TU GOOGLE DRIVE ───
       const fotosProcesadas = await Promise.all(
         form.listaFotos.map(async (f, idx) => {
-          // Si ya es una URL web existente (modo edición), pasa directo sin re-subir
           if (f.url && f.url.startsWith("http")) return f.url; 
           
-          // Si es un archivo local nuevo, enviamos el Base64 a tu Apps Script
           if (f.preview && f.preview.startsWith("data:image")) {
             try {
               console.log(`Subiendo adjunto index ${idx} a Google Drive...`);
@@ -133,10 +133,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         })
       );
 
-      // Limpiamos strings vacíos de archivos que hayan fallado
       const fotosFinalesFiltradas = fotosProcesadas.filter(Boolean);
 
-      // Si no hay fotos string vacío; si hay una sola pasamos el string; si hay varias pasamos el array
       const fotoFinal = fotosFinalesFiltradas.length === 0 
         ? "" 
         : (fotosFinalesFiltradas.length === 1 ? fotosFinalesFiltradas[0] : fotosFinalesFiltradas);
@@ -149,12 +147,18 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
       const fechaFinal = new Date(form.fecha).toISOString();
 
+      // Determinar dinámicamente si es nacion o provincia basado en el título del modal
+      const origenDetectado = seccionNombre?.toLowerCase().includes("nación") || seccionNombre?.toLowerCase().includes("nacion")
+        ? "nacion"
+        : "provincia";
+
       // ─── 🚀 ENVÍO INMUNE A TU BASE DE DATOS ───
       onGuardar({
         ...inicial,
         id,
         fecha: fechaFinal,
         fechaCarga: fechaFinal,
+        origen: origenDetectado, // 🔥 ESTA LÍNEA SOLUCIONA EL FILTRADO Y GUARDADO
         nroRemito: form.nroRemito,
         proveedor: proveedorFinal,
         observaciones: form.observaciones,
@@ -309,7 +313,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           </div>
 
           <div style={fieldGroup}>
-            <label style={labelStyle}>Estado del producto</label>
+            <label style={labelStyle}>Estado del productoo</label>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
                 { value: "Activo", label: "Activo", color: "#0F172A", bg: "#D1FAE5" },
