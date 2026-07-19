@@ -36,10 +36,17 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
         if (snap.exists()) {
           setEstado(snap.val());
         } else {
-          // Si el nodo no existe en la base de datos, lo inicializamos
-          rtdbSet(referencia, valorInicial).catch((err) =>
+          // Firebase descarta nodos vacíos. Si viene un objeto vacío {}, 
+          // le seteamos una estructura mínima para forzar su creación en la BD.
+          const valorAInicializar = 
+            valorInicial && typeof valorInicial === "object" && Object.keys(valorInicial).length === 0
+              ? { movimientos: [] }
+              : valorInicial;
+
+          rtdbSet(referencia, valorAInicializar).catch((err) =>
             console.error("Error al inicializar nodo en RTDB:", err)
           );
+          setEstado(valorAInicializar);
         }
         setListo(true);
       },
@@ -57,7 +64,7 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
       let valorFinal;
       
       if (typeof actualizador === "function") {
-        // Usamos la lectura directa del estado de React para evitar bugs de concurrencia
+        // Lectura directa y limpia del estado de React para evitar bugs de concurrencia
         setEstado((previo) => {
           valorFinal = actualizador(previo);
           
