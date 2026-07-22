@@ -36,6 +36,9 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   });
 
   const listaStock = Object.values(stockConsolidado);
+  // ✨ CÁLCULO DEL TOTAL DE UNIDADES EN STOCK
+  const totalUnidadesEnStock = listaStock.reduce((total, item) => total + item.cantidad, 0);
+
   const categoriasUnicas = ["Todas", ...new Set(movimientos.map((m) => m.categoria || "General"))];
 
   // Filtrados
@@ -90,7 +93,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
         <div>
           <h2 style={{ color: "#fff", margin: 0, fontSize: 16, fontWeight: 800 }}>{nombre}</h2>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 }}>
-            {listaStock.length} ítems registrados · {movimientos.length} movimientos
+            {totalUnidadesEnStock} unidades en stock · {listaStock.length} ítems únicos
           </div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
