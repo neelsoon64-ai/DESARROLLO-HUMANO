@@ -59,11 +59,12 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     const stockConsolidado = {};
     stockPorLote.forEach(item => {
       const key = item.descripcion.toLowerCase();
-      // Si el producto no existe en el consolidado, lo inicializamos.
+      // Si el producto no existe en el consolidado, lo inicializamos usando una copia
+      // del item actual, pero reseteando el stock a 0 para empezar a sumar.
       if (!stockConsolidado[key]) {
-        // Usamos una copia del item pero con stock inicial en 0 para la suma.
-        stockConsolidado[key] = { ...item, stock: 0 }; 
+        stockConsolidado[key] = { ...item, stock: 0 };
       }
+      // Sumamos el stock remanente del lote actual al total del producto.
       stockConsolidado[key].stock += item.stock;
     });
   
