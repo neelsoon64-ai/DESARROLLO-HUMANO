@@ -2,7 +2,7 @@ import { useState } from "react";
 import { utils, writeFile } from "xlsx";
 
 export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, onVerDetalle, usuarioActual, onAudit }) {
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda] = useState(""); // 'stock' o 'historial'
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
   const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
 
@@ -108,7 +108,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
       {/* Selectores de Pestaña */}
       <div className="no-print-barra" style={{ display: "flex", borderBottom: "1px solid #E2E8F0" }}>
         <button onClick={() => setPestaña("stock")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "stock" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "stock" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📦 Stock Consolidado</button>
-        <button onClick={() => setPestaña("historial")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "historial" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "historial" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📜 Historial de Remitos</button>
+        <button onClick={() => setPestaña("historial")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "historial" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "historial" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📜 Historial de Movimientos</button>
       </div>
 
       {/* Barra de Filtros */}
