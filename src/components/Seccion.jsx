@@ -25,11 +25,11 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     const ingresos = [];
 
     // 1. Separar ingresos y sumarizar egresos por descripción
-    movimientos.forEach(mov => {
+    movimientos.forEach((mov) => {
       const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
       if (mov.tipo === 'egreso') {
         egresosPorDescripcion[mov.descripcion] = (egresosPorDescripcion[mov.descripcion] || 0) + cantidad;
-      } else { // 'ingreso' o cualquier otro tipo se considera ingreso
+      } else if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
         ingresos.push({ ...mov, cantidad });
       }
     });
@@ -216,7 +216,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: "#2563EB" }}>{mov.cantidad} {mov.unidad}</td>
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
                     <td className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                         {onEditar && (
                           <button 
                             onClick={() => onEditar(mov)} 
