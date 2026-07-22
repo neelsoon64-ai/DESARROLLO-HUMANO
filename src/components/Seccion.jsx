@@ -9,9 +9,13 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
   // 🛡️ ADAPTADOR CRÍTICO: Convierte objetos de Realtime DB a Array plano
   const movimientos = (() => {
-    if (!datos || !datos.movimientos) return [];
+    // Si no hay datos o no hay 'movimientos', devuelve un array vacío.
+    if (!datos || typeof datos.movimientos !== 'object' || datos.movimientos === null) return [];
+    // Si 'movimientos' ya es un array, lo usamos directamente (filtrando nulos).
     if (Array.isArray(datos.movimientos)) return datos.movimientos.filter(Boolean);
-    if (typeof datos.movimientos === "object") return Object.values(datos.movimientos).filter(Boolean);
+    // Si 'movimientos' es un objeto (como lo envía Firebase), lo convertimos a un array.
+    // Esta es la conversión clave que soluciona el problema.
+    return Object.values(datos.movimientos).filter(Boolean);
     return [];
   })();
 
