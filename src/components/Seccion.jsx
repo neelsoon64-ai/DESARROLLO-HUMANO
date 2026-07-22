@@ -26,9 +26,10 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
     // 1. Separar ingresos y sumarizar egresos por descripción
     movimientos.forEach((mov) => {
+      const descripcionKey = mov.descripcion.toLowerCase(); // ✨ CORRECCIÓN CLAVE
       const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
       if (mov.tipo === 'egreso') {
-        egresosPorDescripcion[mov.descripcion] = (egresosPorDescripcion[mov.descripcion] || 0) + cantidad;
+        egresosPorDescripcion[descripcionKey] = (egresosPorDescripcion[descripcionKey] || 0) + cantidad;
       } else if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
         ingresos.push({ ...mov, cantidad });
       }
@@ -36,13 +37,13 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
     // 2. Distribuir los egresos entre los ingresos (lotes)
     const stockPorLote = ingresos.map(ingreso => {
-      const descripcion = ingreso.descripcion;
+      const descripcionKey = ingreso.descripcion.toLowerCase(); // ✨ CORRECCIÓN CLAVE
       let cantidadRestante = ingreso.cantidad;
 
-      if (egresosPorDescripcion[descripcion] > 0) {
-        const cantidadADescontar = Math.min(cantidadRestante, egresosPorDescripcion[descripcion]);
+      if (egresosPorDescripcion[descripcionKey] > 0) {
+        const cantidadADescontar = Math.min(cantidadRestante, egresosPorDescripcion[descripcionKey]);
         cantidadRestante -= cantidadADescontar;
-        egresosPorDescripcion[descripcion] -= cantidadADescontar;
+        egresosPorDescripcion[descripcionKey] -= cantidadADescontar;
       }
       
       return { ...ingreso, stock: cantidadRestante };
