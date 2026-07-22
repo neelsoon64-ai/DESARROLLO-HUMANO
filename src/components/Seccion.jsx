@@ -55,8 +55,10 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     const stockConsolidado = {};
     stockPorLote.forEach(item => {
       const key = item.descripcion.toLowerCase();
+      // Si el producto no existe en el consolidado, lo inicializamos.
       if (!stockConsolidado[key]) {
-        stockConsolidado[key] = { ...item, stock: 0 };
+        // Usamos una copia del item pero con stock inicial en 0 para la suma.
+        stockConsolidado[key] = { ...item, stock: 0 }; 
       }
       stockConsolidado[key].stock += item.stock;
     });
