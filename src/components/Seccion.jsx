@@ -18,12 +18,12 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   const esAdmin = usuarioActual?.rol === "Administrador";
 
   // =================================================================================
-  // ✨ NUEVA LÓGICA DE STOCK DETALLADO POR LOTE/PARTIDA ✨
+  // ✨ LÓGICA DE STOCK MEJORADA: DETALLADO Y CONSOLIDADO ✨
   // =================================================================================
-  const calcularStockDetallado = () => {
+  const calcularStock = () => {
     const egresosPorDescripcion = {};
     const ingresos = [];
-
+  
     // 1. Separar ingresos y sumarizar egresos por descripción
     movimientos.forEach((mov) => {
       const descripcionKey = mov.descripcion.toLowerCase(); // ✨ CORRECCIÓN CLAVE
@@ -31,33 +31,40 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
       if (mov.tipo === 'egreso') {
         egresosPorDescripcion[descripcionKey] = (egresosPorDescripcion[descripcionKey] || 0) + cantidad;
       } else if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
-        ingresos.push({ ...mov, cantidad });
+        ingresos.push({ ...mov, cantidad, fechaCarga: mov.fechaCarga || mov.fecha });
       }
     });
-
-    // 2. Distribuir los egresos entre los ingresos (lotes)
-    const stockPorLote = ingresos.map(ingreso => {
+  
+    // 2. Ordenar ingresos por fecha (FIFO - First-In, First-Out) para descontar de los más antiguos primero
+    ingresos.sort((a, b) => new Date(a.fechaCarga) - new Date(b.fechaCarga));
+  
+    // 3. Distribuir los egresos entre los ingresos (lotes)
+    const stockPorLote = ingresos.map((ingreso) => {
       const descripcionKey = ingreso.descripcion.toLowerCase(); // ✨ CORRECCIÓN CLAVE
       let cantidadRestante = ingreso.cantidad;
-
+  
       if (egresosPorDescripcion[descripcionKey] > 0) {
         const cantidadADescontar = Math.min(cantidadRestante, egresosPorDescripcion[descripcionKey]);
         cantidadRestante -= cantidadADescontar;
         egresosPorDescripcion[descripcionKey] -= cantidadADescontar;
       }
-      
       return { ...ingreso, stock: cantidadRestante };
     });
-
-    // 3. Ordenar: primero los que tienen stock, luego por fecha de carga descendente
-    return stockPorLote.sort((a, b) => {
-      if (a.stock > 0 && b.stock <= 0) return -1;
-      if (a.stock <= 0 && b.stock > 0) return 1;
-      return new Date(b.fechaCarga) - new Date(a.fechaCarga);
+  
+    // 4. Consolidar el stock por producto
+    const stockConsolidado = {};
+    stockPorLote.forEach(item => {
+      const key = item.descripcion.toLowerCase();
+      if (!stockConsolidado[key]) {
+        stockConsolidado[key] = { ...item, stock: 0 };
+      }
+      stockConsolidado[key].stock += item.stock;
     });
+  
+    return Object.values(stockConsolidado).sort((a, b) => a.descripcion.localeCompare(b.descripcion));
   };
 
-  const listaStock = calcularStockDetallado();
+  const listaStock = calcularStock();
   const totalItemsUnicos = new Set(movimientos.map(m => m.descripcion)).size;
 
   // ✨ CÁLCULO DEL TOTAL DE UNIDADES EN STOCK
@@ -167,24 +174,20 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
-                  <th style={{ padding: "10px" }}>Descripción</th>
-                  <th style={{ padding: "10px" }}>Remito Origen</th>
-                  <th style={{ padding: "10px" }}>Fecha Vto.</th>
-                  <th style={{ padding: "10px", textAlign: "right" }}>Ingreso Original</th>
+                  <th style={{ padding: "10px" }}>Artículo</th>
                   <th style={{ padding: "10px", textAlign: "right" }}>Stock Remanente</th>
                 </tr>
               </thead>
               <tbody>
                 {stockFiltrado.map((item, idx) => (
-                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #F1F5F9", background: item.stock <= 0 ? '#FEF2F2' : 'transparent' }}>
+                  <tr key={item.descripcion + idx} style={{ borderBottom: "1px solid #F1F5F9", background: item.stock <= 0 ? '#FEF2F2' : 'transparent' }}>
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{item.descripcion}</div>
                       <span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#475569' }}>{item.categoria}</span>
                     </td>
-                    <td style={{ padding: "10px", color: "#475569", fontWeight: 500 }}>{item.nroRemito || 'S/R'}</td>
-                    <td style={{ padding: "10px" }}><VencimientoTag fechaVencimiento={item.fechaVencimiento} /></td>
-                    <td style={{ padding: "10px", textAlign: "right", color: "#64748B" }}>{item.cantidad} {item.unidad}</td>
-                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, fontSize: 13, color: item.stock > 0 ? "#16A34A" : "#DC2626" }}>{item.stock} {item.unidad}</td>
+                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, fontSize: 14, color: item.stock > 0 ? "#16A34A" : "#DC2626" }}>
+                      {item.stock} <span style={{ fontSize: 11, color: '#64748B', fontWeight: 500 }}>{item.unidad}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
