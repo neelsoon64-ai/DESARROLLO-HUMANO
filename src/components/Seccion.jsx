@@ -154,7 +154,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
           </div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={onCarga} disabled={!onCarga} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: onCarga ? "pointer" : "not-allowed", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", opacity: onCarga ? 1 : 0.55 }}>+ Nueva Carga</button>
+          <button onClick={() => onCarga({ expedientesExistentes: expedientesUnicos })} disabled={!onCarga} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: onCarga ? "pointer" : "not-allowed", boxShadow: "0 2px 6px rgba(0,0,0,0.15)", opacity: onCarga ? 1 : 0.55 }}>+ Nueva Carga</button>
           <button onClick={exportarExcel} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📊 Excel</button>
           <button onClick={exportarPDF} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>📄 Exportar PDF</button>
         </div>
