@@ -84,10 +84,13 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   const historialFiltrado = [...movimientos]
     .sort((a, b) => new Date(b.fechaCarga) - new Date(a.fechaCarga))
     .filter(mov => {
+      // ✅ FILTRO INTELIGENTE MEJORADO
       const busquedaLower = busqueda.toLowerCase();
-      const coincideBusqueda = mov.descripcion.toLowerCase().includes(busquedaLower) || 
+      const coincideBusqueda = mov.descripcion.toLowerCase().includes(busquedaLower) ||
+                               (mov.categoria && mov.categoria.toLowerCase().includes(busquedaLower)) ||
+                               (mov.cargadoPor && mov.cargadoPor.toLowerCase().includes(busquedaLower)) ||
                                (mov.nroRemito && mov.nroRemito.toLowerCase().includes(busquedaLower)) ||
-                               (mov.numero_expediente && mov.numero_expediente.toLowerCase().includes(busquedaLower)); // ✅ BÚSQUEDA POR EXPEDIENTE
+                               (mov.numero_expediente && mov.numero_expediente.toLowerCase().includes(busquedaLower));
       const coincideCategoria = categoriaFiltro === "Todas" || mov.categoria === categoriaFiltro;
       return coincideBusqueda && coincideCategoria;
     });
@@ -163,7 +166,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
       {/* Barra de Filtros */}
       <div className="no-print-filtros" style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
         <input type="text" placeholder="Buscar por descripción..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
-        <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, background: "#fff" }}>
+        <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, background: "#fff", minWidth: 150 }}>
           {categoriasUnicas.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
       </div>
@@ -216,7 +219,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                   <th style={{ padding: "10px" }}>Artículo</th>
                   <th style={{ padding: "10px", textAlign: "right" }}>Cantidad</th>
                   <th style={{ padding: "10px" }}>Operario</th>
-                  <th style={{ padding: "10px" }}>Remito</th>
+                  <th style={{ padding: "10px" }}>Remito / Expediente</th>
                   <th className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>Acción</th>
                 </tr>
               </thead>
@@ -228,15 +231,17 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
                       <span style={{ fontSize: 10, color: "#64748B" }}>{mov.categoria}</span>
-                      {/* ✅ BADGE DE EXPEDIENTE */}
-                      {mov.numero_expediente && (
-                        <div style={{ marginTop: 4 }}><span style={{ background: "#F1F5F9", color: "#475569", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600 }}>
-                          Exp: {mov.numero_expediente}</span></div>
-                      )}
                     </td>
                     <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: mov.tipo === 'ingreso' ? '#16A34A' : '#DC2626' }}>{mov.tipo === 'ingreso' ? '+' : '-'}{mov.cantidad} {mov.unidad}</td>
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
-                    <td style={{ padding: "10px", color: "#475569", fontSize: 11 }}>{mov.nroRemito || "s/n"}</td>
+                    <td style={{ padding: "10px", color: "#475569", fontSize: 11 }}>
+                      <div>{mov.nroRemito || "s/n"}</div>
+                      {/* ✅ BADGE DE EXPEDIENTE */}
+                      {mov.numero_expediente && (
+                        <div style={{ marginTop: 4 }}><span style={{ background: "#F1F5F9", color: "#475569", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, border: "1px solid #E2E8F0" }}>
+                          Exp: {mov.numero_expediente}</span></div>
+                      )}
+                    </td>
                     <td className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                         {onEditar && (

@@ -3,15 +3,13 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [] }) {
+export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 
     : (inicial.foto ? [inicial.foto] : []);
-
-  const expedientesUnicos = [...new Set(expedientesExistentes)].filter(Boolean);
 
   const [form, setForm] = useState({
     fecha: inicial.fecha ? new Date(inicial.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -28,7 +26,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     motivo: inicial.motivo || "",
     fechaCompra: inicial.fechaCompra ? new Date(inicial.fechaCompra).toISOString().slice(0, 10) : "",
     fechaVencimiento: inicial.fechaVencimiento ? new Date(inicial.fechaVencimiento).toISOString().slice(0, 10) : "",
-    numero_expediente: inicial.numero_expediente || "", // ✅ CAMPO NUEVO: Expediente
     estadoRemito: inicial.estadoRemito || "Pendiente",
     fechaCierre: inicial.fechaCierre ? new Date(inicial.fechaCierre).toISOString().slice(0, 10) : "",
     listaFotos: fotosIniciales.map((foto, idx) => ({
@@ -181,7 +178,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         motivo: form.estado === "Dado de baja" ? (form.motivo || "") : "",
         fechaCompra: form.fechaCompra ? new Date(form.fechaCompra).toISOString() : null,
         fechaVencimiento: form.fechaVencimiento ? new Date(form.fechaVencimiento).toISOString() : null,
-        numero_expediente: form.numero_expediente.trim(), // ✅ GUARDAR EXPEDIENTE
+        numero_expediente: form.numero_expediente.trim().toUpperCase(), // ✅ GUARDAR EXPEDIENTE EN MAYÚSCULAS
         estadoRemito: form.estadoRemito || "Pendiente",
         fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre ? new Date(form.fechaCierre).toISOString() : new Date().toISOString()) : null,
         foto: fotoFinal 
