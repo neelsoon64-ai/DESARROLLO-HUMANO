@@ -22,53 +22,31 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   const esAdmin = usuarioActual?.rol === "Administrador";
 
   // =================================================================================
-  // ✨ LÓGICA DE STOCK MEJORADA: DETALLADO Y CONSOLIDADO ✨
+  // ✨ LÓGICA DE STOCK SIMPLIFICADA: TOTAL INGRESOS - TOTAL EGRESOS ✨
   // =================================================================================
   const calcularStock = () => {
-    const egresosPorDescripcion = {};
-    const ingresos = [];
-  
-    // 1. Separar ingresos y sumarizar egresos por descripción
-    movimientos.forEach((mov) => {
-      const descripcionKey = mov.descripcion.toLowerCase(); // ✨ CORRECCIÓN CLAVE
-      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-      if (mov.tipo === 'egreso') {
-        egresosPorDescripcion[descripcionKey] = (egresosPorDescripcion[descripcionKey] || 0) + cantidad;
-      } else if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
-        ingresos.push({ ...mov, cantidad, fechaCarga: mov.fechaCarga || mov.fecha });
-      }
-    });
-  
-    // 2. Ordenar ingresos por fecha (FIFO - First-In, First-Out) para descontar de los más antiguos primero
-    ingresos.sort((a, b) => new Date(a.fechaCarga) - new Date(b.fechaCarga));
-  
-    // 3. Distribuir los egresos entre los ingresos (lotes)
-    const stockPorLote = ingresos.map((ingreso) => {
-      const descripcionKey = ingreso.descripcion.toLowerCase(); // ✨ CORRECCIÓN CLAVE
-      let cantidadRestante = ingreso.cantidad;
-  
-      if (egresosPorDescripcion[descripcionKey] > 0) {
-        const cantidadADescontar = Math.min(cantidadRestante, egresosPorDescripcion[descripcionKey]);
-        cantidadRestante -= cantidadADescontar;
-        egresosPorDescripcion[descripcionKey] -= cantidadADescontar;
-      }
-      return { ...ingreso, stock: cantidadRestante };
-    });
-  
-    // 4. Consolidar el stock por producto
     const stockConsolidado = {};
-    stockPorLote.forEach(item => {
-      const key = item.descripcion.toLowerCase();
-      // Si el producto aún no está en nuestro objeto consolidado, lo inicializamos.
-      // Usamos una copia del item actual, pero reseteando el stock a 0 para empezar a sumar.
+
+    // 1. Recorrer todos los movimientos para consolidar el stock por artículo.
+    movimientos.forEach((mov) => {
+      if (!mov.descripcion) return; // Ignorar movimientos sin descripción
+
+      const key = mov.descripcion.toLowerCase();
+      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
+
+      // Si el artículo no existe en el consolidado, lo inicializamos.
       if (!stockConsolidado[key]) {
-        stockConsolidado[key] = { ...item, stock: 0 };
+        stockConsolidado[key] = { ...mov, stock: 0 };
       }
-      // ✅ CORRECCIÓN: Sumamos el stock remanente (`item.stock`) del lote actual
-      // al total acumulado para ese producto.
-      stockConsolidado[key].stock += item.stock;
+
+      // 2. Sumar si es ingreso/inicial, restar si es egreso.
+      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
+        stockConsolidado[key].stock += cantidad;
+      } else if (mov.tipo === 'egreso') {
+        stockConsolidado[key].stock -= cantidad;
+      }
     });
-  
+
     return Object.values(stockConsolidado).sort((a, b) => a.descripcion.localeCompare(b.descripcion));
   };
 
