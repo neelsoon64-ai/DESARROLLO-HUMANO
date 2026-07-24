@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { utils, writeFile } from "xlsx";
 import { AlertTriangle, Clock } from 'lucide-react';
 
@@ -20,6 +20,14 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   })();
 
   const esAdmin = usuarioActual?.rol === "Administrador";
+
+  // ✅ CORRECCIÓN: Declarar expedientesUnicos usando useMemo para optimización.
+  // Esto crea una lista única de todos los números de expediente existentes.
+  const expedientesUnicos = useMemo(() => {
+    if (!movimientos || movimientos.length === 0) return [];
+    const expedientesSet = new Set(movimientos.map(m => m.numero_expediente).filter(Boolean));
+    return [...expedientesSet];
+  }, [movimientos]);
 
   // =================================================================================
   // ✨ LÓGICA DE STOCK SIMPLIFICADA: TOTAL INGRESOS - TOTAL EGRESOS ✨
