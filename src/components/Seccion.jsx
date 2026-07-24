@@ -84,7 +84,10 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   const historialFiltrado = [...movimientos]
     .sort((a, b) => new Date(b.fechaCarga) - new Date(a.fechaCarga))
     .filter(mov => {
-      const coincideBusqueda = mov.descripcion.toLowerCase().includes(busqueda.toLowerCase()) || (mov.nroRemito && mov.nroRemito.toLowerCase().includes(busqueda.toLowerCase()));
+      const busquedaLower = busqueda.toLowerCase();
+      const coincideBusqueda = mov.descripcion.toLowerCase().includes(busquedaLower) || 
+                               (mov.nroRemito && mov.nroRemito.toLowerCase().includes(busquedaLower)) ||
+                               (mov.numero_expediente && mov.numero_expediente.toLowerCase().includes(busquedaLower)); // ✅ BÚSQUEDA POR EXPEDIENTE
       const coincideCategoria = categoriaFiltro === "Todas" || mov.categoria === categoriaFiltro;
       return coincideBusqueda && coincideCategoria;
     });
@@ -225,6 +228,11 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
                       <span style={{ fontSize: 10, color: "#64748B" }}>{mov.categoria}</span>
+                      {/* ✅ BADGE DE EXPEDIENTE */}
+                      {mov.numero_expediente && (
+                        <div style={{ marginTop: 4 }}><span style={{ background: "#F1F5F9", color: "#475569", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600 }}>
+                          Exp: {mov.numero_expediente}</span></div>
+                      )}
                     </td>
                     <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: mov.tipo === 'ingreso' ? '#16A34A' : '#DC2626' }}>{mov.tipo === 'ingreso' ? '+' : '-'}{mov.cantidad} {mov.unidad}</td>
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>

@@ -111,6 +111,13 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                 <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Cargado por</div>
                 <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.cargadoPor || "Desconocido"}</div>
               </div>
+              {/* ✅ MOSTRAR EXPEDIENTE EN DETALLE */}
+              {mov.numero_expediente && (
+                <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
+                  <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>N° de Expediente</div>
+                  <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.numero_expediente}</div>
+                </div>
+              )}
               {mov.editadoPor && (
                 <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0", gridColumn: "span 2" }}>
                   <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Última edición</div>

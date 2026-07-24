@@ -3,13 +3,15 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion }) {
+export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 
     : (inicial.foto ? [inicial.foto] : []);
+
+  const expedientesUnicos = [...new Set(expedientesExistentes)].filter(Boolean);
 
   const [form, setForm] = useState({
     fecha: inicial.fecha ? new Date(inicial.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -26,6 +28,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     motivo: inicial.motivo || "",
     fechaCompra: inicial.fechaCompra ? new Date(inicial.fechaCompra).toISOString().slice(0, 10) : "",
     fechaVencimiento: inicial.fechaVencimiento ? new Date(inicial.fechaVencimiento).toISOString().slice(0, 10) : "",
+    numero_expediente: inicial.numero_expediente || "", // ✅ CAMPO NUEVO: Expediente
     estadoRemito: inicial.estadoRemito || "Pendiente",
     fechaCierre: inicial.fechaCierre ? new Date(inicial.fechaCierre).toISOString().slice(0, 10) : "",
     listaFotos: fotosIniciales.map((foto, idx) => ({
@@ -178,6 +181,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         motivo: form.estado === "Dado de baja" ? (form.motivo || "") : "",
         fechaCompra: form.fechaCompra ? new Date(form.fechaCompra).toISOString() : null,
         fechaVencimiento: form.fechaVencimiento ? new Date(form.fechaVencimiento).toISOString() : null,
+        numero_expediente: form.numero_expediente.trim(), // ✅ GUARDAR EXPEDIENTE
         estadoRemito: form.estadoRemito || "Pendiente",
         fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre ? new Date(form.fechaCierre).toISOString() : new Date().toISOString()) : null,
         foto: fotoFinal 
@@ -261,6 +265,15 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
               <label style={labelStyle}>N° Remito / Comprobante</label>
               <input type="text" placeholder={form.tipo === "inicial" ? "Opcional (Ej: Ajuste-01)" : "REM-0001"} value={form.nroRemito} onChange={(e) => set("nroRemito", e.target.value)} style={inputStyle} />
             </div>
+          </div>
+
+          {/* ✅ CAMPO NUEVO: N° de Expediente con autocompletado */}
+          <div style={fieldGroup}>
+            <label style={labelStyle}>N° de Expediente (Opcional)</label>
+            <input type="text" list="expedientes-lista" placeholder="Ej: EXP-2024-12345" value={form.numero_expediente} onChange={(e) => set("numero_expediente", e.target.value)} style={inputStyle} />
+            <datalist id="expedientes-lista">
+              {expedientesUnicos.map(exp => <option key={exp} value={exp} />)}
+            </datalist>
           </div>
 
           {/* ✅ LÓGICA DE CAMPO CORREGIDA: Muestra el campo correcto según el tipo de movimiento */}
