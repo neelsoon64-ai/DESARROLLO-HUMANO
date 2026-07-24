@@ -36,7 +36,15 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
       // Si el artículo no existe en el consolidado, lo inicializamos.
       if (!stockConsolidado[key]) {
-        stockConsolidado[key] = { ...mov, stock: 0 };
+        // ✅ CORRECCIÓN: No copiar todo el movimiento.
+        // Creamos un objeto limpio para evitar que datos únicos (como nroRemito)
+        // del primer movimiento que encontramos se queden "pegados" al consolidado.
+        stockConsolidado[key] = { 
+          descripcion: mov.descripcion,
+          categoria: mov.categoria || "General",
+          unidad: mov.unidad || "unidades",
+          stock: 0 
+        };
       }
 
       // 2. Sumar si es ingreso/inicial, restar si es egreso.
