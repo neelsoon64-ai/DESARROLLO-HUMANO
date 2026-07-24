@@ -133,13 +133,18 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         })
       );
 
+      // ✅ CORRECCIÓN: Filtramos para quedarnos solo con las URLs válidas.
       const fotosFinalesFiltradas = fotosProcesadas.filter(Boolean);
 
-      const fotoFinal = fotosFinalesFiltradas.length === 0 
-        ? "" 
-        : (fotosFinalesFiltradas.length === 1 ? fotosFinalesFiltradas[0] : fotosFinalesFiltradas);
+      // ✅ CORRECCIÓN: Si después de procesar no queda ninguna foto, y estamos editando,
+      // mantenemos las fotos originales para no borrarlas accidentalmente.
+      // Si es una carga nueva y no hay fotos, se guarda un string vacío.
+      const fotoFinal = fotosFinalesFiltradas.length > 0
+        ? (fotosFinalesFiltradas.length === 1 ? fotosFinalesFiltradas[0] : fotosFinalesFiltradas)
+        : (esEdicion ? (inicial.foto || "") : "");
 
       console.debug("ModalRemito: Guardando payload final con enlaces limpios.", { fotoFinal });
+
 
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 
         ? "Inventario Físico Inicial" 
