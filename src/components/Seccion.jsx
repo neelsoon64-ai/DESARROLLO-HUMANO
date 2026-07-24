@@ -28,31 +28,37 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     const stockConsolidado = {};
 
     // 1. Recorrer todos los movimientos para consolidar el stock por artículo.
-    movimientos.forEach((mov) => {
+    for (const mov of movimientos) {
       if (!mov.descripcion) return; // Ignorar movimientos sin descripción
 
-      const key = mov.descripcion.toLowerCase();
+      // ✅ NUEVA LÓGICA: La clave única es la combinación de categoría y descripción.
+      const categoria = mov.categoria || "General";
+      const key = `${categoria.toLowerCase()}|${mov.descripcion.toLowerCase()}`;
       const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
 
       // Si el artículo no existe en el consolidado, lo inicializamos.
       if (!stockConsolidado[key]) {
-        // ✅ CORRECCIÓN: No copiar todo el movimiento.
-        // Creamos un objeto limpio para evitar que datos únicos (como nroRemito)
-        // del primer movimiento que encontramos se queden "pegados" al consolidado.
         stockConsolidado[key] = { 
           descripcion: mov.descripcion,
-          categoria: mov.categoria || "General",
+          categoria: categoria,
           unidad: mov.unidad || "unidades",
-          stock: 0 
+          ingresos: 0,
+          egresos: 0,
+          stock: 0,
         };
       }
 
-      // 2. Sumar si es ingreso/inicial, restar si es egreso.
+      // 2. Sumar ingresos y egresos por separado.
       if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
-        stockConsolidado[key].stock += cantidad;
+        stockConsolidado[key].ingresos += cantidad;
       } else if (mov.tipo === 'egreso') {
-        stockConsolidado[key].stock -= cantidad;
+        stockConsolidado[key].egresos += cantidad;
       }
+    }
+
+    // 3. Calcular el stock final para cada artículo y devolver el resultado.
+    Object.values(stockConsolidado).forEach(item => {
+      item.stock = item.ingresos - item.egresos;
     });
 
     return Object.values(stockConsolidado).sort((a, b) => a.descripcion.localeCompare(b.descripcion));
@@ -168,16 +174,24 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
-                  <th style={{ padding: "10px" }}>Artículo</th>
-                  <th style={{ padding: "10px", textAlign: "right" }}>Stock Remanente</th>
+                  <th style={{ padding: "10px" }}>Artículo / Categoría</th>
+                  <th style={{ padding: "10px", textAlign: "center" }}>Ingresos</th>
+                  <th style={{ padding: "10px", textAlign: "center" }}>Egresos</th>
+                  <th style={{ padding: "10px", textAlign: "right" }}>Stock Actual</th>
                 </tr>
               </thead>
               <tbody>
                 {stockFiltrado.map((item, idx) => (
                   <tr key={item.descripcion + idx} style={{ borderBottom: "1px solid #F1F5F9", background: item.stock <= 0 ? '#FEF2F2' : 'transparent' }}>
                     <td style={{ padding: "10px" }}>
-                      <div style={{ fontWeight: 600, color: "#1E293B" }}>{item.descripcion}</div>
+                      <div style={{ fontWeight: 700, color: "#1E293B", fontSize: 13 }}>{item.descripcion}</div>
                       <span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#475569' }}>{item.categoria}</span>
+                    </td>
+                    <td style={{ padding: "10px", textAlign: "center", fontWeight: 600, color: "#16A34A" }}>
+                      {item.ingresos}
+                    </td>
+                    <td style={{ padding: "10px", textAlign: "center", fontWeight: 600, color: "#DC2626" }}>
+                      {item.egresos}
                     </td>
                     <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, fontSize: 14, color: item.stock > 0 ? "#16A34A" : "#DC2626" }}>
                       {item.stock} <span style={{ fontSize: 11, color: '#64748B', fontWeight: 500 }}>{item.unidad}</span>
