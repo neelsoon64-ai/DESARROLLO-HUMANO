@@ -16,6 +16,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     nroRemito: inicial.nroRemito || "",
     proveedor: inicial.proveedor || "",
     observaciones: inicial.observaciones || "",
+    destinatario: inicial.destinatario || "", // ✅ CAMPO NUEVO
     tipo: inicial.tipo || "ingreso", 
     categoria: inicial.categoria || CATEGORIAS[0].id,
     descripcion: inicial.descripcion || "",
@@ -166,6 +167,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         origen: origenDetectado, // 🔥 ESTA LÍNEA SOLUCIONA EL FILTRADO Y GUARDADO
         nroRemito: form.nroRemito,
         proveedor: proveedorFinal,
+        destinatario: form.tipo === 'egreso' ? form.destinatario.trim() : "", // ✅ GUARDAR DESTINATARIO
         observaciones: form.observaciones,
         tipo: form.tipo,
         categoria: form.categoria,
@@ -261,18 +263,28 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
             </div>
           </div>
 
-          <div style={fieldGroup}>
-            <label style={labelStyle}>
-              {form.tipo === "inicial" ? "Ubicación / Depósito" : "Proveedor / Origen"}
-            </label>
-            <input 
-              type="text" 
-              placeholder={form.tipo === "inicial" ? "Ej: Depósito Central (Opcional)" : "Nombre o procedencia"} 
-              value={form.proveedor} 
-              onChange={(e) => set("proveedor", e.target.value)} 
-              style={inputStyle} 
-            />
-          </div>
+          {/* ✅ LÓGICA DE CAMPO CORREGIDA: Muestra el campo correcto según el tipo de movimiento */}
+          {form.tipo === 'ingreso' || form.tipo === 'inicial' ? (
+            <div style={fieldGroup}>
+              <label style={labelStyle}>
+                {form.tipo === "inicial" ? "Ubicación / Depósito" : "Proveedor / Origen"}
+              </label>
+              <input 
+                type="text" 
+                placeholder={form.tipo === "inicial" ? "Ej: Depósito Central (Opcional)" : "Nombre o procedencia"} 
+                value={form.proveedor} 
+                onChange={(e) => set("proveedor", e.target.value)} 
+                style={inputStyle} 
+              />
+            </div>
+          ) : ( // Si es egreso
+            <div style={fieldGroup}>
+              <label style={labelStyle}>Destinatario / Institución</label>
+              <input type="text" placeholder="Ej: Fernández Ignacio, Comedor Los Pibes" value={form.destinatario} onChange={(e) => set("destinatario", e.target.value)} style={inputStyle} />
+            </div>
+          )}
+
+
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={fieldGroup}>
