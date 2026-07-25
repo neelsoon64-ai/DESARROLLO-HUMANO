@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Package, History, Settings, Users, ShieldCheck, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, History, Settings, Users, ShieldCheck, LogOut, FileSearch } from 'lucide-react';
 import logo from "../assets/logo.png";
 
 const NavItem = ({ icon, label, activo, onClick, disabled = false }) => (
@@ -56,6 +56,7 @@ export default function Sidebar({ usuarioActual, paginaActiva, setPaginaActiva, 
               label={item.label}
               activo={paginaActiva === item.id}
               onClick={() => setPaginaActiva(item.id)}
+              disabled={item.disabled}
             />
           );
         })}

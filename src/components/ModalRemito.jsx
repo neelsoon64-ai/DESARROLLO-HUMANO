@@ -3,14 +3,13 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js"; // ✅ No hay
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, stockDisponible = [] }) {
+export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 
     : (inicial.foto ? [inicial.foto] : []);
-  const expedientesExistentes = stockDisponible.map(item => item.numero_expediente).filter(Boolean);
 
   const expedientesUnicos = [...new Set(expedientesExistentes)].filter(Boolean);
 
