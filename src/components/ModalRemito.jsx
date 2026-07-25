@@ -3,7 +3,7 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js"; // ✅ No hay
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [] }) {
+export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [], stockDisponible = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   const esEdicionDesdeFicha = !!datosEdicion && !datosEdicion.id;

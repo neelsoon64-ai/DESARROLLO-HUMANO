@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES } from "./constants.js";
 import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
@@ -301,6 +301,36 @@ export default function App() {
   const articulosNacionUnicos = new Set(nacionMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
   const articulosProvinciaUnicos = new Set(provinciaMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
 
+  // ✅ CÁLCULO CENTRALIZADO DE STOCK: Se calcula una sola vez y se pasa a los componentes hijos.
+  const stockConsolidado = useMemo(() => {
+    const todosLosMovimientos = [...nacionMovs, ...provinciaMovs];
+    if (!todosLosMovimientos || !Array.isArray(todosLosMovimientos)) return [];
+    const acumulado = todosLosMovimientos.reduce((acc, mov) => {
+      if (!mov.descripcion) return acc;
+      const categoria = mov.categoria || "General";
+      const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
+
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          descripcion: mov.descripcion,
+          categoria: categoria,
+          unidad: mov.unidad || "unidades",
+          ingresos: 0,
+          egresos: 0,
+          stock: 0,
+        };
+      }
+
+      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
+      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') { acc.ingresos += cantidad; } 
+      else if (mov.tipo === 'egreso') { acc.egresos += cantidad; }
+      return acc;
+    }, {});
+    Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
+    return Object.values(acumulado);
+  }, [nacionMovs, provinciaMovs]);
+
   return (
     <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "'Inter',system-ui,sans-serif" }}>
       {/* Navbar */}
@@ -437,6 +467,7 @@ export default function App() {
         <ModalRemito
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           datosEdicion={modalCarga.datos}
+          stockDisponible={stockConsolidado}
           onClose={() => setModalCarga(null)}
           onGuardar={async (carga) => {
             const conUsuario = { 
