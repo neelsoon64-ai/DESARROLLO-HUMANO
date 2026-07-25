@@ -32,57 +32,55 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   // =================================================================================
   // ✨ LÓGICA DE STOCK SIMPLIFICADA: TOTAL INGRESOS - TOTAL EGRESOS ✨
   // =================================================================================
-  const listaStock = useMemo(() => {
+  const stockConsolidado = useMemo(() => {
     if (!movimientos || !Array.isArray(movimientos)) return [];
 
     const acumulado = movimientos.reduce((acc, mov) => {
       if (!mov.descripcion) return acc; // Ignorar movimientos sin descripción
 
-      // Clave única de agrupación: ID de artículo + (Expediente, Remito, etc.)
-      const claveDoc = mov.numero_expediente || mov.nroRemito || 'General';
-      const key = `${mov.descripcion.toLowerCase()}-${claveDoc.toLowerCase()}`;
+      // ✅ REFACTORIZACIÓN CLAVE: La única clave de agrupación es `categoría + descripción`.
+      // Se eliminó por completo la agrupación por `remito` o `expediente`.
+      const categoria = mov.categoria || "General";
+      const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
 
       if (!acc[key]) {
         acc[key] = {
           id: key,
           descripcion: mov.descripcion,
-          categoria: mov.categoria || "General",
+          categoria: categoria,
           unidad: mov.unidad || "unidades",
-          documento: claveDoc,
-          tipo_documento: mov.numero_expediente ? 'Expediente' : mov.nroRemito ? 'Remito' : 'General',
           ingresos: 0,
           egresos: 0,
           stock: 0,
         };
       }
 
+      // ✅ CÁLCULO AUTOMÁTICO: Suma o resta según el tipo de movimiento.
       const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
       if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
         acc[key].ingresos += cantidad;
       } else if (mov.tipo === 'egreso') {
         acc[key].egresos += cantidad;
       }
-
-      // Saldo Remanente = Ingresos - Egresos
-      acc[key].stock = acc[key].ingresos - acc[key].egresos;
-
       return acc;
     }, {});
 
-    return Object.values(acumulado).sort((a, b) => a.descripcion.localeCompare(b.descripcion));
+    // ✅ CÁLCULO FINAL: Se calcula el stock final después de procesar todos los movimientos.
+    Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
+    return Object.values(acumulado).sort((a, b) => a.descripcion.localeCompare(b.descripcion) || a.categoria.localeCompare(b.categoria));
   }, [movimientos]);
 
   const totalItemsUnicos = new Set(movimientos.map(m => m.descripcion)).size;
 
   // ✨ CÁLCULO DEL TOTAL DE UNIDADES EN STOCK
-  const totalUnidadesEnStock = listaStock.reduce((total, item) => total + item.stock, 0);
+  const totalUnidadesEnStock = stockConsolidado.reduce((total, item) => total + item.stock, 0);
   // =================================================================================
 
 
   const categoriasUnicas = ["Todas", ...new Set(movimientos.map((m) => m.categoria || "General"))];
 
   // Filtrados
-  const stockFiltrado = listaStock.filter((item) => {
+  const stockFiltrado = stockConsolidado.filter((item) => {
     const coincideBusqueda = item.descripcion.toLowerCase().includes(busqueda.toLowerCase()) || item.categoria.toLowerCase().includes(busqueda.toLowerCase());
     const coincideCategoria = categoriaFiltro === "Todas" || item.categoria === categoriaFiltro;
     return coincideBusqueda && coincideCategoria;
@@ -187,7 +185,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
-                  <th style={{ padding: "10px" }}>Artículo / Documento</th>
+                  <th style={{ padding: "10px" }}>Artículo / Categoría</th>
                   <th style={{ padding: "10px", textAlign: "center" }}>Ingresos</th>
                   <th style={{ padding: "10px", textAlign: "center" }}>Egresos</th>
                   <th style={{ padding: "10px", textAlign: "right" }}>Stock Actual</th>
@@ -198,10 +196,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                   <tr key={item.id} style={{ borderBottom: "1px solid #F1F5F9", background: item.stock <= 0 ? '#FEF2F2' : 'transparent' }}>
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 700, color: "#1E293B", fontSize: 13 }}>{item.descripcion}</div>
-                      <div style={{ marginTop: 4 }}>
-                        <span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#475569' }}>{item.categoria}</span>
-                        <span style={{ marginLeft: 6, background: "#F1F5F9", color: "#475569", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, border: "1px solid #E2E8F0" }}>{item.tipo_documento}: {item.documento}</span>
-                      </div>
+                      <span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#475569' }}>{item.categoria}</span>
                     </td>
                     <td style={{ padding: "10px", textAlign: "center", fontWeight: 600, color: "#16A34A" }}>
                       {item.ingresos}

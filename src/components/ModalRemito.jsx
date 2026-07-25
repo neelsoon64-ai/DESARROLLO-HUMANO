@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { CATEGORIAS, UNIDADES, generarId } from "../constants.js";
+import { CATEGORIAS, UNIDADES, generarId } from "../constants.js"; // ✅ No hay cambios aquí, la lógica es agnóstica.
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
@@ -13,6 +13,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   const expedientesUnicos = [...new Set(expedientesExistentes)].filter(Boolean);
 
+  // ✅ La estructura del formulario se mantiene, asegurando que cada campo tiene su lugar.
   const [form, setForm] = useState({
     fecha: inicial.fecha ? new Date(inicial.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
     nroRemito: inicial.nroRemito || "",
@@ -26,6 +27,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     unidad: inicial.unidad || "unidades",
     estado: inicial.estado || "Activo",
     motivo: inicial.motivo || "",
+    numero_expediente: inicial.numero_expediente || "",
     fechaCompra: inicial.fechaCompra ? new Date(inicial.fechaCompra).toISOString().slice(0, 10) : "",
     fechaVencimiento: inicial.fechaVencimiento ? new Date(inicial.fechaVencimiento).toISOString().slice(0, 10) : "",
     estadoRemito: inicial.estadoRemito || "Pendiente",
@@ -136,15 +138,15 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         })
       );
 
-      // ✅ CORRECCIÓN: Filtramos para quedarnos solo con las URLs válidas.
+      // ✅ REFACTORIZACIÓN FOTOS: Lógica mejorada para conservar fotos existentes.
       const fotosFinalesFiltradas = fotosProcesadas.filter(Boolean);
 
-      // ✅ CORRECCIÓN: Si después de procesar no queda ninguna foto, y estamos editando,
-      // mantenemos las fotos originales para no borrarlas accidentalmente.
-      // Si es una carga nueva y no hay fotos, se guarda un string vacío.
+      // Si se subieron fotos nuevas, se usan.
+      // Si no se subieron fotos nuevas y estamos editando, se conservan las originales.
+      // Si es una carga nueva y no hay fotos, se guarda un array vacío o string.
       const fotoFinal = fotosFinalesFiltradas.length > 0
         ? (fotosFinalesFiltradas.length === 1 ? fotosFinalesFiltradas[0] : fotosFinalesFiltradas)
-        : (esEdicion ? (inicial.foto || "") : "");
+        : (esEdicion ? (inicial.foto || []) : []); // Usamos array vacío por consistencia.
 
       console.debug("ModalRemito: Guardando payload final con enlaces limpios.", { fotoFinal });
 
@@ -160,6 +162,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         ? "nacion"
         : "provincia";
 
+      // ✅ ESTRUCTURA DE DATOS GARANTIZADA: Cada campo se mapea a su lugar correcto.
       // ─── 🚀 ENVÍO INMUNE A TU BASE DE DATOS ───
       onGuardar({
         ...inicial,
@@ -169,6 +172,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         origen: origenDetectado, // 🔥 ESTA LÍNEA SOLUCIONA EL FILTRADO Y GUARDADO
         nroRemito: form.nroRemito,
         proveedor: proveedorFinal,
+        // La descripción del artículo NUNCA se mezcla con el destinatario.
         destinatario: form.tipo === 'egreso' ? form.destinatario.trim() : "", // ✅ GUARDAR DESTINATARIO
         observaciones: form.observaciones,
         tipo: form.tipo,
