@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-export default function PaginaStock({ stockConsolidado, onAbrirFicha }) {
+export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgreso }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
@@ -45,7 +45,7 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha }) {
             {stockFiltrado.map((item) => {
               const estado = getEstado(item.stock, item.stockMinimo);
               return (
-                <tr key={item.id} onClick={() => onAbrirFicha(item)} style={{ borderBottom: "1px solid #F3F4F6", cursor: 'pointer' }}>
+                <tr key={item.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ fontWeight: 600, color: "#111827" }}>{item.descripcion}</div>
                     <div style={{ fontSize: 12, color: '#6B7280' }}>{item.categoria}</div>
@@ -71,8 +71,13 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha }) {
                       {estado.label}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 16px", textAlign: 'center' }}>
-                    {/* El botón se elimina, toda la fila es clickeable */}
+                  <td style={{ padding: "12px 16px", textAlign: 'center', display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => onAbrirFicha(item)} style={{ background: '#F3F4F6', color: '#4B5563', border: '1px solid #E5E7EB', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      Ver Ficha
+                    </button>
+                    <button onClick={() => onAbrirEgreso(item)} disabled={item.stock <= 0} style={{ background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: item.stock <= 0 ? 0.5 : 1 }}>
+                      - Egreso
+                    </button>
                   </td>
                 </tr>
               );
