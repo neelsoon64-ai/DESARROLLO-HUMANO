@@ -2,7 +2,7 @@ import React from 'react';
 import { overlay, modal } from '../styles';
 import { formatFechaCorta } from '../constants';
 
-export default function ModalFichaArticulo({ articulo, historial, onClose }) {
+export default function ModalFichaArticulo({ articulo, historial, onClose, onCarga }) {
   if (!articulo) return null;
 
   return (
@@ -29,6 +29,20 @@ export default function ModalFichaArticulo({ articulo, historial, onClose }) {
                 <div style={{fontSize: 12, color: '#6B7280', fontWeight: 600}}>Stock Actual</div>
                 <div style={{fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4}}>{articulo.stock} <span style={{fontSize: 16}}>{articulo.unidad}</span></div>
             </div>
+        </div>
+
+        {/* ✅ BOTONES DE ACCIÓN PRINCIPALES */}
+        <div style={{ padding: '16px 22px', display: 'flex', gap: 12, borderBottom: '1px solid #E5E7EB' }}>
+            <button 
+                onClick={() => onCarga({ datos: { descripcion: articulo.descripcion, categoria: articulo.categoria, tipo: 'ingreso' } })}
+                style={{ flex: 1, background: '#D1FAE5', color: '#065F46', border: '1px solid #6EE7B7', borderRadius: 10, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                + Registrar Ingreso
+            </button>
+            <button 
+                onClick={() => onCarga({ datos: { descripcion: articulo.descripcion, categoria: articulo.categoria, tipo: 'egreso' } })}
+                style={{ flex: 1, background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 10, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                - Registrar Egreso
+            </button>
         </div>
 
         <div style={{ padding: "0 22px 22px", overflowY: "auto", flex: 1 }}>

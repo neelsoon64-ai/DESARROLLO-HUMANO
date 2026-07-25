@@ -34,33 +34,34 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha }) {
           <thead>
             <tr style={{ borderBottom: "1px solid #E5E7EB", background: '#F9FAFB' }}>
               <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600 }}>Artículo</th>
-              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Total Ingresos</th>
-              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Total Egresos</th>
-              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'right' }}>Stock Total</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Ingresos</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Egresos</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'right' }}>Stock Actual</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Estado</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {stockFiltrado.map((item) => {
-              const estado = getEstado(item.stock);
+              const estado = getEstado(item.stock, item.stockMinimo);
               return (
-                <tr key={item.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <tr key={item.id} onClick={() => onAbrirFicha(item)} style={{ borderBottom: "1px solid #F3F4F6", cursor: 'pointer' }}>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ fontWeight: 600, color: "#111827" }}>{item.descripcion}</div>
                     <div style={{ fontSize: 12, color: '#6B7280' }}>{item.categoria}</div>
                   </td>
-                  <td style={{ padding: "12px 16px", fontWeight: 600, color: "#059669", textAlign: 'center' }}>
+                  <td style={{ padding: "12px 16px", fontWeight: 500, color: "#059669", textAlign: 'center' }}>
                     {item.ingresos}
                   </td>
-                  <td style={{ padding: "12px 16px", fontWeight: 600, color: "#B91C1C", textAlign: 'center' }}>
+                  <td style={{ padding: "12px 16px", fontWeight: 500, color: "#B91C1C", textAlign: 'center' }}>
                     {item.egresos}
                   </td>
-                  <td style={{ padding: "12px 16px", fontWeight: 700, fontSize: 16, color: estado.color, textAlign: 'right' }}>
+                  <td style={{ padding: "12px 16px", fontWeight: 700, fontSize: 16, color: "#111827", textAlign: 'right' }}>
                     {item.stock} <span style={{ color: '#6B7280', fontWeight: 500 }}>{item.unidad}</span>
                   </td>
-                  {/* La columna de estado se puede descomentar si se desea
                   <td style={{ padding: "12px 16px", textAlign: 'center' }}>
                     <span style={{
-                      background: `${estado.color}20`,
+                      background: estado.bg,
                       color: estado.color,
                       padding: '4px 10px',
                       borderRadius: 999,
@@ -70,7 +71,9 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha }) {
                       {estado.label}
                     </span>
                   </td>
-                  */}
+                  <td style={{ padding: "12px 16px", textAlign: 'center' }}>
+                    {/* El botón se elimina, toda la fila es clickeable */}
+                  </td>
                 </tr>
               );
             })}

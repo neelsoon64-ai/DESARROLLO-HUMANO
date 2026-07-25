@@ -6,6 +6,7 @@ import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
+  const esEdicionDesdeFicha = !!datosEdicion && !datosEdicion.id;
   
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 
@@ -244,7 +245,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
               ].map(({ v, l, color, bg }) => (
                 <button
                   key={v}
-                  type="button"
+                  type="button" // Deshabilitado si es edición real o si viene de la ficha
                   disabled={esEdicion}
                   onClick={() => set("tipo", v)}
                   style={{
@@ -256,10 +257,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
                     background: form.tipo === v ? bg : "#F8FAFC",
                     color: form.tipo === v ? color : "#64748B",
                     fontWeight: 700, 
-                    cursor: esEdicion ? "not-allowed" : "pointer", 
+                    cursor: esEdicion || esEdicionDesdeFicha ? "not-allowed" : "pointer", 
                     fontSize: 12,
                     transition: "all 0.2s",
-                    opacity: esEdicion && form.tipo !== v ? 0.4 : 1
+                    opacity: (esEdicion || esEdicionDesdeFicha) && form.tipo !== v ? 0.4 : 1
                   }}
                 >
                   {l}
@@ -324,13 +325,14 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
           <div style={fieldGroup}>
             <label style={labelStyle}>Categoría</label>
-            <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)} style={inputStyle}>
+            <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)} style={inputStyle} disabled={form.tipo === 'egreso' && esEdicionDesdeFicha}>
               {CATEGORIAS.map((c) => (
                 <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
               ))}
             </select>
           </div>
 
+          {/* El campo de descripción ahora también se deshabilita si es un egreso desde la ficha */}
           <div style={fieldGroup}>
             <label style={labelStyle}>{catActual?.icon} Descripción del Artículo</label>
             {form.tipo === 'egreso' ? (
@@ -342,6 +344,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
                   setForm(f => ({ ...f, descripcion: selectedDesc, categoria: selectedItem?.categoria || f.categoria }));
                 }}
                 style={inputStyle}
+                disabled={esEdicionDesdeFicha}
               >
                 <option value="">-- Seleccioná un artículo del inventario --</option>
                 {stockDisponible.filter(item => item.stock > 0).map(item => (
@@ -351,7 +354,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
                 ))}
               </select>
             ) : (
-              <input type="text" placeholder={`Ej: ${catActual?.label}`} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} style={inputStyle} />
+              <input type="text" placeholder={`Ej: ${catActual?.label}`} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} style={inputStyle} disabled={esEdicionDesdeFicha} />
             )}
           </div>
 
