@@ -362,7 +362,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 920, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
         
         {verDashboard ? (
           <Dashboard 
@@ -394,35 +394,41 @@ export default function App() {
               ))}
             </div>
 
-            <Seccion 
-              nombre="Inventario — Nación" 
-              color="#1A3A5C" 
-              colorClaro="#2E7DC4" 
-              datos={{ movimientos: nacionMovs }} 
-              onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
-              onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
-              onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
-              puedeEliminar={puedeEliminar}
-              onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
-              usuarioActual={usuarioActual}
-              onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
-              auditoria={auditoria} 
-            />
-            
-            <Seccion 
-              nombre="Inventario — Provincia" 
-              color="#1B6EB5" 
-              colorClaro="#4DA3D4" 
-              datos={{ movimientos: provinciaMovs }} 
-              onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
-              onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
-              onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
-              puedeEliminar={puedeEliminar}
-              onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
-              usuarioActual={usuarioActual}
-              onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
-              auditoria={auditoria} 
-            />
+            {/* ✅ CONTENEDOR FLEXIBLE PARA LAYOUT LADO A LADO */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+              <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+                <Seccion 
+                  nombre="Inventario — Nación" 
+                  color="#1A3A5C" 
+                  colorClaro="#2E7DC4" 
+                  datos={{ movimientos: nacionMovs }} 
+                  onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
+                  onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
+                  onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
+                  puedeEliminar={puedeEliminar}
+                  onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
+                  usuarioActual={usuarioActual}
+                  onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
+                  auditoria={auditoria} 
+                />
+              </div>
+              <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+                <Seccion 
+                  nombre="Inventario — Provincia" 
+                  color="#0D714C" 
+                  colorClaro="#10B981" 
+                  datos={{ movimientos: provinciaMovs }} 
+                  onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
+                  onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
+                  onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
+                  puedeEliminar={puedeEliminar}
+                  onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
+                  usuarioActual={usuarioActual}
+                  onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
+                  auditoria={auditoria} 
+                />
+              </div>
+            </div>
           </>
         )}
       </div>
