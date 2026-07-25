@@ -32,47 +32,46 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   // =================================================================================
   // ✨ LÓGICA DE STOCK SIMPLIFICADA: TOTAL INGRESOS - TOTAL EGRESOS ✨
   // =================================================================================
-  const calcularStock = () => {
-    const stockConsolidado = {};
+  const listaStock = useMemo(() => {
+    if (!movimientos || !Array.isArray(movimientos)) return [];
 
-    // 1. Recorrer todos los movimientos para consolidar el stock por artículo.
-    for (const mov of movimientos) {
-      if (!mov.descripcion) return; // Ignorar movimientos sin descripción
+    const acumulado = movimientos.reduce((acc, mov) => {
+      if (!mov.descripcion) return acc; // Ignorar movimientos sin descripción
 
-      // ✅ NUEVA LÓGICA: La clave única es la combinación de categoría y descripción.
-      const categoria = mov.categoria || "General";
-      const key = `${categoria.toLowerCase()}|${mov.descripcion.toLowerCase()}`;
-      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
+      // Clave única de agrupación: ID de artículo + (Expediente, Remito, etc.)
+      const claveDoc = mov.numero_expediente || mov.nroRemito || 'General';
+      const key = `${mov.descripcion.toLowerCase()}-${claveDoc.toLowerCase()}`;
 
-      // Si el artículo no existe en el consolidado, lo inicializamos.
-      if (!stockConsolidado[key]) {
-        stockConsolidado[key] = { 
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
           descripcion: mov.descripcion,
-          categoria: categoria,
+          categoria: mov.categoria || "General",
           unidad: mov.unidad || "unidades",
+          documento: claveDoc,
+          tipo_documento: mov.numero_expediente ? 'Expediente' : mov.nroRemito ? 'Remito' : 'General',
           ingresos: 0,
           egresos: 0,
           stock: 0,
         };
       }
 
-      // 2. Sumar ingresos y egresos por separado.
+      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
       if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
-        stockConsolidado[key].ingresos += cantidad;
+        acc[key].ingresos += cantidad;
       } else if (mov.tipo === 'egreso') {
-        stockConsolidado[key].egresos += cantidad;
+        acc[key].egresos += cantidad;
       }
-    }
 
-    // 3. Calcular el stock final para cada artículo y devolver el resultado.
-    Object.values(stockConsolidado).forEach(item => {
-      item.stock = item.ingresos - item.egresos;
-    });
+      // Saldo Remanente = Ingresos - Egresos
+      acc[key].stock = acc[key].ingresos - acc[key].egresos;
 
-    return Object.values(stockConsolidado).sort((a, b) => a.descripcion.localeCompare(b.descripcion));
-  };
+      return acc;
+    }, {});
 
-  const listaStock = calcularStock();
+    return Object.values(acumulado).sort((a, b) => a.descripcion.localeCompare(b.descripcion));
+  }, [movimientos]);
+
   const totalItemsUnicos = new Set(movimientos.map(m => m.descripcion)).size;
 
   // ✨ CÁLCULO DEL TOTAL DE UNIDADES EN STOCK
@@ -188,18 +187,21 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
-                  <th style={{ padding: "10px" }}>Artículo / Categoría</th>
+                  <th style={{ padding: "10px" }}>Artículo / Documento</th>
                   <th style={{ padding: "10px", textAlign: "center" }}>Ingresos</th>
                   <th style={{ padding: "10px", textAlign: "center" }}>Egresos</th>
                   <th style={{ padding: "10px", textAlign: "right" }}>Stock Actual</th>
                 </tr>
               </thead>
               <tbody>
-                {stockFiltrado.map((item, idx) => (
-                  <tr key={item.descripcion + idx} style={{ borderBottom: "1px solid #F1F5F9", background: item.stock <= 0 ? '#FEF2F2' : 'transparent' }}>
+                {stockFiltrado.map((item) => (
+                  <tr key={item.id} style={{ borderBottom: "1px solid #F1F5F9", background: item.stock <= 0 ? '#FEF2F2' : 'transparent' }}>
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 700, color: "#1E293B", fontSize: 13 }}>{item.descripcion}</div>
-                      <span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#475569' }}>{item.categoria}</span>
+                      <div style={{ marginTop: 4 }}>
+                        <span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#475569' }}>{item.categoria}</span>
+                        <span style={{ marginLeft: 6, background: "#F1F5F9", color: "#475569", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, border: "1px solid #E2E8F0" }}>{item.tipo_documento}: {item.documento}</span>
+                      </div>
                     </td>
                     <td style={{ padding: "10px", textAlign: "center", fontWeight: 600, color: "#16A34A" }}>
                       {item.ingresos}
