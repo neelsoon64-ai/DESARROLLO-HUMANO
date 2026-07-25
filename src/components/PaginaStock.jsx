@@ -1,44 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { StockBadge } from './Common';
 
-export default function PaginaStock({ todosLosMovimientos, onVerDetalle }) {
+export default function PaginaStock({ stockConsolidado, onAbrirFicha }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
-  const stockConsolidado = useMemo(() => {
-    if (!todosLosMovimientos || !Array.isArray(todosLosMovimientos)) return [];
-
-    const acumulado = todosLosMovimientos.reduce((acc, mov) => {
-      if (!mov.descripcion) return acc;
-      const categoria = mov.categoria || "General";
-      const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
-
-      if (!acc[key]) {
-        acc[key] = {
-          id: key,
-          descripcion: mov.descripcion,
-          categoria: categoria,
-          unidad: mov.unidad || "unidades",
-          ingresos: 0,
-          egresos: 0,
-          stock: 0,
-        };
-      }
-
-      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
-        acc[key].ingresos += cantidad;
-      } else if (mov.tipo === 'egreso') {
-        acc[key].egresos += cantidad;
-      }
-      return acc;
-    }, {});
-
-    Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
-    return Object.values(acumulado).sort((a, b) => a.descripcion.localeCompare(b.descripcion));
-  }, [todosLosMovimientos]);
-
-  const categoriasUnicas = ["Todas", ...new Set(todosLosMovimientos.map((m) => m.categoria || "General"))];
+  const categoriasUnicas = ["Todas", ...new Set(stockConsolidado.map((m) => m.categoria || "General"))];
 
   const stockFiltrado = stockConsolidado.filter((item) => {
     const coincideBusqueda = item.descripcion.toLowerCase().includes(busqueda.toLowerCase()) || item.categoria.toLowerCase().includes(busqueda.toLowerCase());
@@ -46,9 +12,9 @@ export default function PaginaStock({ todosLosMovimientos, onVerDetalle }) {
     return coincideBusqueda && coincideCategoria;
   });
 
-  const getEstado = (stock) => {
-    if (stock <= 0) return { label: 'Sin Stock', color: '#EF4444' };
-    if (stock <= 10) return { label: 'Stock Bajo', color: '#F59E0B' };
+  const getEstado = (stock, stockMinimo) => {
+    if (stock <= 0) return { label: 'Sin Stock', color: '#EF4444', bg: '#FEE2E2' };
+    if (stock <= stockMinimo) return { label: 'Stock Bajo', color: '#D97706', bg: '#FEF3C7' };
     return { label: 'Disponible', color: '#10B981' };
   };
 
@@ -68,33 +34,34 @@ export default function PaginaStock({ todosLosMovimientos, onVerDetalle }) {
           <thead>
             <tr style={{ borderBottom: "1px solid #E5E7EB", background: '#F9FAFB' }}>
               <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600 }}>Artículo</th>
-              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Total Ingresos</th>
-              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Total Egresos</th>
-              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'right' }}>Stock Total</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Ingresos</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Egresos</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'right' }}>Stock Actual</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Estado</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {stockFiltrado.map((item) => {
-              const estado = getEstado(item.stock);
+              const estado = getEstado(item.stock, item.stockMinimo);
               return (
                 <tr key={item.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ fontWeight: 600, color: "#111827" }}>{item.descripcion}</div>
                     <div style={{ fontSize: 12, color: '#6B7280' }}>{item.categoria}</div>
                   </td>
-                  <td style={{ padding: "12px 16px", fontWeight: 600, color: "#059669", textAlign: 'center' }}>
+                  <td style={{ padding: "12px 16px", fontWeight: 500, color: "#059669", textAlign: 'center' }}>
                     {item.ingresos}
                   </td>
-                  <td style={{ padding: "12px 16px", fontWeight: 600, color: "#B91C1C", textAlign: 'center' }}>
+                  <td style={{ padding: "12px 16px", fontWeight: 500, color: "#B91C1C", textAlign: 'center' }}>
                     {item.egresos}
                   </td>
-                  <td style={{ padding: "12px 16px", fontWeight: 700, fontSize: 16, color: estado.color, textAlign: 'right' }}>
+                  <td style={{ padding: "12px 16px", fontWeight: 700, fontSize: 16, color: "#111827", textAlign: 'right' }}>
                     {item.stock} <span style={{ color: '#6B7280', fontWeight: 500 }}>{item.unidad}</span>
                   </td>
-                  {/* La columna de estado se puede descomentar si se desea
                   <td style={{ padding: "12px 16px", textAlign: 'center' }}>
                     <span style={{
-                      background: `${estado.color}20`,
+                      background: estado.bg,
                       color: estado.color,
                       padding: '4px 10px',
                       borderRadius: 999,
@@ -104,7 +71,11 @@ export default function PaginaStock({ todosLosMovimientos, onVerDetalle }) {
                       {estado.label}
                     </span>
                   </td>
-                  */}
+                  <td style={{ padding: "12px 16px", textAlign: 'center' }}>
+                    <button onClick={() => onAbrirFicha(item)} style={{ background: '#F3F4F6', color: '#4B5563', border: '1px solid #E5E7EB', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      Ver Ficha
+                    </button>
+                  </td>
                 </tr>
               );
             })}

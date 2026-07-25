@@ -3,13 +3,14 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js"; // ✅ No hay
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
-export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [] }) {
+export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, stockDisponible = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 
     : (inicial.foto ? [inicial.foto] : []);
+  const expedientesExistentes = stockDisponible.map(item => item.numero_expediente).filter(Boolean);
 
   const expedientesUnicos = [...new Set(expedientesExistentes)].filter(Boolean);
 
@@ -112,6 +113,15 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     if (!form.descripcion.trim()) return setError("Ingresá una descripción.");
     if (!form.cantidad || isNaN(Number(form.cantidad)) || Number(form.cantidad) <= 0)
       return setError("Ingresá una cantidad válida.");
+    
+    // ✅ VALIDACIÓN DE STOCK PARA EGRESOS
+    if (form.tipo === 'egreso') {
+      const itemEnStock = stockDisponible.find(item => item.descripcion === form.descripcion && item.categoria === form.categoria);
+      const stockActual = itemEnStock ? itemEnStock.stock : 0;
+      if (Number(form.cantidad) > stockActual) {
+        return setError(`Stock insuficiente. Disponible: ${stockActual} unidades.`);
+      }
+    }
     if (form.estado === "Dado de baja" && !form.motivo) return setError("Seleccioná un motivo para Dado de baja.");
     if (form.estadoRemito === "Cerrado" && !form.fechaCierre) return setError("Ingresá la fecha de cierre del remito.");
     setError("");
@@ -324,7 +334,26 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
           <div style={fieldGroup}>
             <label style={labelStyle}>{catActual?.icon} Descripción del Artículo</label>
-            <input type="text" placeholder={`Ej: ${catActual?.label}`} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} style={inputStyle} />
+            {form.tipo === 'egreso' ? (
+              <select
+                value={form.descripcion}
+                onChange={(e) => {
+                  const selectedDesc = e.target.value;
+                  const selectedItem = stockDisponible.find(item => item.descripcion === selectedDesc);
+                  setForm(f => ({ ...f, descripcion: selectedDesc, categoria: selectedItem?.categoria || f.categoria }));
+                }}
+                style={inputStyle}
+              >
+                <option value="">-- Seleccioná un artículo del inventario --</option>
+                {stockDisponible.filter(item => item.stock > 0).map(item => (
+                  <option key={item.id} value={item.descripcion}>
+                    {item.descripcion} ({item.stock} disp.)
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input type="text" placeholder={`Ej: ${catActual?.label}`} value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} style={inputStyle} />
+            )}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

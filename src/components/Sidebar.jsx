@@ -2,7 +2,7 @@ import React from 'react';
 import { LayoutDashboard, Package, History, Settings, Users, ShieldCheck, LogOut } from 'lucide-react';
 import logo from "../assets/logo.png";
 
-const NavItem = ({ icon, label, activo, onClick }) => (
+const NavItem = ({ icon, label, activo, onClick, disabled = false }) => (
   <button
     onClick={onClick}
     style={{
@@ -16,11 +16,12 @@ const NavItem = ({ icon, label, activo, onClick }) => (
       textAlign: 'left',
       cursor: 'pointer',
       background: activo ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-      color: activo ? '#FFFFFF' : '#D1D5DB',
+      color: activo ? '#FFFFFF' : (disabled ? '#6B7280' : '#D1D5DB'),
       fontSize: 14,
       fontWeight: activo ? 700 : 500,
       transition: 'background 0.2s ease, color 0.2s ease',
     }}
+    disabled={disabled}
   >
     {icon}
     {label}
@@ -34,8 +35,8 @@ export default function Sidebar({ usuarioActual, paginaActiva, setPaginaActiva, 
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} />, adminOnly: true },
     { id: 'stock', label: 'Inventario Total', icon: <Package size={20} /> },
     { id: 'historial', label: 'Historial', icon: <History size={20} /> },
-    // { id: 'expedientes', label: 'Consulta Expedientes', icon: <FileSearch size={20} /> },
-    // { id: 'configuracion', label: 'Configuración', icon: <Settings size={20} /> },
+    { id: 'expedientes', label: 'Consulta Expedientes', icon: <FileSearch size={20} /> },
+    { id: 'configuracion', label: 'Configuración', icon: <Settings size={20} />, disabled: true },
   ];
 
   return (
