@@ -467,6 +467,7 @@ export default function App() {
         <ModalRemito
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           datosEdicion={modalCarga.datos}
+          expedientesExistentes={stockConsolidado.map(m => m.numero_expediente)}
           stockDisponible={stockConsolidado}
           onClose={() => setModalCarga(null)}
           onGuardar={async (carga) => {
