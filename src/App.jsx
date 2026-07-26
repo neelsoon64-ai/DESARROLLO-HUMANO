@@ -320,51 +320,9 @@ export default function App() {
     return `${Math.floor(diff / 60)}m`;
   })();
 
-  const nacionMovs = nacion && nacion.movimientos
-    ? (Array.isArray(nacion.movimientos) ? nacion.movimientos : Object.values(nacion.movimientos)).filter(Boolean)
-    : [];
-      
-  const provinciaMovs = provincia && provincia.movimientos
-    ? (Array.isArray(provincia.movimientos) ? provincia.movimientos : Object.values(provincia.movimientos)).filter(Boolean)
-    : [];
-      
   const listaUsuarios = Array.isArray(usuarios) ? usuarios.filter(Boolean) : [];
   const articulosNacionUnicos = new Set(nacionMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
   const articulosProvinciaUnicos = new Set(provinciaMovs.filter(m => m?.descripcion).map((m) => `${m.categoria || ""}||${m.descripcion}`)).size;
-
-  // ✅ CÁLCULO CENTRALIZADO DE STOCK: Se calcula una sola vez y se pasa a los componentes hijos.
-  const stockConsolidado = useMemo(() => {
-    const todosLosMovimientos = [...nacionMovs, ...provinciaMovs];
-    if (!todosLosMovimientos || !Array.isArray(todosLosMovimientos)) return [];
-    const acumulado = todosLosMovimientos.reduce((acc, mov) => {
-      // FIX: Asegurarse de que el movimiento y la descripción son válidos antes de procesar.
-      if (!mov.descripcion) return acc;
-      const categoria = mov.categoria || "General";
-      const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
-
-      if (!acc[key]) {
-        acc[key] = {
-          id: key,
-          descripcion: mov.descripcion,
-          categoria: categoria,
-          unidad: mov.unidad || "unidades",
-          ingresos: 0,
-          egresos: 0,
-          stock: 0,
-        };
-      }
-
-      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-      // FIX: Corregido el acceso al acumulador. Se debe modificar acc[key], no acc directamente.
-      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') { 
-        acc[key].ingresos += cantidad;
-      } else if (mov.tipo === 'egreso') { 
-        acc[key].egresos += cantidad; }
-      return acc;
-    }, {});
-    Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
-    return Object.values(acumulado);
-  }, [nacionMovs, provinciaMovs]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "'Inter',system-ui,sans-serif" }}>
