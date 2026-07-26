@@ -278,6 +278,37 @@ export default function App() {
     return listaGuardada;
   })();
 
+  // FIX: Todos los hooks se mueven a la parte superior del componente, antes de cualquier
+  // retorno condicional, para cumplir con las Reglas de los Hooks.
+  const nacionMovs = nacion && nacion.movimientos
+    ? (Array.isArray(nacion.movimientos) ? nacion.movimientos : Object.values(nacion.movimientos)).filter(Boolean)
+    : [];
+      
+  const provinciaMovs = provincia && provincia.movimientos
+    ? (Array.isArray(provincia.movimientos) ? provincia.movimientos : Object.values(provincia.movimientos)).filter(Boolean)
+    : [];
+
+  const stockConsolidado = useMemo(() => {
+    const todosLosMovimientos = [...nacionMovs, ...provinciaMovs];
+    if (!todosLosMovimientos || !Array.isArray(todosLosMovimientos)) return [];
+    const acumulado = todosLosMovimientos.reduce((acc, mov) => {
+      if (!mov.descripcion) return acc;
+      const categoria = mov.categoria || "General";
+      const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
+
+      if (!acc[key]) {
+        acc[key] = { id: key, descripcion: mov.descripcion, categoria: categoria, unidad: mov.unidad || "unidades", ingresos: 0, egresos: 0, stock: 0 };
+      }
+
+      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
+      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') { acc[key].ingresos += cantidad; } 
+      else if (mov.tipo === 'egreso') { acc[key].egresos += cantidad; }
+      return acc;
+    }, {});
+    Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
+    return Object.values(acumulado);
+  }, [nacionMovs, provinciaMovs]);
+
   if (!usuarioActual) {
     return <Login usuarios={usuariosSeguros} onLogin={setUsuarioActual} onAudit={(evento) => registrarAuditoria(evento)} />;
   }
@@ -398,10 +429,8 @@ export default function App() {
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
         
-        {/* FIX: Se renderizan ambos bloques (Dashboard e Inventario) pero se controla
-            su visibilidad con CSS para no violar las reglas de los Hooks. */}
-        <div style={{ display: verDashboard ? 'block' : 'none' }}>
-          <Dashboard
+        {/* FIX: Restaurado el renderizado condicional estándar. Es seguro ahora que todos los hooks están en el nivel superior. */}
+        {verDashboard && <Dashboard
             nacionMovs={nacionMovs}
             provinciaMovs={provinciaMovs}
             listaUsuarios={listaUsuarios}
@@ -412,10 +441,9 @@ export default function App() {
             onDescargarRespaldoExcel={descargarRespaldoExcel}
             onDescargarRespaldoPDF={descargarRespaldoPDF}
             onRestaurarRespaldo={restaurarRespaldo}
-          />
-        </div>
+          />}
 
-        <div style={{ display: verDashboard ? 'none' : 'flex', flexDirection: 'column', gap: 18 }}>
+        {!verDashboard && <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* KPIs */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
             {[
@@ -466,8 +494,7 @@ export default function App() {
               />
             </div>
           </div>
-        </div>
-
+        </div>}
       </div>
 
       {modalCarga && (
