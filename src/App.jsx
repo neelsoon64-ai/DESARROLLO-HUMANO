@@ -398,75 +398,75 @@ export default function App() {
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 18 }}>
         
+        {/* FIX: Corregido el bloque condicional para usar un ternario estándar de JSX.
+            Esto soluciona el error de sintaxis "Expected : but found }" */}
         {verDashboard ? (
           <Dashboard 
-            nacionMovs={nacionMovs}
-            provinciaMovs={provinciaMovs}
-            listaUsuarios={listaUsuarios}
-            auditoria={auditoria}
-            onVolver={() => setVerDashboard(false)}
-            onCrearCopiaAhora={crearCopiaAhora}
-            onDescargarRespaldo={descargarRespaldo}
-            onDescargarRespaldoExcel={descargarRespaldoExcel}
-            onDescargarRespaldoPDF={descargarRespaldoPDF}
-            onRestaurarRespaldo={restaurarRespaldo}
-          />
-        )}
+             nacionMovs={nacionMovs}
+             provinciaMovs={provinciaMovs}
+             listaUsuarios={listaUsuarios}
+             auditoria={auditoria}
+             onVolver={() => setVerDashboard(false)}
+             onCrearCopiaAhora={crearCopiaAhora}
+             onDescargarRespaldo={descargarRespaldo}
+             onDescargarRespaldoExcel={descargarRespaldoExcel}
+             onDescargarRespaldoPDF={descargarRespaldoPDF}
+             onRestaurarRespaldo={restaurarRespaldo}
+           />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+              {[
+                { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
+                { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
+                { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
+              ].map((stat) => (
+                <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
+                  <div style={{ fontSize: 18 }}>{stat.icon}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                  <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
 
-        {/* FIX: Se renderiza siempre el contenedor del inventario, pero se oculta con CSS
-            para no violar las reglas de los Hooks que están en el componente <Seccion /> */}
-        <div style={{ display: verDashboard ? 'none' : 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* KPIs */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-            {[
-              { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
-              { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
-              { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
-            ].map((stat) => (
-              <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
-                <div style={{ fontSize: 18 }}>{stat.icon}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-                <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{stat.label}</div>
+            {/* ✅ CONTENEDOR FLEXIBLE PARA LAYOUT LADO A LADO */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+              <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+                <Seccion 
+                  nombre="Inventario — Nación" 
+                  color="#1A3A5C" 
+                  colorClaro="#2E7DC4" 
+                  datos={{ movimientos: nacionMovs }} 
+                  onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
+                  onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
+                  onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
+                  puedeEliminar={puedeEliminar}
+                  onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
+                  usuarioActual={usuarioActual}
+                  onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
+                  auditoria={auditoria} 
+                />
               </div>
-            ))}
-          </div>
-
-          {/* ✅ CONTENEDOR FLEXIBLE PARA LAYOUT LADO A LADO */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
-            <div style={{ flex: '1 1 450px', minWidth: 400 }}>
-              <Seccion 
-                nombre="Inventario — Nación" 
-                color="#1A3A5C" 
-                colorClaro="#2E7DC4" 
-                datos={{ movimientos: nacionMovs }} 
-                onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
-                onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
-                onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
-                puedeEliminar={puedeEliminar}
-                onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
-                usuarioActual={usuarioActual}
-                onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
-                auditoria={auditoria} 
-              />
-            </div>
-            <div style={{ flex: '1 1 450px', minWidth: 400 }}>
-              <Seccion 
-                nombre="Inventario — Provincia" 
-                color="#0D714C" 
-                colorClaro="#10B981" 
-                datos={{ movimientos: provinciaMovs }} 
-                onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
-                onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
-                onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
-                puedeEliminar={puedeEliminar}
-                onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
-                usuarioActual={usuarioActual}
-                onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
-                auditoria={auditoria} 
-              />
+              <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+                <Seccion 
+                  nombre="Inventario — Provincia" 
+                  color="#0D714C" 
+                  colorClaro="#10B981" 
+                  datos={{ movimientos: provinciaMovs }} 
+                  onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
+                  onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
+                  onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
+                  puedeEliminar={puedeEliminar}
+                  onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
+                  usuarioActual={usuarioActual}
+                  onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
+                  auditoria={auditoria} 
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {modalCarga && (
