@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgreso }) {
+export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgreso, onVerHistorial }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
@@ -21,7 +21,12 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgr
   return (
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', marginBottom: 16 }}>Inventario Total</h1>
-      
+
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={onVerHistorial} style={{ background: '#1D4ED8', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+          📋 Ver cargas y salidas
+        </button>
+      </div>
       <div style={{ padding: "12px 16px", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <input type="text" placeholder="Buscar por artículo o categoría..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 200, padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14 }} />
         <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, background: "#fff", minWidth: 180 }}>
@@ -36,7 +41,7 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgr
               <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600 }}>Artículo</th>
               <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Ingresos</th>
               <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Egresos</th>
-              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'right' }}>Stock Actual</th>
+              <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'right' }}>Stock Total</th>
               <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Estado</th>
               <th style={{ padding: "12px 16px", color: "#6B7280", fontWeight: 600, textAlign: 'center' }}>Acciones</th>
             </tr>
@@ -44,7 +49,7 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgr
           <tbody>
             {stockFiltrado.map((item) => {
               const estado = getEstado(item.stock, item.stockMinimo);
-              return (
+              return ( 
                 <tr key={item.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ fontWeight: 600, color: "#111827" }}>{item.descripcion}</div>
@@ -57,7 +62,7 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgr
                     {item.egresos}
                   </td>
                   <td style={{ padding: "12px 16px", fontWeight: 700, fontSize: 16, color: "#111827", textAlign: 'right' }}>
-                    {item.stock} <span style={{ color: '#6B7280', fontWeight: 500 }}>{item.unidad}</span>
+                    {item.stock} <span style={{ color: '#6B7280', fontWeight: 500, fontSize: 14 }}>{item.unidad}</span>
                   </td>
                   <td style={{ padding: "12px 16px", textAlign: 'center' }}>
                     <span style={{
@@ -75,8 +80,9 @@ export default function PaginaStock({ stockConsolidado, onAbrirFicha, onAbrirEgr
                     <button onClick={() => onAbrirFicha(item)} style={{ background: '#F3F4F6', color: '#4B5563', border: '1px solid #E5E7EB', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                       Ver Ficha
                     </button>
-                    <button onClick={() => onAbrirEgreso(item)} disabled={item.stock <= 0} style={{ background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: item.stock <= 0 ? 0.5 : 1 }}>
-                      - Egreso
+                    {/* ✅ NEW: Button to register an outflow */}
+                    <button onClick={() => onAbrirEgreso(item)} disabled={item.stock <= 0} style={{ background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: item.stock <= 0 ? 0.4 : 1 }}>
+                      − Registrar salida
                     </button>
                   </td>
                 </tr>
