@@ -6,7 +6,7 @@ import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [], stockDisponible = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
-  const esEdicionDesdeFicha = !!datosEdicion && !datosEdicion.id;
+  const esEdicionDesdeFicha = !!datosEdicion?.esEdicionDesdeFicha;
   
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 

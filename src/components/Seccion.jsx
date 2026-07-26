@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { utils, writeFile } from "xlsx";
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, MinusCircle } from 'lucide-react';
 
-export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, onVerDetalle, usuarioActual, onAudit }) {
+export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, onVerDetalle, usuarioActual, onAudit, onRegistrarSalida }) {
   const [busqueda, setBusqueda] = useState(""); // 'stock' o 'historial'
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
   const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
@@ -164,8 +164,8 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
       {/* Selectores de Pestaña */}
       <div className="no-print-barra" style={{ display: "flex", borderBottom: "1px solid #E2E8F0" }}>
-        <button onClick={() => setPestaña("stock")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "stock" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "stock" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📦 Stock Consolidado</button>
-        <button onClick={() => setPestaña("historial")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "historial" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "historial" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📜 Historial de Movimientos</button>
+        <button onClick={() => setPestaña("stock")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "stock" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "stock" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📦 Stock Actual</button>
+        <button onClick={() => setPestaña("historial")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "historial" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "historial" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📜 Ver Historial</button>
       </div>
 
       {/* Barra de Filtros */}
@@ -189,6 +189,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                   <th style={{ padding: "10px", textAlign: "center" }}>Ingresos</th>
                   <th style={{ padding: "10px", textAlign: "center" }}>Egresos</th>
                   <th style={{ padding: "10px", textAlign: "right" }}>Stock Actual</th>
+                  <th className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -206,6 +207,20 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     </td>
                     <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, fontSize: 14, color: item.stock > 0 ? "#16A34A" : "#DC2626" }}>
                       {item.stock} <span style={{ fontSize: 11, color: '#64748B', fontWeight: 500 }}>{item.unidad}</span>
+                    </td>
+                    <td className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>
+                      {onRegistrarSalida && item.stock > 0 && (
+                        <button 
+                          onClick={() => onRegistrarSalida(item)}
+                          style={{
+                            background: "#FEE2E2", color: "#B91C1C", border: "1px solid #FECACA", borderRadius: 6, 
+                            padding: "5px 10px", cursor: "pointer", fontWeight: 600, fontSize: 11,
+                            display: 'flex', alignItems: 'center', gap: 4, margin: 'auto'
+                          }}
+                        >
+                          <MinusCircle size={14} /> Registrar Salida
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

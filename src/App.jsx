@@ -427,6 +427,11 @@ export default function App() {
                 datos={{ movimientos: nacionMovs }} 
                 onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
                 onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
+                onRegistrarSalida={puedeEscribir ? (item) => setModalCarga({ 
+                  seccion: "nacion", 
+                  datos: { ...item, tipo: 'egreso', cantidad: '' },
+                  esEdicionDesdeFicha: true
+                }) : undefined}
                 onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
                 puedeEliminar={puedeEliminar}
                 onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
@@ -443,6 +448,11 @@ export default function App() {
                 datos={{ movimientos: provinciaMovs }} 
                 onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
                 onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
+                onRegistrarSalida={puedeEscribir ? (item) => setModalCarga({ 
+                  seccion: "provincia", 
+                  datos: { ...item, tipo: 'egreso', cantidad: '' },
+                  esEdicionDesdeFicha: true
+                }) : undefined}
                 onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
                 puedeEliminar={puedeEliminar}
                 onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
@@ -458,7 +468,7 @@ export default function App() {
       {modalCarga && (
         <ModalRemito
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
-          datosEdicion={modalCarga.datos}
+          datosEdicion={{...modalCarga.datos, esEdicionDesdeFicha: modalCarga.esEdicionDesdeFicha}}
           expedientesExistentes={stockConsolidado.map(m => m.numero_expediente)}
           stockDisponible={stockConsolidado}
           onClose={() => setModalCarga(null)}
