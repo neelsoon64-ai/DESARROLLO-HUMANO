@@ -306,6 +306,7 @@ export default function App() {
     const todosLosMovimientos = [...nacionMovs, ...provinciaMovs];
     if (!todosLosMovimientos || !Array.isArray(todosLosMovimientos)) return [];
     const acumulado = todosLosMovimientos.reduce((acc, mov) => {
+      // FIX: Asegurarse de que el movimiento y la descripción son válidos antes de procesar.
       if (!mov.descripcion) return acc;
       const categoria = mov.categoria || "General";
       const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
@@ -323,8 +324,11 @@ export default function App() {
       }
 
       const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') { acc.ingresos += cantidad; } 
-      else if (mov.tipo === 'egreso') { acc.egresos += cantidad; }
+      // FIX: Corregido el acceso al acumulador. Se debe modificar acc[key], no acc directamente.
+      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') { 
+        acc[key].ingresos += cantidad;
+      } else if (mov.tipo === 'egreso') { 
+        acc[key].egresos += cantidad; }
       return acc;
     }, {});
     Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
@@ -407,62 +411,62 @@ export default function App() {
             onDescargarRespaldoPDF={descargarRespaldoPDF}
             onRestaurarRespaldo={restaurarRespaldo}
           />
-        ) : (
-          // The previous attempt to fix this was close but not quite right.
-          // The entire block needs to be rendered, but its visibility toggled.
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {/* KPIs */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-              {[
-                { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
-                { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
-                { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
-              ].map((stat) => (
-                <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
-                  <div style={{ fontSize: 18 }}>{stat.icon}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
-                  <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{stat.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* ✅ CONTENEDOR FLEXIBLE PARA LAYOUT LADO A LADO */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
-              <div style={{ flex: '1 1 450px', minWidth: 400 }}>
-                <Seccion 
-                  nombre="Inventario — Nación" 
-                  color="#1A3A5C" 
-                  colorClaro="#2E7DC4" 
-                  datos={{ movimientos: nacionMovs }} 
-                  onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
-                  onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
-                  onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
-                  puedeEliminar={puedeEliminar}
-                  onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
-                  usuarioActual={usuarioActual}
-                  onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
-                  auditoria={auditoria} 
-                />
-              </div>
-              <div style={{ flex: '1 1 450px', minWidth: 400 }}>
-                <Seccion 
-                  nombre="Inventario — Provincia" 
-                  color="#0D714C" 
-                  colorClaro="#10B981" 
-                  datos={{ movimientos: provinciaMovs }} 
-                  onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
-                  onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
-                  onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
-                  puedeEliminar={puedeEliminar}
-                  onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
-                  usuarioActual={usuarioActual}
-                  onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
-                  auditoria={auditoria} 
-                />
-              </div>
-            </div>
-        </div>
         )}
+
+        {/* FIX: Se renderiza siempre el contenedor del inventario, pero se oculta con CSS
+            para no violar las reglas de los Hooks que están en el componente <Seccion /> */}
+        <div style={{ display: verDashboard ? 'none' : 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* KPIs */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+            {[
+              { label: "Artículos Nación", value: articulosNacionUnicos, icon: "🏛️", color: "#1A3A5C" },
+              { label: "Artículos Provincia", value: articulosProvinciaUnicos, icon: "🏢", color: "#2E7DC4" },
+              { label: "Total Movimientos", value: nacionMovs.length + provinciaMovs.length, icon: "📋", color: "#C8993A" },
+            ].map((stat) => (
+              <div key={stat.label} style={{ background: "#fff", borderRadius: 12, padding: "13px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderTop: `3px solid ${stat.color}` }}>
+                <div style={{ fontSize: 18 }}>{stat.icon}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ✅ CONTENEDOR FLEXIBLE PARA LAYOUT LADO A LADO */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+            <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+              <Seccion 
+                nombre="Inventario — Nación" 
+                color="#1A3A5C" 
+                colorClaro="#2E7DC4" 
+                datos={{ movimientos: nacionMovs }} 
+                onCarga={puedeEscribir ? () => setModalCarga({ seccion: "nacion", datos: null }) : undefined} 
+                onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
+                onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
+                puedeEliminar={puedeEliminar}
+                onVerDetalle={(mov) => abrirDetalle(mov, "nacion")}
+                usuarioActual={usuarioActual}
+                onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
+                auditoria={auditoria} 
+              />
+            </div>
+            <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+              <Seccion 
+                nombre="Inventario — Provincia" 
+                color="#0D714C" 
+                colorClaro="#10B981" 
+                datos={{ movimientos: provinciaMovs }} 
+                onCarga={puedeEscribir ? () => setModalCarga({ seccion: "provincia", datos: null }) : undefined} 
+                onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
+                onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
+                puedeEliminar={puedeEliminar}
+                onVerDetalle={(mov) => abrirDetalle(mov, "provincia")}
+                usuarioActual={usuarioActual}
+                onAudit={(evento) => registrarAuditoria(evento, usuarioActual)}
+                auditoria={auditoria} 
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {modalCarga && (
