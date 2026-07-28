@@ -198,22 +198,24 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       // ✅ ESTRUCTURA DE DATOS GARANTIZADA: Cada campo se mapea a su lugar correcto.
       // ─── 🚀 ENVÍO INMUNE A TU BASE DE DATOS ───
       onGuardar({
-        ...inicial,
+        ...inicial, // Preserva todos los campos originales no modificados
         id,
-        nombre_destinatario: form.nombre_destinatario,
-        apellido_destinatario: form.apellido_destinatario,
-        dni_destinatario: form.dni_destinatario,
-        destinatario: form.destinatario,
         fecha: fechaFinal,
         fechaCarga: fechaFinal,
         origen: origenDetectado, // 🔥 ESTA LÍNEA SOLUCIONA EL FILTRADO Y GUARDADO
         nroRemito: form.nroRemito,
         proveedor: proveedorFinal,
-        // La descripción del artículo NUNCA se mezcla con el destinatario.
-        destinatario: form.tipo === 'egreso' ? form.destinatario.trim() : "",
-        nombre_destinatario: form.tipo === 'egreso' ? form.nombre_destinatario.trim() : "",
-        apellido_destinatario: form.tipo === 'egreso' ? form.apellido_destinatario.trim() : "",
-        dni_destinatario: form.tipo === 'egreso' ? form.dni_destinatario.trim() : "",
+        
+        // ✅ CORRECCIÓN CRÍTICA: Lógica de guardado parcial y sin duplicados.
+        // Solo se actualizan los campos del destinatario si el tipo es 'egreso'.
+        // Si es 'ingreso', los campos existentes en `...inicial` se preservan.
+        ...(form.tipo === 'egreso' && {
+          destinatario: form.destinatario.trim(),
+          nombre_destinatario: form.nombre_destinatario.trim(),
+          apellido_destinatario: form.apellido_destinatario.trim(),
+          dni_destinatario: form.dni_destinatario.trim(),
+        }),
+
         observaciones: form.observaciones,
         tipo: form.tipo,
         categoria: form.categoria,
