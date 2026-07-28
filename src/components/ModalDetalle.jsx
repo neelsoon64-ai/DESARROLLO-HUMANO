@@ -15,13 +15,13 @@ const formatearUrlDrive = (idOrUrl) => {
   }
 
   // Extraemos el ID de cualquier formato de enlace de Google Drive
-  const matchId = idOrUrl.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})|([a-zA-Z0-9-_]{25,})/);
+  const matchId = idOrUrl.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
   if (matchId && matchId[1]) {
     // Usamos el endpoint de thumbnail pidiendo una imagen de alta calidad (w1280).
     return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w1280`;
   }
 
-  // Si es solo el ID (sin barras ni parámetros), lo usamos directamente.
+  // Si es solo el ID (sin barras ni parámetros)
   if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
     return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
   }
@@ -107,15 +107,15 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                 <>
                   <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                     <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Destinatario</div>
-                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{`${mov.nombre_destinatario || ''} ${mov.apellido_destinatario || ''}`.trim() || "No Informado"}</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{`${mov.nombre_destinatario || ''} ${mov.apellido_destinatario || ''}`.trim() || "No informado"}</div>
                   </div>
                   <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                     <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>DNI</div>
-                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.dni_destinatario || "No Informado"}</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.dni_destinatario || "No informado"}</div>
                   </div>
                   <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                     <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Institución</div>
-                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.destinatario || "No Informado"}</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.destinatario || "No informado"}</div>
                   </div>
                 </>
               ) : (
