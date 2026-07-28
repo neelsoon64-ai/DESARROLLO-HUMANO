@@ -5,7 +5,6 @@ import { InfoItem } from "./Common.jsx";
 // 📄 Importamos la función encargada de armar el PDF oficial de Desarrollo Humano
 import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 
-// ✅ Función Helper mejorada: compatibilidad con Drive + soporte de buena calidad
 const formatearUrlDrive = (idOrUrl) => {
   if (!idOrUrl || typeof idOrUrl !== "string") return "";
 
@@ -14,8 +13,9 @@ const formatearUrlDrive = (idOrUrl) => {
     return idOrUrl;
   }
 
-  // Si es solo el ID del archivo de Drive (sin ser una URL completa),
-  // construimos la URL del thumbnail.
+  // ✅ CORRECCIÓN DEFINITIVA: Si es solo el ID del archivo de Drive (una cadena
+  // alfanumérica larga sin barras), construimos la URL del thumbnail.
+  // Esto captura el caso que causaba el error 404.
   if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
     return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
   }
@@ -31,9 +31,11 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
   if (!mov) return null;
 
   // Procesamos todas las fotos
-  const fotosArray = Array.isArray(mov.foto) 
-    ? mov.foto.map(item => formatearUrlDrive(item))
-    : (mov.foto ? [formatearUrlDrive(mov.foto)] : []);
+  // ✅ CORRECCIÓN DEFINITIVA: Filtramos las URLs inválidas ANTES de renderizar.
+  // Esto evita que se renderice un <img src=""> y cause un error 404.
+  const fotosValidas = (Array.isArray(mov.foto) ? mov.foto : (mov.foto ? [mov.foto] : []))
+    .map(item => formatearUrlDrive(item))
+    .filter(url => url && url.length > 0);
 
   const [zoomOpen, setZoomOpen] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState(null);
@@ -42,8 +44,8 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
 
   // Sincronizamos la foto seleccionada
   useEffect(() => {
-    if (fotosArray.length > 0) {
-      setFotoSeleccionada(fotosArray[0]);
+    if (fotosValidas.length > 0) {
+      setFotoSeleccionada(fotosValidas[0]);
     }
   }, [mov]);
 
@@ -157,19 +159,19 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
               <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
                 <div>
-                  <div style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>Imágenes del remito ({fotosArray.length})</div>
+                  <div style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>Imágenes del remito ({fotosValidas.length})</div>
                   <div style={{ color: "#64748B", fontSize: 11, marginTop: 4 }}>Pulse sobre cualquier captura para ampliar</div>
                 </div>
-                {fotosArray.length > 0 && (
+                {fotosValidas.length > 0 && (
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                     <button
-                      onClick={() => abrirZoom(fotosArray[0])}
+                      onClick={() => abrirZoom(fotosValidas[0])}
                       style={{ border: "1px solid #E2E8F0", background: "#F8FAFC", color: "#0F172A", borderRadius: 12, padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
                     >
                       🔎 Ampliar
                     </button>
                     <button
-                      onClick={() => window.open(fotosArray[0], "_blank")}
+                      onClick={() => window.open(fotosValidas[0], "_blank")}
                       style={{ border: "1px solid #E2E8F0", background: "#fff", color: "#0F172A", borderRadius: 12, padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
                     >
                       🌐 Abrir en pestaña
@@ -179,22 +181,22 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
               </div>
               
               <div style={{ padding: 18, background: "#F8FAFC" }}>
-                {fotosArray.length > 0 ? (
+                {fotosValidas.length > 0 ? (
                   <div style={{ 
                     display: "grid", 
-                    gridTemplateColumns: fotosArray.length === 1 ? "1fr" : "1fr 1fr", 
+                    gridTemplateColumns: fotosValidas.length === 1 ? "1fr" : "1fr 1fr", 
                     gap: 12,
                     maxHeight: 380,
                     overflowY: "auto"
                   }}>
-                    {fotosArray.map((fotoUrl, index) => (
+                    {fotosValidas.map((fotoUrl, index) => (
                       <img
                         key={index}
                         src={fotoUrl}
                         alt={`Parte del remito ${index + 1}`}
                         style={{ 
                           width: "100%", 
-                          height: fotosArray.length === 1 ? "auto" : 140, 
+                          height: fotosValidas.length === 1 ? "auto" : 140, 
                           maxHeight: 340,
                           borderRadius: 14, 
                           objectFit: "contain",
