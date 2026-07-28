@@ -474,9 +474,10 @@ export default function App() {
           onClose={() => setModalCarga(null)}
           onGuardar={async (carga) => {
             const conUsuario = { 
-              ...carga, 
-              id: modalCarga.datos?.id || carga.id, 
-              cargadoPor: modalCarga.datos?.cargadoPor || usuarioActual?.nombre || "Desconocido" 
+              ...carga,
+              cargadoPor: modalCarga.datos?.cargadoPor || usuarioActual?.nombre || "Desconocido",
+              editadoPor: modalCarga.datos ? (usuarioActual?.nombre || "Desconocido") : null,
+              fechaEdicion: modalCarga.datos ? new Date().toISOString() : null
             };
             await agregarCarga(modalCarga.seccion, conUsuario);
             registrarAuditoria({

@@ -249,7 +249,7 @@ export function imprimirRemitoOficial(remito) {
           </div>
           <div class="bloque-dato">
             ${remito.tipo === 'egreso' ? `
-              <p><strong>Destinatario:</strong> ${remito.nombre_destinatario || ''} ${remito.apellido_destinatario || ''}</p> 
+              <p><strong>Destinatario:</strong> ${`${remito.nombre_destinatario || ''} ${remito.apellido_destinatario || ''}`.trim() || 'No especificado'}</p>
               <p><strong>DNI:</strong> ${remito.dni_destinatario || 'No especificado'}</p>
               <p><strong>Institución:</strong> ${remito.destinatario || 'No especificado'}</p>
             ` : `
