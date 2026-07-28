@@ -103,10 +103,23 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                   <div style={{ color: new Date(mov.fechaVencimiento) < new Date() ? "#991B1B" : "#0F172A", fontSize: 14, fontWeight: 700 }}>{formatFechaCorta(mov.fechaVencimiento)}</div>
                 </div>
               )}
-              <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
-                <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Proveedor</div>
-                <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.proveedor || "No informado"}</div>
-              </div>
+              {mov.tipo === 'egreso' ? (
+                <>
+                  <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
+                    <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Destinatario</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{`${mov.nombre_destinatario || ''} ${mov.apellido_destinatario || ''}`.trim() || "No informado"}</div>
+                  </div>
+                  <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
+                    <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>DNI / Institución</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.destinatario || "No informado"}</div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
+                  <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Proveedor</div>
+                  <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.proveedor || "No informado"}</div>
+                </div>
+              )}
               <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                 <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Cargado por</div>
                 <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.cargadoPor || "Desconocido"}</div>

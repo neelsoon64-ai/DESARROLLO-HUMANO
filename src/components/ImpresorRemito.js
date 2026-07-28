@@ -248,8 +248,13 @@ export function imprimirRemitoOficial(remito) {
             <p><strong>Categoría:</strong> ${remito.categoria || "General"}</p>
           </div>
           <div class="bloque-dato">
-            <p><strong>Ubicación / Procedencia:</strong> ${remito.proveedor || "No especificado"}</p>
-            <p><strong>ID Interno Movimiento:</strong> #${remito.id}</p>
+            ${remito.tipo === 'egreso' ? `
+              <p><strong>Destinatario:</strong> ${remito.nombre_destinatario || ''} ${remito.apellido_destinatario || ''}</p>
+              <p><strong>DNI / Institución:</strong> ${remito.destinatario || 'No especificado'}</p>
+            ` : `
+              <p><strong>Ubicación / Procedencia:</strong> ${remito.proveedor || "No especificado"}</p>
+            `}
+            <p><strong>ID Movimiento:</strong> #${remito.id}</p>
           </div>
         </div>
 

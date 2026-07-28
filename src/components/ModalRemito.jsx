@@ -20,6 +20,9 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     nroRemito: inicial.nroRemito || "",
     proveedor: inicial.proveedor || "",
     observaciones: inicial.observaciones || "",
+    nombre_destinatario: inicial.nombre_destinatario || "", // ✅ CAMPO NUEVO
+    apellido_destinatario: inicial.apellido_destinatario || "", // ✅ CAMPO NUEVO
+    dni_destinatario: inicial.dni_destinatario || "", // ✅ CAMPO NUEVO
     destinatario: inicial.destinatario || "", // ✅ CAMPO NUEVO
     tipo: inicial.tipo || "ingreso", 
     categoria: inicial.categoria || CATEGORIAS[0].id,
@@ -184,6 +187,9 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         proveedor: proveedorFinal,
         // La descripción del artículo NUNCA se mezcla con el destinatario.
         destinatario: form.tipo === 'egreso' ? form.destinatario.trim() : "", // ✅ GUARDAR DESTINATARIO
+        nombre_destinatario: form.tipo === 'egreso' ? form.nombre_destinatario.trim() : "", // ✅ GUARDAR NOMBRE
+        apellido_destinatario: form.tipo === 'egreso' ? form.apellido_destinatario.trim() : "", // ✅ GUARDAR APELLIDO
+        dni_destinatario: form.tipo === 'egreso' ? form.dni_destinatario.trim() : "", // ✅ GUARDAR DNI
         observaciones: form.observaciones,
         tipo: form.tipo,
         categoria: form.categoria,
@@ -304,9 +310,20 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
               />
             </div>
           ) : ( // Si es egreso
-            <div style={fieldGroup}>
-              <label style={labelStyle}>Destinatario / Institución</label>
-              <input type="text" placeholder="Ej: Fernández Ignacio, Comedor Los Pibes" value={form.destinatario} onChange={(e) => set("destinatario", e.target.value)} style={inputStyle} />
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Nombre Destinatario</label>
+                  <input type="text" placeholder="Ej: Juan" value={form.nombre_destinatario} onChange={(e) => set("nombre_destinatario", e.target.value)} style={inputStyle} />
+                </div>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Apellido Destinatario</label>
+                  <input type="text" placeholder="Ej: Pérez" value={form.apellido_destinatario} onChange={(e) => set("apellido_destinatario", e.target.value)} style={inputStyle} />
+                </div>
+              </div>
+              <div style={fieldGroup}>
+                <label style={labelStyle}>DNI / Institución (Opcional)</label>
+                <input type="text" placeholder="DNI de la persona o nombre de la institución" value={form.destinatario} onChange={(e) => set("destinatario", e.target.value)} style={inputStyle} />
             </div>
           )}
 
