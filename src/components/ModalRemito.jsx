@@ -3,6 +3,23 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js"; // ✅ No hay
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
+const formatearUrlDrive = (idOrUrl) => {
+  if (!idOrUrl || typeof idOrUrl !== "string") return "";
+
+  // Si ya es una URL completa (http, https) o una imagen en base64, la devolvemos.
+  if (idOrUrl.startsWith("http") || idOrUrl.startsWith("data:")) {
+    return idOrUrl;
+  }
+
+  // Si es solo el ID del archivo de Drive, construimos la URL del thumbnail.
+  if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
+    return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
+  }
+
+  console.warn("URL de imagen inválida detectada en ModalRemito:", idOrUrl);
+  return ""; // Devolvemos cadena vacía para URLs inválidas.
+};
+
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [], stockDisponible = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
@@ -38,8 +55,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     fechaCierre: inicial.fechaCierre ? new Date(inicial.fechaCierre).toISOString().slice(0, 10) : "",
     listaFotos: fotosIniciales.map((foto, idx) => ({
       id: `foto-inicial-${idx}`,
-      url: foto,
-      preview: foto
+      url: foto, // Se mantiene el ID o URL original para el guardado
+      preview: formatearUrlDrive(foto) // Se usa una URL formateada y segura para la vista previa
     })),
   });
 
@@ -487,7 +504,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
             {form.listaFotos.length > 0 && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 {form.listaFotos.map((foto) => (
-                  <div key={foto.id} style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F8FAFC" }}>
+                  <div key={foto.id} style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F1F5F9" }}>
                     <img src={foto.preview || foto.url} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
                     <button 
                       type="button"
