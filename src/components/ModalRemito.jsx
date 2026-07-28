@@ -511,6 +511,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                 {form.listaFotos.map((foto) => (
                   <div key={foto.id} style={{ position: "relative", border: "2px solid #CBD5E1", borderRadius: 10, overflow: "hidden", background: "#F1F5F9" }}>
+                    {/* ✅ CORRECCIÓN: Usar siempre foto.preview para el src, que es la URL formateada y segura.
+                        foto.url puede contener el ID crudo que causa el 404.
+                        Si preview no existe (caso improbable), se usa la url como fallback.
+                    */}
                     <img src={foto.preview || foto.url} alt="Remito adjunto" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }} />
                     <button 
                       type="button"
