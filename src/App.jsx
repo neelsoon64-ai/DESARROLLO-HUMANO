@@ -162,13 +162,6 @@ export default function App() {
     async (seccion, carga) => {
       const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
 
-      let fotoLimpia = carga?.foto || "";
-      if (fotoLimpia && typeof fotoLimpia === "string" && fotoLimpia.includes("google")) {
-        const matchId = fotoLimpia.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
-        const idExtraido = matchId ? matchId[1] : null;
-        if (idExtraido) fotoLimpia = idExtraido;
-      }
-
       const movimientoSeguro = {
         id: idMovimiento,
         descripcion: String(carga?.descripcion || "Sin descripción").trim(),
@@ -187,7 +180,7 @@ export default function App() {
         fechaVencimiento: carga?.fechaVencimiento || null,
         estadoRemito: carga?.estadoRemito || "Pendiente",
         fechaCierre: carga?.fechaCierre || null,
-        foto: fotoLimpia,
+        foto: carga?.foto || "",
         cargadoPor: carga?.cargadoPor || "Desconocido",
         editadoPor: carga?.editadoPor || null
       };

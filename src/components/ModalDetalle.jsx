@@ -9,24 +9,21 @@ import { imprimirRemitoOficial } from "./ImpresorRemito.js";
 const formatearUrlDrive = (idOrUrl) => {
   if (!idOrUrl || typeof idOrUrl !== "string") return "";
 
-  // Si ya es base64 o archivo propio, lo dejamos intacto
-  if (idOrUrl.startsWith("data:")) {
+  // Si ya es una URL completa (http, https) o una imagen en base64, la devolvemos.
+  if (idOrUrl.startsWith("http") || idOrUrl.startsWith("data:")) {
     return idOrUrl;
   }
 
-  // Extraemos el ID de cualquier formato de enlace de Google Drive
-  const matchId = idOrUrl.match(/(?:id=|\/d\/|\/uc\?id=)([a-zA-Z0-9-_]{25,})/);
-  if (matchId && matchId[1]) {
-    // Usamos el endpoint de thumbnail pidiendo una imagen de alta calidad (w1280).
-    return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=w1280`;
-  }
-
-  // Si es solo el ID (sin barras ni parámetros)
+  // Si es solo el ID del archivo de Drive (sin ser una URL completa),
+  // construimos la URL del thumbnail.
   if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
     return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
   }
 
-  return idOrUrl;
+  // Si no coincide con ninguno de los casos anteriores, es una URL inválida.
+  // Devolvemos una cadena vacía para evitar renderizar una imagen rota.
+  console.warn("URL de imagen inválida detectada:", idOrUrl);
+  return "";
 };
 
 export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, puedeEliminar, onEliminar }) {
