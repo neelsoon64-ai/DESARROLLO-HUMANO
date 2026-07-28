@@ -136,23 +136,26 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       // ─── 📝 PROCESAMIENTO Y SUBIDA EN PARALELO A TU GOOGLE DRIVE ───
       const fotosProcesadas = await Promise.all(
         form.listaFotos.map(async (f, idx) => {
-          if (f.url && f.url.startsWith("http")) return f.url; // ✅ CORRECCIÓN: Si ya es una URL, la devolvemos directamente.
+          // ✅ CORRECCIÓN DEFINITIVA: Si la foto tiene una URL que empieza con http,
+          // es una foto ya subida a Google Drive. La devolvemos directamente.
+          if (f.url && f.url.startsWith("http")) return f.url;
           
+          // Si la foto tiene una vista previa en base64, es un archivo nuevo para subir.
           if (f.preview && f.preview.startsWith("data:image")) {
             try {
               console.log(`Subiendo adjunto index ${idx} a Google Drive...`);
               return await subirFotoRemito(f.preview, `remito_${id}_${idx}`);
             } catch (driveErr) {
               console.error("Falló la subida a Drive para esta imagen:", driveErr);
-              return "";
+              return null; // Devolvemos null en caso de error para filtrarlo después.
             }
           }
-          return "";
+          return null; // Si no es ni URL ni base64, es inválido.
         })
       );
 
       // ✅ REFACTORIZACIÓN FOTOS: Lógica mejorada para conservar fotos existentes.
-      const fotosFinalesFiltradas = fotosProcesadas.filter(Boolean);
+      const fotosFinalesFiltradas = fotosProcesadas.filter(url => url !== null && url !== "");
 
       // Si se subieron fotos nuevas, se usan.
       // Si no se subieron fotos nuevas y estamos editando, se conservan las originales.
