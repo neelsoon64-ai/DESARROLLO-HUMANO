@@ -107,11 +107,15 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                 <>
                   <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                     <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Destinatario</div>
-                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{`${mov.nombre_destinatario || ''} ${mov.apellido_destinatario || ''}`.trim() || "No informado"}</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{`${mov.nombre_destinatario || ''} ${mov.apellido_destinatario || ''}`.trim() || "No Informado"}</div>
                   </div>
                   <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
-                    <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>DNI / Institución</div>
-                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.destinatario || "No informado"}</div>
+                    <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>DNI</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.dni_destinatario || "No Informado"}</div>
+                  </div>
+                  <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
+                    <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Institución</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{mov.destinatario || "No Informado"}</div>
                   </div>
                 </>
               ) : (
