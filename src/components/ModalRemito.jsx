@@ -200,6 +200,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       onGuardar({
         ...inicial,
         id,
+        nombre_destinatario: form.nombre_destinatario,
+        apellido_destinatario: form.apellido_destinatario,
+        dni_destinatario: form.dni_destinatario,
+        destinatario: form.destinatario,
         fecha: fechaFinal,
         fechaCarga: fechaFinal,
         origen: origenDetectado, // 🔥 ESTA LÍNEA SOLUCIONA EL FILTRADO Y GUARDADO
