@@ -136,7 +136,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       // ─── 📝 PROCESAMIENTO Y SUBIDA EN PARALELO A TU GOOGLE DRIVE ───
       const fotosProcesadas = await Promise.all(
         form.listaFotos.map(async (f, idx) => {
-          if (f.url && f.url.startsWith("http")) return f.url; 
+          if (f.url && f.url.startsWith("http")) return f.url; // ✅ CORRECCIÓN: Si ya es una URL, la devolvemos directamente.
           
           if (f.preview && f.preview.startsWith("data:image")) {
             try {
