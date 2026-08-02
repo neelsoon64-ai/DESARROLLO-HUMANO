@@ -60,41 +60,45 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
   }, [rtdbPath, valorInicial]);
 
   const actualizar = useCallback(
-    async (actualizador) => {
-      let valorFinal;
-      
-      if (typeof actualizador === "function") {
-        // Lectura directa y limpia del estado de React para evitar bugs de concurrencia
+    (actualizador) => {
+      return new Promise((resolve, reject) => {
         setEstado((previo) => {
-          valorFinal = actualizador(previo);
+          // Calcular el nuevo valor
+          const valorFinal = typeof actualizador === "function" 
+            ? actualizador(previo) 
+            : actualizador;
           
-          // Guardamos inmediatamente en la base de datos o localStorage
-          if (firebaseConfigurado && db) {
-            const referencia = ref(db, rtdbPath);
-            rtdbSet(referencia, valorFinal).catch((err) => {
-              console.error("Error guardando en Realtime Database:", err);
-            });
-          } else {
-            window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
-          }
+          // Guardar en Firebase o localStorage de forma asincrónica
+          const guardarDatos = async () => {
+            if (firebaseConfigurado && db) {
+              const referencia = ref(db, rtdbPath);
+              try {
+                await rtdbSet(referencia, valorFinal);
+                console.debug(`✅ useSharedState: Guardado en Firebase (${rtdbPath})`);
+                resolve(valorFinal);
+              } catch (err) {
+                console.error(`❌ Error guardando en Firebase (${rtdbPath}):`, err);
+                reject(err);
+              }
+            } else {
+              try {
+                window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
+                console.debug(`✅ useSharedState: Guardado en localStorage (${rtdbPath})`);
+                resolve(valorFinal);
+              } catch (err) {
+                console.error(`❌ Error guardando en localStorage (${rtdbPath}):`, err);
+                reject(err);
+              }
+            }
+          };
           
+          // Iniciar guardado sin bloquear React
+          guardarDatos();
+          
+          // Retornar nuevo estado a React inmediatamente
           return valorFinal;
         });
-      } else {
-        valorFinal = actualizador;
-        setEstado(valorFinal);
-        
-        if (firebaseConfigurado && db) {
-          const referencia = ref(db, rtdbPath);
-          try {
-            await rtdbSet(referencia, valorFinal);
-          } catch (err) {
-            console.error("Error guardando en Realtime Database:", err);
-          }
-        } else {
-          window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
-        }
-      }
+      });
     },
     [rtdbPath]
   );
