@@ -251,6 +251,19 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
                       <span style={{ fontSize: 10, color: "#64748B" }}>{mov.categoria}</span>
+                      {mov.tipo === 'egreso' && (mov.nombre_destinatario || mov.apellido_destinatario || mov.destinatario) && (
+                        <div style={{ marginTop: 4, paddingTop: 6, borderTop: "1px solid #E5E7EB", fontSize: 11 }}>
+                          <div style={{ fontWeight: 600, color: "#1F2937" }}>
+                            👤 {[mov.nombre_destinatario, mov.apellido_destinatario].filter(Boolean).join(' ') || mov.destinatario}
+                          </div>
+                          {mov.dni_destinatario && (
+                            <div style={{ fontSize: 10, color: "#6B7280" }}>DNI: {mov.dni_destinatario}</div>
+                          )}
+                          {mov.destinatario && !mov.nombre_destinatario && (
+                            <div style={{ fontSize: 10, color: "#6B7280" }}>{mov.destinatario}</div>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: mov.tipo === 'ingreso' ? '#16A34A' : '#DC2626' }}>{mov.tipo === 'ingreso' ? '+' : '-'}{mov.cantidad} {mov.unidad}</td>
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
