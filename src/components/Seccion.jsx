@@ -7,22 +7,38 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
   const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
 
+  const esIngreso = (mov) => {
+    const tipo = String(mov?.tipo || "").trim().toLowerCase();
+    return tipo === "ingreso" || tipo === "entrada" || tipo === "inicial";
+  };
+
+  const esEgreso = (mov) => {
+    const tipo = String(mov?.tipo || "").trim().toLowerCase();
+    return tipo === "egreso" || tipo === "salida";
+  };
+
   // 🛡️ ADAPTADOR CRÍTICO: Convierte objetos de Realtime DB a Array plano
   const movimientos = (() => {
-    // Si no hay datos o no hay 'movimientos', devuelve un array vacío.
-    if (!datos || typeof datos.movimientos !== 'object' || datos.movimientos === null) return [];
-    
-    // Si 'movimientos' ya es un array, lo usamos directamente (filtrando nulos).
-    if (Array.isArray(datos.movimientos)) {
-      const resultado = datos.movimientos.filter(Boolean);
-      console.debug("Seccion: Usando array directo. Total movimientos:", resultado.length);
-      return resultado;
-    }
-    
-    // Si 'movimientos' es un objeto (compatibilidad backwards), lo convertimos a array.
-    const resultado = Object.values(datos.movimientos).filter(Boolean);
-    console.debug("Seccion: Convertida estructura de objeto a array. Total movimientos:", resultado.length);
-    return resultado;
+    if (!datos || datos.movimientos == null) return [];
+
+    const fuente = Array.isArray(datos.movimientos)
+      ? datos.movimientos
+      : Object.values(datos.movimientos).filter(Boolean);
+
+    return fuente
+      .filter(Boolean)
+      .map((mov) => {
+        if (!mov || typeof mov !== "object") return null;
+        return {
+          ...mov,
+          tipo: esIngreso(mov) ? "ingreso" : esEgreso(mov) ? "egreso" : (mov.tipo || "ingreso"),
+          cantidad: Number.isFinite(Number(mov.cantidad)) ? Number(mov.cantidad) : 0,
+          descripcion: String(mov.descripcion || mov.articulo || "Sin descripción").trim(),
+          categoria: mov.categoria || "General",
+          fechaCarga: mov.fechaCarga || mov.fecha || new Date().toISOString(),
+        };
+      })
+      .filter(Boolean);
   })();
 
   const esAdmin = usuarioActual?.rol === "Administrador";
@@ -63,9 +79,9 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
       // ✅ CÁLCULO AUTOMÁTICO: Suma o resta según el tipo de movimiento.
       const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') {
+      if (esIngreso(mov)) {
         acc[key].ingresos += cantidad;
-      } else if (mov.tipo === 'egreso') {
+      } else if (esEgreso(mov)) {
         acc[key].egresos += cantidad;
       }
       return acc;
@@ -77,6 +93,8 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   }, [movimientos]);
 
   const totalItemsUnicos = new Set(movimientos.map(m => m.descripcion)).size;
+  const totalIngresos = movimientos.reduce((total, mov) => total + (esIngreso(mov) ? Number(mov.cantidad || 0) : 0), 0);
+  const totalEgresos = movimientos.reduce((total, mov) => total + (esEgreso(mov) ? Number(mov.cantidad || 0) : 0), 0);
 
   // ✨ CÁLCULO DEL TOTAL DE UNIDADES EN STOCK
   const totalUnidadesEnStock = stockConsolidado.reduce((total, item) => total + item.stock, 0);
@@ -159,7 +177,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
         <div>
           <h2 style={{ color: "#fff", margin: 0, fontSize: 16, fontWeight: 800 }}>{nombre}</h2>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 }}>
-            {totalUnidadesEnStock} unidades en stock · {totalItemsUnicos} ítems únicos
+            {totalUnidadesEnStock} unidades en stock · {totalItemsUnicos} ítems únicos · {totalIngresos} ingresos · {totalEgresos} egresos
           </div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
@@ -282,7 +300,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                 {historialFiltrado.map((mov, idx) => (
                   <tr key={mov.id || idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>{new Date(mov.fechaCarga).toLocaleDateString()}</td>
-                    <td style={{ padding: "10px", fontWeight: 700, color: mov.tipo === 'ingreso' ? '#16A34A' : '#DC2626' }}>{mov.tipo === 'ingreso' ? '📥 Ingreso' : '📤 Egreso'}</td>
+                    <td style={{ padding: "10px", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '📥 Ingreso' : '📤 Egreso'}</td>
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
                       <span style={{ fontSize: 10, color: "#64748B" }}>{mov.categoria}</span>
@@ -300,7 +318,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: mov.tipo === 'ingreso' ? '#16A34A' : '#DC2626' }}>{mov.tipo === 'ingreso' ? '+' : '-'}{mov.cantidad} {mov.unidad}</td>
+                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '+' : '-'}{mov.cantidad} {mov.unidad}</td>
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
                     <td style={{ padding: "10px", color: "#475569", fontSize: 11 }}>
                       <div>{mov.nroRemito || "s/n"}</div>

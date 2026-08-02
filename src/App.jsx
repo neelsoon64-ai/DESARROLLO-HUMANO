@@ -295,13 +295,38 @@ export default function App() {
 
   // FIX: Todos los hooks se mueven a la parte superior del componente, antes de cualquier
   // retorno condicional, para cumplir con las Reglas de los Hooks.
-  const nacionMovs = nacion && nacion.movimientos
-    ? (Array.isArray(nacion.movimientos) ? nacion.movimientos : Object.values(nacion.movimientos)).filter(Boolean)
-    : [];
-      
-  const provinciaMovs = provincia && provincia.movimientos
-    ? (Array.isArray(provincia.movimientos) ? provincia.movimientos : Object.values(provincia.movimientos)).filter(Boolean)
-    : [];
+  const normalizarMovimiento = (mov) => {
+    if (!mov || typeof mov !== "object") return null;
+
+    const tipoOriginal = String(mov.tipo || mov.tipoMovimiento || "").trim().toLowerCase();
+    const tipoNormalizado =
+      tipoOriginal === "entrada" || tipoOriginal === "ingreso" || tipoOriginal === "inicial"
+        ? "ingreso"
+        : tipoOriginal === "salida" || tipoOriginal === "egreso"
+          ? "egreso"
+          : tipoOriginal || "ingreso";
+
+    const cantidad = Number(mov.cantidad ?? mov.total ?? 0);
+
+    return {
+      ...mov,
+      tipo: tipoNormalizado,
+      cantidad: Number.isFinite(cantidad) ? cantidad : 0,
+      descripcion: String(mov.descripcion || mov.articulo || "Sin descripción").trim(),
+      categoria: mov.categoria || "General",
+      fechaCarga: mov.fechaCarga || mov.fecha || new Date().toISOString(),
+      fecha: mov.fecha || mov.fechaCarga || new Date().toISOString(),
+    };
+  };
+
+  const normalizarMovimientos = (valor) => {
+    if (!valor) return [];
+    const fuente = Array.isArray(valor) ? valor : Object.values(valor).filter(Boolean);
+    return fuente.map(normalizarMovimiento).filter(Boolean);
+  };
+
+  const nacionMovs = normalizarMovimientos(nacion?.movimientos);
+  const provinciaMovs = normalizarMovimientos(provincia?.movimientos);
 
   const stockConsolidado = useMemo(() => {
     const todosLosMovimientos = [...nacionMovs, ...provinciaMovs];

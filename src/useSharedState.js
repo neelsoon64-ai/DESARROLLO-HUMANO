@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ref, onValue, set as rtdbSet } from "firebase/database";
 import { db, firebaseConfigurado } from "./firebase.js";
 
@@ -11,6 +11,11 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
   const [estado, setEstado] = useState(valorInicial);
   const [listo, setListo] = useState(false);
   const rtdbPath = `${coleccion}/${idDocumento}`;
+  const valorInicialRef = useRef(valorInicial);
+
+  useEffect(() => {
+    valorInicialRef.current = valorInicial;
+  }, [valorInicial]);
 
   useEffect(() => {
     if (!firebaseConfigurado || !db) {
@@ -39,9 +44,9 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
           // Firebase descarta nodos vacíos. Si viene un objeto vacío {}, 
           // le seteamos una estructura mínima para forzar su creación en la BD.
           const valorAInicializar = 
-            valorInicial && typeof valorInicial === "object" && Object.keys(valorInicial).length === 0
+            valorInicialRef.current && typeof valorInicialRef.current === "object" && Object.keys(valorInicialRef.current).length === 0
               ? { movimientos: [] }
-              : valorInicial;
+              : valorInicialRef.current;
 
           rtdbSet(referencia, valorAInicializar).catch((err) =>
             console.error("Error al inicializar nodo en RTDB:", err)
@@ -57,7 +62,7 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
     );
 
     return () => unsubscribe();
-  }, [rtdbPath, valorInicial]);
+  }, [rtdbPath]);
 
   const actualizar = useCallback(
     async (actualizador) => {
