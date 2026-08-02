@@ -60,45 +60,45 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
   }, [rtdbPath, valorInicial]);
 
   const actualizar = useCallback(
-    (actualizador) => {
-      return new Promise((resolve, reject) => {
+    async (actualizador) => {
+      let valorFinal;
+      
+      // ✅ Paso 1: Actualizar estado local en React
+      await new Promise(resolve => {
         setEstado((previo) => {
-          // Calcular el nuevo valor
-          const valorFinal = typeof actualizador === "function" 
+          // Calcular nuevo valor
+          valorFinal = typeof actualizador === "function" 
             ? actualizador(previo) 
             : actualizador;
           
-          // Guardar en Firebase o localStorage de forma asincrónica
-          const guardarDatos = async () => {
-            if (firebaseConfigurado && db) {
-              const referencia = ref(db, rtdbPath);
-              try {
-                await rtdbSet(referencia, valorFinal);
-                console.debug(`✅ useSharedState: Guardado en Firebase (${rtdbPath})`);
-                resolve(valorFinal);
-              } catch (err) {
-                console.error(`❌ Error guardando en Firebase (${rtdbPath}):`, err);
-                reject(err);
-              }
-            } else {
-              try {
-                window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
-                console.debug(`✅ useSharedState: Guardado en localStorage (${rtdbPath})`);
-                resolve(valorFinal);
-              } catch (err) {
-                console.error(`❌ Error guardando en localStorage (${rtdbPath}):`, err);
-                reject(err);
-              }
-            }
-          };
+          // Resolver promise cuando se haya calculado (se ejecutará antes de que React re-render)
+          resolve();
           
-          // Iniciar guardado sin bloquear React
-          guardarDatos();
-          
-          // Retornar nuevo estado a React inmediatamente
+          // Retornar nuevo estado
           return valorFinal;
         });
       });
+      
+      // ✅ Paso 2: Guardar en Firebase/localStorage DESPUÉS de actualizar React
+      if (firebaseConfigurado && db) {
+        const referencia = ref(db, rtdbPath);
+        try {
+          await rtdbSet(referencia, valorFinal);
+          console.debug(`✅ useSharedState: Guardado en Firebase (${rtdbPath}) - Total movimientos:`, 
+            valorFinal.movimientos?.length || Object.keys(valorFinal.movimientos || {}).length);
+        } catch (err) {
+          console.error(`❌ Error guardando en Firebase (${rtdbPath}):`, err);
+          throw err;
+        }
+      } else {
+        try {
+          window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
+          console.debug(`✅ useSharedState: Guardado en localStorage (${rtdbPath})`);
+        } catch (err) {
+          console.error(`❌ Error guardando en localStorage (${rtdbPath}):`, err);
+          throw err;
+        }
+      }
     },
     [rtdbPath]
   );

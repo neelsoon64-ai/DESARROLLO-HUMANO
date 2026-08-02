@@ -95,7 +95,13 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   const historialFiltrado = [...movimientos]
     .sort((a, b) => new Date(b.fechaCarga) - new Date(a.fechaCarga))
     .filter(mov => {
-      // ✅ FILTRO INTELIGENTE MEJORADO
+      // ✅ Si busqueda está vacía, mostrar TODO sin filtro de búsqueda
+      if (!busqueda.trim()) {
+        const coincideCategoria = categoriaFiltro === "Todas" || mov.categoria === categoriaFiltro;
+        return coincideCategoria;
+      }
+      
+      // Si hay búsqueda, aplicar filtro inteligente
       const busquedaLower = busqueda.toLowerCase();
       const coincideBusqueda = mov.descripcion.toLowerCase().includes(busquedaLower) ||
                                (mov.categoria && mov.categoria.toLowerCase().includes(busquedaLower)) ||
