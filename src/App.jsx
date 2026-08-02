@@ -174,6 +174,7 @@ export default function App() {
         cantidad: Number(carga?.cantidad || 0),
         unidad: carga?.unidad || "unidades",
         nroRemito: carga?.nroRemito || null,
+        orden_compra: carga?.orden_compra || null,
         fecha: carga?.fecha || carga?.fechaCarga || new Date().toISOString(),
         fechaCarga: carga?.fechaCarga || carga?.fecha || new Date().toISOString(),
         proveedor: carga?.proveedor || null,

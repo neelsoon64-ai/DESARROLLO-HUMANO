@@ -35,6 +35,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
   const [form, setForm] = useState({
     fecha: inicial.fecha ? new Date(inicial.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
     nroRemito: inicial.nroRemito || "",
+    orden_compra: inicial.orden_compra || "",
     proveedor: inicial.proveedor || "",
     observaciones: inicial.observaciones || "",
     nombre_destinatario: inicial.nombre_destinatario || "",
@@ -206,6 +207,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         fechaCarga: fechaFinal,
         origen: origenDetectado, // 🔥 ESTA LÍNEA SOLUCIONA EL FILTRADO Y GUARDADO
         nroRemito: form.nroRemito,
+        orden_compra: form.orden_compra.trim().toUpperCase(),
         proveedor: proveedorFinal,
         
         // ✅ CORRECCIÓN CRÍTICA: Lógica de guardado parcial y sin duplicados.
@@ -315,12 +317,18 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           </div>
 
           {/* ✅ CAMPO NUEVO: N° de Expediente con autocompletado */}
-          <div style={fieldGroup}>
-            <label style={labelStyle}>N° de Expediente (Opcional)</label>
-            <input type="text" list="expedientes-lista" placeholder="Ej: EXP-2024-12345" value={form.numero_expediente} onChange={(e) => set("numero_expediente", e.target.value)} style={inputStyle} />
-            <datalist id="expedientes-lista">
-              {expedientesUnicos.map(exp => <option key={exp} value={exp} />)}
-            </datalist>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={fieldGroup}>
+              <label style={labelStyle}>N° de Expediente (Opcional)</label>
+              <input type="text" list="expedientes-lista" placeholder="Ej: EXP-2024-12345" value={form.numero_expediente} onChange={(e) => set("numero_expediente", e.target.value)} style={inputStyle} />
+              <datalist id="expedientes-lista">
+                {expedientesUnicos.map(exp => <option key={exp} value={exp} />)}
+              </datalist>
+            </div>
+            <div style={fieldGroup}>
+              <label style={labelStyle}>Orden de Compra (Opcional)</label>
+              <input type="text" placeholder="Ej: OC-2024-0001" value={form.orden_compra} onChange={(e) => set("orden_compra", e.target.value)} style={inputStyle} />
+            </div>
           </div>
 
           {/* ✅ LÓGICA DE CAMPO CORREGIDA: Muestra el campo correcto según el tipo de movimiento */}

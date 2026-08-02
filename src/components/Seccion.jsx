@@ -103,7 +103,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   const exportarExcel = () => {
     const dataExport = pestaña === "stock" 
       ? stockFiltrado.map(i => ({ Categoría: i.categoria, Descripción: i.descripcion, 'Stock Remanente': i.stock, Unidad: i.unidad, 'Remito Origen': i.nroRemito, 'Fecha Carga': new Date(i.fechaCarga).toLocaleDateString(), 'Fecha Vto': i.fechaVencimiento ? new Date(i.fechaVencimiento).toLocaleDateString() : 'N/A' }))
-      : historialFiltrado.map(h => ({ Fecha: new Date(h.fechaCarga).toLocaleDateString(), Remito: h.nroRemito, Categoría: h.categoria, Descripción: h.descripcion, Cantidad: h.cantidad, Unidad: h.unidad, Operario: h.cargadoPor }));
+      : historialFiltrado.map(h => ({ Fecha: new Date(h.fechaCarga).toLocaleDateString(), Remito: h.nroRemito, 'Orden Compra': h.orden_compra || '', Expediente: h.numero_expediente || '', Categoría: h.categoria, Descripción: h.descripcion, Cantidad: h.cantidad, Unidad: h.unidad, Operario: h.cargadoPor }));
 
     const wb = utils.book_new();
     const ws = utils.json_to_sheet(dataExport);
@@ -269,6 +269,11 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
                     <td style={{ padding: "10px", color: "#475569", fontSize: 11 }}>
                       <div>{mov.nroRemito || "s/n"}</div>
+                      {/* ✅ ORDEN DE COMPRA */}
+                      {mov.orden_compra && (
+                        <div style={{ marginTop: 2 }}><span style={{ background: "#F3F4F6", color: "#374151", padding: "2px 6px", borderRadius: 6, fontSize: 9, fontWeight: 600, border: "1px solid #D1D5DB" }}>
+                          OC: {mov.orden_compra}</span></div>
+                      )}
                       {/* ✅ BADGE DE EXPEDIENTE */}
                       {mov.numero_expediente && (
                         <div style={{ marginTop: 4 }}><span style={{ background: "#F1F5F9", color: "#475569", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, border: "1px solid #E2E8F0" }}>
