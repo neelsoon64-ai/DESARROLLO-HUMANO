@@ -169,11 +169,19 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
       </div>
 
       {/* Barra de Filtros */}
-      <div className="no-print-filtros" style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div className="no-print-filtros" style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <input type="text" placeholder="Buscar por descripción..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
         <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, background: "#fff", minWidth: 150 }}>
           {categoriasUnicas.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
+        {(busqueda || categoriaFiltro !== "Todas") && (
+          <button 
+            onClick={() => { setBusqueda(""); setCategoriaFiltro("Todas"); }} 
+            style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E11D48", background: "#FEE2E2", color: "#B91C1C", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+          >
+            ✕ Limpiar filtros
+          </button>
+        )}
       </div>
 
       {/* Contenedor de Tablas */}
@@ -229,9 +237,24 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
           )
         ) : (
           historialFiltrado.length === 0 ? (
-            <div style={{ padding: "32px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>No hay movimientos registrados.</div>
+            <div style={{ padding: "32px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
+              {movimientos.length === 0 ? (
+                <div>No hay movimientos registrados.</div>
+              ) : (
+                <div>
+                  <div>No hay movimientos que coincidan con los filtros.</div>
+                  <div style={{ marginTop: 12, fontSize: 11, color: "#64748B" }}>
+                    Total en el sistema: {movimientos.length} movimientos
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
+            <div>
+              <div style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", fontSize: 12, color: "#64748B", fontWeight: 600 }}>
+                📊 Mostrando {historialFiltrado.length} de {movimientos.length} movimientos
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
                   <th style={{ padding: "10px" }}>Fecha</th>
@@ -315,6 +338,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                ))}
               </tbody>
             </table>
+            </div>
           )
         )}
       </div>
