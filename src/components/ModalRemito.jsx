@@ -147,9 +147,11 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     if (form.estadoRemito === "Cerrado" && !form.fechaCierre) return setError("Ingresá la fecha de cierre del remito.");
     setError("");
 
-    // ✅ GARANTIZAR QUE EL ID SE PRESERVE CORRECTAMENTE AL EDITAR
-    // Si estamos editando, usar el ID original. Si es nuevo, generar uno.
-    const id = inicial.id ? inicial.id : generarId();
+    // ✅ GARANTIZAR QUE EL ID SE PRESERVE AL EDITAR, PERO SE GENERE UNO NUEVO
+    // para cada carga/salida nueva. Si se abre desde una ficha/stock, no debe
+    // reutilizar el ID del ítem base porque eso sobrescribe el movimiento anterior.
+    const esNuevaCarga = !esEdicion || esEdicionDesdeFicha;
+    const id = esNuevaCarga ? generarId() : (inicial.id || generarId());
     setSubiendo(true);
 
     try {

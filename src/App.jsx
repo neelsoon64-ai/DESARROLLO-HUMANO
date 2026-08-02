@@ -161,8 +161,8 @@ export default function App() {
   const agregarCarga = useCallback(
     async (seccion, carga) => {
       // ✅ CORRECIÓN: Garantizar que el ID siempre existe y no se genera duplicado
-      const idMovimiento = carga.id && String(carga.id).trim() 
-        ? String(carga.id).trim() 
+      const idMovimiento = carga.id && String(carga.id).trim()
+        ? String(carga.id).trim()
         : "mov_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
 
       console.debug("agregarCarga: Usando ID:", idMovimiento, "ID carga:", carga.id);
@@ -170,6 +170,7 @@ export default function App() {
       const movimientoSeguro = {
         id: idMovimiento,
         descripcion: String(carga?.descripcion || "Sin descripción").trim(),
+        movimientoId: idMovimiento,
         categoria: carga?.categoria || "General",
         cantidad: Number(carga?.cantidad || 0),
         unidad: carga?.unidad || "unidades",
