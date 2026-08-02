@@ -160,7 +160,12 @@ export default function App() {
 
   const agregarCarga = useCallback(
     async (seccion, carga) => {
-      const idMovimiento = carga.id || "mov_" + Date.now() + Math.random().toString(36).substr(2, 5);
+      // ✅ CORRECIÓN: Garantizar que el ID siempre existe y no se genera duplicado
+      const idMovimiento = carga.id && String(carga.id).trim() 
+        ? String(carga.id).trim() 
+        : "mov_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+
+      console.debug("agregarCarga: Usando ID:", idMovimiento, "ID carga:", carga.id);
 
       const movimientoSeguro = {
         id: idMovimiento,
@@ -186,7 +191,8 @@ export default function App() {
         fechaCierre: carga?.fechaCierre || null,
         foto: carga?.foto || "",
         cargadoPor: carga?.cargadoPor || "Desconocido",
-        editadoPor: carga?.editadoPor || null
+        editadoPor: carga?.editadoPor || null,
+        origen: carga?.origen || null
       };
 
       const setter = seccion === "nacion" ? setNacion : setProvincia;
@@ -197,10 +203,12 @@ export default function App() {
         
         if (Array.isArray(movsOriginales)) {
           const clonArray = [...movsOriginales].filter(Boolean);
-          const idx = clonArray.findIndex(m => m.id === idMovimiento);
+          const idx = clonArray.findIndex(m => String(m.id).trim() === String(idMovimiento).trim());
           if (idx !== -1) {
+            console.debug("agregarCarga: Actualizando movimiento existente en índice:", idx);
             clonArray[idx] = movimientoSeguro;
           } else {
+            console.debug("agregarCarga: Añadiendo nuevo movimiento");
             clonArray.push(movimientoSeguro);
           }
           return { ...base, movimientos: clonArray };
