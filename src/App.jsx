@@ -200,24 +200,30 @@ export default function App() {
 
       await setter((prev) => {
         const base = prev || {};
-        const movsOriginales = base.movimientos;
         
-        if (Array.isArray(movsOriginales)) {
-          const clonArray = [...movsOriginales].filter(Boolean);
-          const idx = clonArray.findIndex(m => String(m.id).trim() === String(idMovimiento).trim());
-          if (idx !== -1) {
-            console.debug("agregarCarga: Actualizando movimiento existente en índice:", idx);
-            clonArray[idx] = movimientoSeguro;
-          } else {
-            console.debug("agregarCarga: Añadiendo nuevo movimiento");
-            clonArray.push(movimientoSeguro);
-          }
-          return { ...base, movimientos: clonArray };
-        } 
+        // ✅ FUERZA GARANTIZADA: Siempre convertir a array
+        let movsArray = [];
+        if (Array.isArray(base.movimientos)) {
+          movsArray = [...base.movimientos].filter(Boolean);
+        } else if (base.movimientos && typeof base.movimientos === 'object') {
+          // Si es un objeto (por compatibilidad), convertirlo a array
+          movsArray = Object.values(base.movimientos).filter(Boolean);
+          console.debug("agregarCarga: Convertida estructura de objeto a array. Total movimientos:", movsArray.length);
+        }
         
-        const clonObjeto = movsOriginales ? { ...movsOriginales } : {};
-        clonObjeto[idMovimiento] = movimientoSeguro;
-        return { ...base, movimientos: clonObjeto };
+        // Buscar si el movimiento ya existe
+        const idx = movsArray.findIndex(m => String(m?.id).trim() === String(idMovimiento).trim());
+        
+        if (idx !== -1) {
+          console.debug("agregarCarga: Actualizando movimiento existente en índice:", idx);
+          movsArray[idx] = movimientoSeguro;
+        } else {
+          console.debug("agregarCarga: Añadiendo nuevo movimiento. Total anterior:", movsArray.length);
+          movsArray.push(movimientoSeguro);
+          console.debug("agregarCarga: Total después de agregar:", movsArray.length);
+        }
+        
+        return { ...base, movimientos: movsArray };
       });
     },
     [setNacion, setProvincia]
@@ -232,18 +238,21 @@ export default function App() {
 
       await setter((prev) => {
         const base = prev || {};
-        const movsOriginales = base.movimientos;
-
-        if (Array.isArray(movsOriginales)) {
-          const clonArray = [...movsOriginales]
-            .filter(Boolean)
-            .filter(m => m.id !== idMovimiento);
-          return { ...base, movimientos: clonArray };
+        
+        // ✅ FUERZA GARANTIZADA: Siempre convertir a array
+        let movsArray = [];
+        if (Array.isArray(base.movimientos)) {
+          movsArray = [...base.movimientos].filter(Boolean);
+        } else if (base.movimientos && typeof base.movimientos === 'object') {
+          movsArray = Object.values(base.movimientos).filter(Boolean);
         }
-
-        const clonObjeto = movsOriginales ? { ...movsOriginales } : {};
-        delete clonObjeto[idMovimiento];
-        return { ...base, movimientos: clonObjeto };
+        
+        // Filtrar eliminando el movimiento con el ID especificado
+        const movsActualizados = movsArray.filter(m => String(m?.id).trim() !== String(idMovimiento).trim());
+        
+        console.debug("eliminarCarga: Antes:", movsArray.length, "Después:", movsActualizados.length);
+        
+        return { ...base, movimientos: movsActualizados };
       });
     },
     [setNacion, setProvincia]
