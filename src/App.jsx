@@ -550,7 +550,7 @@ export default function App() {
       )}
 
       {panelAudit && <PanelAuditoria logs={auditoria} onClose={() => setPanelAudit(false)} />}
-      {panelUsers && <PanelUsuarios usuarios={listaUsuarios} setUsuarios={setUsuarios} onClose={() => setPanelUsers(false)} onAudit={(evento) => registrarAuditoria(evento, usuarioActual)} usuarioActual={usuarioActual} />}
+      {panelUsers && <PanelUsuarios usuarios={listaUsuarios} onUpdate={setUsuarios} onClose={() => setPanelUsers(false)} onAudit={(evento) => registrarAuditoria(evento, usuarioActual)} usuarioActual={usuarioActual} />}
     </div>
   );
 }
