@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal } from "../styles.js";
 import { firebaseConfigurado } from "../firebase.js";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo.png"; 
 
 export default function Login({ usuarios, onLogin, onAudit }) {
-  const [user, setUser] = useState("");
+  const [user, setUser] = useState(""); 
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
   const [verPass, setVerPass] = useState(false);

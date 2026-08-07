@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES } from "./constants.js";
 import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
-import Login from "./components/Login.jsx";
+import Login from "./components/login.jsx";
 import Seccion from "./components/Seccion.jsx"; 
 import ModalRemito from "./components/ModalRemito.jsx";
 import ModalDetalle from "./components/ModalDetalle.jsx";
