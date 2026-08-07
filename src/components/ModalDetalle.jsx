@@ -13,16 +13,14 @@ const formatearUrlDrive = (idOrUrl) => {
     return idOrUrl;
   }
 
-  // ✅ CORRECCIÓN DEFINITIVA: Si es solo el ID del archivo de Drive (una cadena
-  // alfanumérica larga sin barras), construimos la URL del thumbnail.
-  // Esto captura el caso que causaba el error 404.
+  // Si es solo el ID del archivo de Drive (una cadena alfanumérica larga sin barras),
+  // construimos la URL del thumbnail. Esto soluciona el error 404.
   if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
     return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
   }
 
-  // Si no coincide con ninguno de los casos anteriores, es una URL inválida.
-  // Devolvemos una cadena vacía para evitar renderizar una imagen rota.
-  console.warn("URL de imagen inválida detectada:", idOrUrl);
+  // Si no es una URL completa ni un ID de Drive válido, es una URL inválida.
+  console.warn("URL de imagen inválida detectada en ModalDetalle:", idOrUrl);
   return "";
 };
 
@@ -31,8 +29,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
   if (!mov) return null;
 
   // Procesamos todas las fotos
-  // ✅ CORRECCIÓN DEFINITIVA: Filtramos las URLs inválidas ANTES de renderizar.
-  // Esto evita que se renderice un <img src=""> y cause un error 404.
+  // Filtramos las URLs inválidas ANTES de renderizar para evitar errores 404.
   const fotosValidas = (Array.isArray(mov.foto) ? mov.foto : (mov.foto ? [mov.foto] : []))
     .map(item => formatearUrlDrive(item))
     .filter(url => url && url.length > 0);

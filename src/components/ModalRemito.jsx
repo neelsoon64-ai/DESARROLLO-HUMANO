@@ -11,12 +11,12 @@ const formatearUrlDrive = (idOrUrl) => {
     return idOrUrl;
   }
 
-  // Si es solo el ID del archivo de Drive, construimos la URL del thumbnail.
+  // Si es solo el ID del archivo de Drive, construimos la URL del thumbnail. Esto soluciona el error 404.
   if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
     return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
   }
 
-  console.warn("URL de imagen inválida detectada en ModalRemito:", idOrUrl);
+  // Si no es una URL completa ni un ID de Drive válido, es una URL inválida.
   return ""; // Devolvemos cadena vacía para URLs inválidas.
 };
 
