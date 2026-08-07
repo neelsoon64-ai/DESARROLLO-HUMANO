@@ -2,50 +2,73 @@ import { useState } from "react";
 import { generarId, ROLES } from "../constants.js";
 import { inputStyle, btnPrincipal, btnSecundario, overlay, modal, labelStyle, fieldGroup } from "../styles.js";
 
-// Componente para el modal de cambio de contraseña
-function ModalCambiarPassword({ usuario, onGuardar, onClose }) {
-  const [pass, setPass] = useState("");
-  const [confirmPass, setConfirmPass] = useState("");
+// Componente para el modal de edición de usuario (incluye contraseña, nombre y rol)
+function ModalEditarUsuario({ usuario, onGuardar, onClose }) {
+  const [nombre, setNombre] = useState(usuario.nombre);
+  const [rol, setRol] = useState(usuario.rol);
+  const [password, setPassword] = useState(""); // Nueva contraseña
+  const [confirmPassword, setConfirmPassword] = useState(""); // Confirmar nueva contraseña
   const [error, setError] = useState("");
+  const roleOptions = ROLES.map(r => ({ value: r.value, label: r.label }));
 
   const handleGuardar = () => {
-    if (!pass || !confirmPass) {
-      setError("Debes completar ambos campos.");
+    if (!nombre.trim()) {
+      setError("El nombre no puede estar vacío.");
       return;
     }
-    if (pass !== confirmPass) {
-      setError("Las contraseñas no coinciden.");
-      return;
+
+    let newPassword = usuario.password; // Por defecto, mantiene la contraseña actual
+    if (password || confirmPassword) { // Si se intentó cambiar la contraseña
+      if (!password.trim() || !confirmPassword.trim()) {
+        setError("Debes completar ambos campos de contraseña si deseas cambiarla.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Las contraseñas no coinciden.");
+        return;
+      }
+      if (password.length < 6) {
+        setError("La contraseña debe tener al menos 6 caracteres.");
+        return;
+      }
+      newPassword = password;
     }
-    if (pass.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
-    onGuardar(usuario.id, pass);
+
+    onGuardar({ ...usuario, nombre: nombre.trim(), rol, password: newPassword });
     onClose();
   };
 
   return (
     <div style={{...overlay, zIndex: 1001}}>
       <div style={{...modal, maxWidth: 420}}>
-        <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E8F0" }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1E293B" }}>Cambiar Contraseña</h3>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>Estás modificando al usuario: <strong>{usuario.nombre}</strong></p>
+        <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E8F0", background: "linear-gradient(135deg,#1A3A5C,#2E7DC4)", borderRadius: "14px 14px 0 0" }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#fff" }}>Editar Usuario</h3>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,0.8)" }}>Modificando: <strong>{usuario.nombre}</strong> (@{usuario.usuario})</p>
         </div>
         <div style={{ padding: "22px", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={fieldGroup}>
-            <label style={labelStyle}>Nueva Contraseña</label>
-            <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} style={inputStyle} placeholder="••••••••" />
+            <label style={labelStyle}>Nombre Completo</label>
+            <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} style={inputStyle} />
+          </div>
+          <div style={fieldGroup}>
+            <label style={labelStyle}>Rol</label>
+            <select value={rol} onChange={(e) => setRol(e.target.value)} style={inputStyle}>
+              {roleOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div style={fieldGroup}>
+            <label style={labelStyle}>Nueva Contraseña (dejar vacío para no cambiar)</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} placeholder="••••••••" />
           </div>
           <div style={fieldGroup}>
             <label style={labelStyle}>Confirmar Nueva Contraseña</label>
-            <input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} style={inputStyle} placeholder="••••••••" />
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={inputStyle} placeholder="••••••••" />
           </div>
           {error && <div style={{ color: "#DC2626", background: "#FEE2E2", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>⚠️ {error}</div>}
         </div>
         <div style={{ padding: "14px 22px", borderTop: "1px solid #E2E8F0", display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{...btnSecundario, flex: 1}}>Cancelar</button>
-          <button onClick={handleGuardar} style={{...btnPrincipal, flex: 1}}>Guardar Contraseña</button>
+          <button onClick={handleGuardar} style={{...btnPrincipal, flex: 1}}>Guardar Cambios</button>
         </div>
       </div>
     </div>
@@ -56,7 +79,7 @@ export default function PanelUsuarios({ usuarios, onUpdate, onClose, onAudit, us
   const [nuevo, setNuevo] = useState({ usuario: "", password: "", nombre: "", rol: "Operador" });
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [usuarioParaPassword, setUsuarioParaPassword] = useState(null);
+  const [usuarioParaEditar, setUsuarioParaEditar] = useState(null); // Renombrado para edición general
   const roleLabels = Object.fromEntries(ROLES.map((role) => [role.value, role.label]));
 
   const mostrarMensaje = (texto) => {
@@ -83,17 +106,17 @@ export default function PanelUsuarios({ usuarios, onUpdate, onClose, onAudit, us
     mostrarMensaje(`Usuario "${u.nombre}" eliminado.`);
   };
 
-  const handleGuardarPassword = (idUsuario, nuevaPassword) => {
+  const handleGuardarUsuario = (usuarioEditado) => { // Ahora recibe el objeto completo
     onUpdate((prevUsuarios) => 
-      prevUsuarios.map((u) => u.id === idUsuario ? { ...u, password: nuevaPassword } : u)
+      prevUsuarios.map((u) => u.id === usuarioEditado.id ? usuarioEditado : u)
     );
-    const usuarioAfectado = usuarios.find(u => u.id === idUsuario);
+    // El usuarioAfectado ya es usuarioEditado
     onAudit({
       tipo: "seguridad",
-      detalle: `Cambió la contraseña del usuario '${usuarioAfectado.nombre}' (${usuarioAfectado.rol})`,
+      detalle: `Editó al usuario '${usuarioEditado.nombre}' (Rol: ${usuarioEditado.rol})`,
     });
-    setUsuarioParaPassword(null);
-    mostrarMensaje(`Contraseña de "${usuarioAfectado.nombre}" actualizada.`);
+    setUsuarioParaEditar(null);
+    mostrarMensaje(`Usuario "${usuarioEditado.nombre}" actualizado.`);
   };
 
   return (
@@ -105,11 +128,11 @@ export default function PanelUsuarios({ usuarios, onUpdate, onClose, onAudit, us
         }
       }}
     >
-      {usuarioParaPassword && (
-        <ModalCambiarPassword
-          usuario={usuarioParaPassword}
-          onClose={() => setUsuarioParaPassword(null)}
-          onGuardar={handleGuardarPassword}
+      {usuarioParaEditar && (
+        <ModalEditarUsuario
+          usuario={usuarioParaEditar}
+          onClose={() => setUsuarioParaEditar(null)}
+          onGuardar={handleGuardarUsuario}
         />
       )}
 
@@ -154,8 +177,8 @@ export default function PanelUsuarios({ usuarios, onUpdate, onClose, onAudit, us
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   {u.id !== usuarioActual.id && (
                     <>
-                      <button onClick={() => setUsuarioParaPassword(u)} style={{ background: "#EFF6FF", color: "#2563EB", border: "1px solid #BFDBFE", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
-                        Contraseña
+                      <button onClick={() => setUsuarioParaEditar(u)} style={{ background: "#EFF6FF", color: "#2563EB", border: "1px solid #BFDBFE", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+                        ✏️ Editar
                       </button>
                       <button onClick={() => eliminar(u)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
                         Eliminar

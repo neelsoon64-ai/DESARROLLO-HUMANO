@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { utils, writeFile } from "xlsx";
+import { exportarHistorialPDF } from "../reportGenerator.js";
+import ExcelJS from 'exceljs';
 import { AlertTriangle, Clock, MinusCircle } from 'lucide-react';
 
 export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, onVerDetalle, usuarioActual, onAudit, onRegistrarSalida }) {
@@ -130,20 +131,44 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
       return coincideBusqueda && coincideCategoria;
     });
 
-  const exportarExcel = () => {
-    const dataExport = pestaña === "stock" 
-      ? stockFiltrado.map(i => ({ Categoría: i.categoria, Descripción: i.descripcion, 'Stock Remanente': i.stock, Unidad: i.unidad, 'Remito Origen': i.nroRemito, 'Fecha Carga': new Date(i.fechaCarga).toLocaleDateString(), 'Fecha Vto': i.fechaVencimiento ? new Date(i.fechaVencimiento).toLocaleDateString() : 'N/A' }))
-      : historialFiltrado.map(h => ({ Fecha: new Date(h.fechaCarga).toLocaleDateString(), Remito: h.nroRemito, 'Orden Compra': h.orden_compra || '', Expediente: h.numero_expediente || '', Categoría: h.categoria, Descripción: h.descripcion, Cantidad: h.cantidad, Unidad: h.unidad, Operario: h.cargadoPor }));
+  const exportarExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(pestaña === 'stock' ? 'Stock Actual' : 'Historial');
 
-    const wb = utils.book_new();
-    const ws = utils.json_to_sheet(dataExport);
-    utils.book_append_sheet(wb, ws, pestaña === "stock" ? "Stock Actual" : "Historial");
-    writeFile(wb, `${nombre}-${pestaña}.xlsx`);
+    if (pestaña === 'stock') {
+      sheet.columns = [
+        { header: 'Categoría', key: 'categoria', width: 25 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Stock Actual', key: 'stock', width: 15 },
+        { header: 'Unidad', key: 'unidad', width: 15 },
+      ];
+      sheet.addRows(stockFiltrado);
+    } else {
+      sheet.columns = [
+        { header: 'Fecha', key: 'fecha', width: 15 },
+        { header: 'Tipo', key: 'tipo', width: 12 },
+        { header: 'Artículo', key: 'descripcion', width: 40 },
+        { header: 'Cantidad', key: 'cantidad', width: 15 },
+        { header: 'Usuario', key: 'cargadoPor', width: 20 },
+      ];
+      sheet.addRows(historialFiltrado.map(m => ({...m, fecha: new Date(m.fechaCarga || m.fecha).toLocaleDateString()})));
+    }
+
+    sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color.replace('#', 'FF') } };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Reporte_${nombre}_${pestaña}.xlsx`;
+    link.click();
+
     if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó Excel de ${nombre} (${pestaña})` });
   };
 
-  const exportarPDF = () => {
-    window.print();
+  const exportarPDF = async () => {
+    await exportarHistorialPDF(historialFiltrado, usuarioActual);
     if (onAudit) onAudit({ tipo: "exportar", detalle: `Exportó PDF/Impresión de ${nombre} (${pestaña})` });
   };
 
