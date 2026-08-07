@@ -3,20 +3,28 @@ import { CATEGORIAS, UNIDADES, generarId } from "../constants.js"; // ✅ No hay
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
+/**
+ * Transforma cualquier formato de URL de Google Drive a una URL de thumbnail directa y segura para <img>.
+ * Extrae el ID de formatos como /view, /open, /uc, etc. y construye la URL de thumbnail.
+ * @param {string} urlOrId - La URL completa de Google Drive, el ID del archivo, o una URL de imagen estándar.
+ * @returns {string} La URL del thumbnail o la URL original si ya es válida.
+ */
 const formatearUrlDrive = (idOrUrl) => {
   if (!idOrUrl || typeof idOrUrl !== "string") return "";
 
-  // Si ya es una URL completa (http, https) o una imagen en base64, la devolvemos.
-  if (idOrUrl.startsWith("http") || idOrUrl.startsWith("data:")) {
+  // Si ya es una URL de thumbnail, una imagen en base64, o no es de Google Drive, la devolvemos.
+  if (idOrUrl.startsWith("data:") || idOrUrl.startsWith("https://drive.google.com/thumbnail?")) {
     return idOrUrl;
   }
 
-  // Si es solo el ID del archivo de Drive, construimos la URL del thumbnail. Esto soluciona el error 404.
-  if (!idOrUrl.includes("/") && !idOrUrl.includes("=") && idOrUrl.length > 20) {
-    return `https://drive.google.com/thumbnail?id=${idOrUrl}&sz=w1280`;
+  const regex = /(?:https?:\/\/)?(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=))([a-zA-Z0-9_-]{28,})/;
+  const match = idOrUrl.match(regex);
+  const fileId = match ? match[1] : (idOrUrl.length > 25 && !idOrUrl.includes('/') ? idOrUrl : null);
+
+  if (fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1280`;
   }
 
-  // Si no es una URL completa ni un ID de Drive válido, es una URL inválida.
   return ""; // Devolvemos cadena vacía para URLs inválidas.
 };
 
