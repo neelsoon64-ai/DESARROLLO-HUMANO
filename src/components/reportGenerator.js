@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import ExcelJS from 'exceljs';
-import logo from './assets/logo.png'; // Asegúrate que la ruta al logo es correcta
+import logo from '../assets/logo.png';
 
 /**
  * Generador de Informes Profesionales (PDF y Excel)
