@@ -17,8 +17,8 @@ export default function Login({ usuarios, onLogin, onAudit }) {
       setError("Tu usuario se encuentra inactivo. Contactá a un administrador.");
       return;
     }
+    // Si no se encuentra el usuario o la contraseña no coincide
     if (!found || found.password !== pass) {
-    if (!found) {
       setError("Usuario o contraseña incorrectos.");
       return;
     }
