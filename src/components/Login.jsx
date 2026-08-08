@@ -11,7 +11,13 @@ export default function Login({ usuarios, onLogin, onAudit }) {
 
   const handleLogin = () => {
     const userInput = user.trim().toLowerCase();
-    const found = usuarios.find((u) => String(u.usuario).toLowerCase() === userInput && u.password === pass);
+    const found = usuarios.find((u) => String(u.usuario).toLowerCase() === userInput);
+
+    if (found && found.estado === 'Inactivo') {
+      setError("Tu usuario se encuentra inactivo. Contactá a un administrador.");
+      return;
+    }
+    if (!found || found.password !== pass) {
     if (!found) {
       setError("Usuario o contraseña incorrectos.");
       return;

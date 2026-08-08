@@ -36,7 +36,7 @@ export default function Sidebar({ usuarioActual, paginaActiva, setPaginaActiva, 
     { id: 'stock', label: 'Inventario Total', icon: <Package size={20} /> },
     { id: 'historial', label: 'Historial', icon: <History size={20} /> },
     { id: 'expedientes', label: 'Consulta Expedientes', icon: <FileSearch size={20} /> },
-    { id: 'configuracion', label: 'Configuración', icon: <Settings size={20} />, disabled: true },
+    { id: 'configuracion', label: 'Mi Perfil', icon: <Settings size={20} /> },
   ];
 
   return (

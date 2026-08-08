@@ -17,6 +17,11 @@ function ModalEditarUsuario({ usuario, onGuardar, onClose, usuariosExistentes, u
 
   const roleOptions = ROLES.map(r => ({ value: r.value, label: r.label }));
 
+  const esUnicoAdmin = useMemo(() => {
+    const admins = usuariosExistentes.filter(u => u.rol === 'Administrador');
+    return admins.length === 1 && admins[0].id === usuario.id;
+  }, [usuariosExistentes, usuario]);
+
   const handleGuardar = () => {
     if (!nombre.trim()) {
       setError("El nombre no puede estar vacío.");
@@ -79,14 +84,14 @@ function ModalEditarUsuario({ usuario, onGuardar, onClose, usuariosExistentes, u
             </div>
             <div style={fieldGroup}>
               <label style={labelStyle}>Rol</label>
-              <select value={rol} onChange={(e) => setRol(e.target.value)} style={inputStyle} disabled={usuario.id === usuarioActual.id && rol === 'Administrador'}>
+              <select value={rol} onChange={(e) => setRol(e.target.value)} style={inputStyle} disabled={esUnicoAdmin}>
                 {roleOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
           </div>
           <div style={fieldGroup}>
             <label style={labelStyle}>Estado</label>
-            <select value={estado} onChange={(e) => setEstado(e.target.value)} style={inputStyle} disabled={usuario.id === usuarioActual.id}>
+            <select value={estado} onChange={(e) => setEstado(e.target.value)} style={inputStyle} disabled={esUnicoAdmin}>
               <option value="Activo">Activo</option>
               <option value="Inactivo">Inactivo</option>
             </select>
