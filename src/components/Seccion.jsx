@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { exportarHistorialPDF } from "../reportGenerator.js";
+import { exportarHistorialPDF } from "./reportGenerator.js";
 import ExcelJS from 'exceljs';
 import { AlertTriangle, Clock, MinusCircle } from 'lucide-react';
 
