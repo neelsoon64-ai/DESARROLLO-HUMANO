@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import logo from '../assets/logo.png';
 
@@ -105,7 +105,7 @@ export const exportarHistorialPDF = async (movimientos, usuario) => {
       m.numero_expediente || m.nroRemito || 'N/A'
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: resumenY + 10,
       head: head,
       body: body,
