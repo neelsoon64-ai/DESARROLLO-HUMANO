@@ -72,3 +72,11 @@ export const formatFecha = (fechaStr) => {
  * @returns {string} La fecha formateada como 'D/M/YYYY'.
  */
 export const formatFechaCorta = formatFecha;
+
+export const obtenerFechaLocal = () => {
+  const ahora = new Date();
+  const year = ahora.getFullYear();
+  const month = String(ahora.getMonth() + 1).padStart(2, '0');
+  const day = String(ahora.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};

@@ -179,8 +179,8 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
                   <div style={{ fontSize: 11, color: '#64748B' }}>{mov.categoria} · {mov.cantidad} {mov.unidad}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>{new Date(mov.fechaVencimiento).toLocaleDateString()}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>{formatFechaCorta(mov.fechaVencimiento)}</div>
+                   <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>{formatFechaCorta(mov.fechaVencimiento)}</div>
+                   <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>{formatFechaCorta(mov.fechaVencimiento)}</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>{diferenciaDias(mov.fechaVencimiento)} días</div>
                 </div>
               </div>

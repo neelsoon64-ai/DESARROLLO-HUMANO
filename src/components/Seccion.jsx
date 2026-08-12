@@ -152,7 +152,6 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
         { header: 'Cantidad', key: 'cantidad', width: 15 },
         { header: 'Usuario', key: 'cargadoPor', width: 20 },
       ];
-      sheet.addRows(historialFiltrado.map(m => ({...m, fecha: new Date(m.fechaCarga || m.fecha).toLocaleDateString()})));
       sheet.addRows(historialFiltrado.map(m => ({...m, fecha: formatFechaCorta(m.fechaCarga || m.fecha)})));
     }
 

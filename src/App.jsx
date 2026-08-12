@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES } from "./constants.js";
+import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES, obtenerFechaLocal } from "./constants.js";
 import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
 import Login from "./components/Login.jsx";
@@ -176,8 +176,8 @@ export default function App() {
         unidad: carga?.unidad || "unidades",
         nroRemito: carga?.nroRemito || null,
         orden_compra: carga?.orden_compra || null,
-        fecha: carga?.fecha || carga?.fechaCarga || new Date().toISOString(),
-        fechaCarga: carga?.fechaCarga || carga?.fecha || new Date().toISOString(),
+        fecha: carga?.fecha || carga?.fechaCarga || obtenerFechaLocal(),
+        fechaCarga: carga?.fechaCarga || carga?.fecha || obtenerFechaLocal(),
         proveedor: carga?.proveedor || null,
         observaciones: carga?.observaciones || null,
         nombre_destinatario: carga?.nombre_destinatario || "",

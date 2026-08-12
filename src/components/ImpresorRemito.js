@@ -1,11 +1,10 @@
 import logoChubut from "../assets/logo.png";
+import { formatFecha } from "../constants.js";
+
 export function imprimirRemitoOficial(remito) {
   const ventanaImpresion = window.open("", "_blank");
 
-  // Formatear la fecha prolija
-  const fechaFormateada = remito.fecha 
-    ? new Date(remito.fecha).toLocaleDateString("es-AR") 
-    : new Date().toLocaleDateString("es-AR");
+  const fechaFormateada = formatFecha(remito.fecha) || formatFecha(new Date());
 
   const tieneFoto = !!remito.foto;
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { CATEGORIAS, UNIDADES, generarId } from "../constants.js"; // ✅ No hay cambios aquí, la lógica es agnóstica.
+import { CATEGORIAS, UNIDADES, generarId, obtenerFechaLocal } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
 
@@ -66,7 +66,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   // ✅ La estructura del formulario se mantiene, asegurando que cada campo tiene su lugar.
   const [form, setForm] = useState({
-    fecha: aFechaInput(inicial.fecha) || new Date().toISOString().slice(0, 10),
+    fecha: aFechaInput(inicial.fecha) || obtenerFechaLocal(),
     nroRemito: inicial.nroRemito || "",
     orden_compra: inicial.orden_compra || "",
     proveedor: inicial.proveedor || "",
@@ -115,7 +115,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         : (datosEdicion.foto ? [datosEdicion.foto] : []);
 
       setForm({
-        fecha: aFechaInput(datosEdicion.fecha) || new Date().toISOString().slice(0, 10),
+        fecha: aFechaInput(datosEdicion.fecha) || obtenerFechaLocal(),
         nroRemito: datosEdicion.nroRemito || "",
         orden_compra: datosEdicion.orden_compra || "",
         proveedor: datosEdicion.proveedor || "",
@@ -311,7 +311,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         fechaVencimiento: form.fechaVencimiento || null,
         numero_expediente: form.numero_expediente.trim().toUpperCase(), // ✅ GUARDAR EXPEDIENTE EN MAYÚSCULAS
         estadoRemito: form.estadoRemito || "Pendiente",
-        fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre || new Date().toISOString().slice(0, 10)) : null,
+        fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre || obtenerFechaLocal()) : null,
         foto: fotoFinal 
       });
 
