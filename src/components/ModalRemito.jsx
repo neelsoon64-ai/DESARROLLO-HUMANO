@@ -29,16 +29,30 @@ const formatearUrlDrive = (idOrUrl) => {
 };
 
 /**
- * Extrae la porción 'YYYY-MM-DD' de un string de fecha ISO (ej: '2024-05-20T03:00:00.000Z').
- * Esto evita que `new Date()` reinterprete la fecha por la zona horaria.
- * @param {string | null} dateString - El string de fecha a formatear.
+ * Convierte cualquier formato de fecha a un string 'YYYY-MM-DD' para el input.
+ * Es inmune a problemas de zona horaria al no usar `new Date()`.
+ * @param {string | null} fechaRaw - La fecha en formato ISO, 'DD/MM/YYYY' o 'YYYY-MM-DD'.
  * @returns {string} La fecha en formato 'YYYY-MM-DD' o una cadena vacía.
  */
-const formatDateForInput = (dateString) => {
-  if (!dateString || typeof dateString !== 'string') return "";
-  // Simplemente cortamos el string en la 'T' para obtener 'YYYY-MM-DD'.
-  // Esto es inmune a problemas de zona horaria.
-  return dateString.split('T')[0];
+const normalizarFechaParaInput = (fechaRaw) => {
+  if (!fechaRaw) return "";
+  // Si viene en formato ISO con T (2026-08-12T03:00:00.000Z), tomar los primeros 10 caracteres
+  if (typeof fechaRaw === "string" && fechaRaw.includes("T")) {
+    return fechaRaw.split("T")[0];
+  }
+  // Si viene en formato DD/MM/YYYY (ej: 12/08/2026)
+  if (typeof fechaRaw === "string" && fechaRaw.includes("/")) {
+    const partes = fechaRaw.split("/");
+    if (partes.length === 3) {
+      const [dia, mes, anio] = partes;
+      return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+    }
+  }
+  // Si ya viene como YYYY-MM-DD (2026-08-12)
+  if (typeof fechaRaw === "string" && fechaRaw.includes("-")) {
+    return fechaRaw.substring(0, 10);
+  }
+  return "";
 };
 
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [], stockDisponible = [] }) {
@@ -54,7 +68,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   // ✅ La estructura del formulario se mantiene, asegurando que cada campo tiene su lugar.
   const [form, setForm] = useState({
-    fecha: formatDateForInput(inicial.fecha) || new Date().toISOString().slice(0, 10),
+    fecha: normalizarFechaParaInput(inicial.fecha) || new Date().toISOString().slice(0, 10),
     nroRemito: inicial.nroRemito || "",
     orden_compra: inicial.orden_compra || "",
     proveedor: inicial.proveedor || "",
@@ -73,10 +87,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     estado: inicial.estado || "Activo",
     motivo: inicial.motivo || "",
     numero_expediente: inicial.numero_expediente || "",
-    fechaCompra: formatDateForInput(inicial.fechaCompra),
-    fechaVencimiento: formatDateForInput(inicial.fechaVencimiento),
+    fechaCompra: normalizarFechaParaInput(inicial.fechaCompra),
+    fechaVencimiento: normalizarFechaParaInput(inicial.fechaVencimiento),
     estadoRemito: inicial.estadoRemito || "Pendiente",
-    fechaCierre: formatDateForInput(inicial.fechaCierre),
+    fechaCierre: normalizarFechaParaInput(inicial.fechaCierre),
     listaFotos: fotosIniciales.map((foto, idx) => ({
       id: `foto-inicial-${idx}`,
       url: foto, // Se mantiene el ID o URL original para el guardado
