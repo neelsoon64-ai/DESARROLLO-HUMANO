@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { exportarHistorialPDF } from "./reportGenerator.js";
+import { formatFechaCorta } from "../constants.js";
 import ExcelJS from 'exceljs';
 import { AlertTriangle, Clock, MinusCircle } from 'lucide-react';
 
@@ -179,7 +180,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     const diffDias = Math.ceil((fechaVto - hoy) / (1000 * 60 * 60 * 24));
     const color = diffDias < 0 ? '#DC2626' : diffDias <= 30 ? '#F59E0B' : '#64748B';
     const Icono = diffDias < 0 ? AlertTriangle : diffDias <= 30 ? Clock : null;
-    return <span style={{ color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>{Icono && <Icono size={13} />} {fechaVto.toLocaleDateString()}</span>;
+    return <span style={{ color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>{Icono && <Icono size={13} />} {formatFechaCorta(fechaVencimiento)}</span>;
   };
 
   return (
@@ -324,7 +325,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
               <tbody>
                 {historialFiltrado.map((mov, idx) => (
                   <tr key={mov.id || idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>{new Date(mov.fechaCarga).toLocaleDateString()}</td>
+                    <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>{formatFechaCorta(mov.fechaCarga)}</td>
                     <td style={{ padding: "10px", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '📥 Ingreso' : '📤 Egreso'}</td>
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
