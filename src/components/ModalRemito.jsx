@@ -29,18 +29,16 @@ const formatearUrlDrive = (idOrUrl) => {
 };
 
 /**
- * Corrige el bug de fechas en inputs `type="date"` por desfasaje de zona horaria.
- * Toma una fecha (string ISO o Date) y devuelve un string 'YYYY-MM-DD' seguro.
- * @param {string | Date | null} date - La fecha a formatear.
+ * Extrae la porción 'YYYY-MM-DD' de un string de fecha ISO (ej: '2024-05-20T03:00:00.000Z').
+ * Esto evita que `new Date()` reinterprete la fecha por la zona horaria.
+ * @param {string | null} dateString - El string de fecha a formatear.
  * @returns {string} La fecha en formato 'YYYY-MM-DD' o una cadena vacía.
  */
-const formatDateForInput = (date) => {
-  if (!date) return "";
-  // Crear la fecha en UTC para evitar que el constructor la ajuste a la zona horaria local.
-  // Si es '2024-05-20T00:00:00.000Z', new Date() en Argentina (UTC-3) lo interpreta como 19 de mayo.
-  // Al añadir 'T00:00:00' y usar UTC, nos aseguramos de que el día no cambie.
-  const d = new Date(typeof date === 'string' ? date.split('T')[0] + 'T00:00:00' : date);
-  return d.toISOString().slice(0, 10);
+const formatDateForInput = (dateString) => {
+  if (!dateString || typeof dateString !== 'string') return "";
+  // Simplemente cortamos el string en la 'T' para obtener 'YYYY-MM-DD'.
+  // Esto es inmune a problemas de zona horaria.
+  return dateString.split('T')[0];
 };
 
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [], stockDisponible = [] }) {
@@ -56,7 +54,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   // ✅ La estructura del formulario se mantiene, asegurando que cada campo tiene su lugar.
   const [form, setForm] = useState({
-    fecha: formatDateForInput(inicial.fecha || new Date()),
+    fecha: formatDateForInput(inicial.fecha) || new Date().toISOString().slice(0, 10),
     nroRemito: inicial.nroRemito || "",
     orden_compra: inicial.orden_compra || "",
     proveedor: inicial.proveedor || "",
@@ -218,8 +216,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         ? "Inventario Físico Inicial" 
         : form.proveedor.trim();
 
-      const fechaFinal = new Date(form.fecha).toISOString();
-
       // Determinar dinámicamente si es nacion o provincia basado en el título del modal
       const origenDetectado = seccionNombre?.toLowerCase().includes("nación") || seccionNombre?.toLowerCase().includes("nacion")
         ? "nacion"
@@ -230,8 +226,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
       onGuardar({
         ...inicial, // Preserva todos los campos originales no modificados
         id,
-        fecha: fechaFinal,
-        fechaCarga: fechaFinal,
+        fecha: form.fecha, // Se guarda el string 'YYYY-MM-DD' directamente
+        fechaCarga: inicial.fechaCarga || new Date().toISOString(), // Se mantiene la fecha de carga original o se crea una nueva
         origen: origenDetectado, // 🔥 ESTA LÍNEA SOLUCIONA EL FILTRADO Y GUARDADO
         nroRemito: form.nroRemito,
         orden_compra: form.orden_compra.trim().toUpperCase(),
@@ -257,11 +253,11 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         unidad: form.unidad,
         estado: form.estado || "Activo",
         motivo: form.estado === "Dado de baja" ? (form.motivo || "") : "",
-        fechaCompra: form.fechaCompra ? new Date(form.fechaCompra).toISOString() : null,
-        fechaVencimiento: form.fechaVencimiento ? new Date(form.fechaVencimiento).toISOString() : null,
+        fechaCompra: form.fechaCompra || null,
+        fechaVencimiento: form.fechaVencimiento || null,
         numero_expediente: form.numero_expediente.trim().toUpperCase(), // ✅ GUARDAR EXPEDIENTE EN MAYÚSCULAS
         estadoRemito: form.estadoRemito || "Pendiente",
-        fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre ? new Date(form.fechaCierre).toISOString() : new Date().toISOString()) : null,
+        fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre || new Date().toISOString().slice(0, 10)) : null,
         foto: fotoFinal 
       });
 
