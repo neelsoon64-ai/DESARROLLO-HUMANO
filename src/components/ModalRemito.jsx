@@ -29,28 +29,26 @@ const formatearUrlDrive = (idOrUrl) => {
 };
 
 /**
- * Convierte cualquier formato de fecha a un string 'YYYY-MM-DD' para el input.
+ * Convierte cualquier formato de fecha a un string 'YYYY-MM-DD' para el input HTML.
  * Es inmune a problemas de zona horaria al no usar `new Date()`.
- * @param {string | null} fechaRaw - La fecha en formato ISO, 'DD/MM/YYYY' o 'YYYY-MM-DD'.
+ * @param {string | null} f - La fecha en formato ISO, 'DD/MM/YYYY' o 'YYYY-MM-DD'.
  * @returns {string} La fecha en formato 'YYYY-MM-DD' o una cadena vacía.
  */
-const normalizarFechaParaInput = (fechaRaw) => {
-  if (!fechaRaw) return "";
-  // Si viene en formato ISO con T (2026-08-12T03:00:00.000Z), tomar los primeros 10 caracteres
-  if (typeof fechaRaw === "string" && fechaRaw.includes("T")) {
-    return fechaRaw.split("T")[0];
-  }
-  // Si viene en formato DD/MM/YYYY (ej: 12/08/2026)
-  if (typeof fechaRaw === "string" && fechaRaw.includes("/")) {
-    const partes = fechaRaw.split("/");
-    if (partes.length === 3) {
-      const [dia, mes, anio] = partes;
-      return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+const aFechaInput = (f) => {
+  if (!f) return "";
+  if (typeof f === 'string') {
+    // Formato ISO (ej: 2026-08-12T03:00:00.000Z)
+    if (f.includes('T')) return f.split('T')[0];
+    // Formato DD/MM/YYYY (ej: 12/08/2026)
+    if (f.includes('/')) {
+      const partes = f.split('/');
+      if (partes.length === 3) {
+        const [dia, mes, anio] = partes;
+        return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+      }
     }
-  }
-  // Si ya viene como YYYY-MM-DD (2026-08-12)
-  if (typeof fechaRaw === "string" && fechaRaw.includes("-")) {
-    return fechaRaw.substring(0, 10);
+    // Formato YYYY-MM-DD (ej: 2026-08-12) o similar que ya es compatible
+    if (f.includes('-')) return f.substring(0, 10);
   }
   return "";
 };
@@ -68,7 +66,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   // ✅ La estructura del formulario se mantiene, asegurando que cada campo tiene su lugar.
   const [form, setForm] = useState({
-    fecha: normalizarFechaParaInput(inicial.fecha) || new Date().toISOString().slice(0, 10),
+    fecha: aFechaInput(inicial.fecha) || new Date().toISOString().slice(0, 10),
     nroRemito: inicial.nroRemito || "",
     orden_compra: inicial.orden_compra || "",
     proveedor: inicial.proveedor || "",
@@ -87,10 +85,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     estado: inicial.estado || "Activo",
     motivo: inicial.motivo || "",
     numero_expediente: inicial.numero_expediente || "",
-    fechaCompra: normalizarFechaParaInput(inicial.fechaCompra),
-    fechaVencimiento: normalizarFechaParaInput(inicial.fechaVencimiento),
+    fechaCompra: aFechaInput(inicial.fechaCompra),
+    fechaVencimiento: aFechaInput(inicial.fechaVencimiento),
     estadoRemito: inicial.estadoRemito || "Pendiente",
-    fechaCierre: normalizarFechaParaInput(inicial.fechaCierre),
+    fechaCierre: aFechaInput(inicial.fechaCierre),
     listaFotos: fotosIniciales.map((foto, idx) => ({
       id: `foto-inicial-${idx}`,
       url: foto, // Se mantiene el ID o URL original para el guardado
@@ -106,6 +104,48 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
   const fileInputCamaraRef = useRef(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // ✅ CORRECCIÓN CRÍTICA: Sincronizar el estado del formulario cuando `datosEdicion` cambie.
+  // Esto asegura que si el modal se reutiliza o `datosEdicion` se actualiza, el formulario
+  // refleje los datos más recientes, aplicando el formato correcto a las fechas.
+  useEffect(() => {
+    if (datosEdicion) {
+      const fotosActuales = Array.isArray(datosEdicion.foto) 
+        ? datosEdicion.foto 
+        : (datosEdicion.foto ? [datosEdicion.foto] : []);
+
+      setForm({
+        fecha: aFechaInput(datosEdicion.fecha) || new Date().toISOString().slice(0, 10),
+        nroRemito: datosEdicion.nroRemito || "",
+        orden_compra: datosEdicion.orden_compra || "",
+        proveedor: datosEdicion.proveedor || "",
+        observaciones: datosEdicion.observaciones || "",
+        nombre_destinatario: datosEdicion.nombre_destinatario || "",
+        apellido_destinatario: datosEdicion.apellido_destinatario || "",
+        dni_destinatario: datosEdicion.dni_destinatario || "",
+        direccion: datosEdicion.direccion || "",
+        localidad: datosEdicion.localidad || "",
+        destinatario: datosEdicion.destinatario || "",
+        tipo: datosEdicion.tipo || "ingreso", 
+        categoria: datosEdicion.categoria || CATEGORIAS[0].id,
+        descripcion: datosEdicion.descripcion || "",
+        cantidad: datosEdicion.cantidad || "",
+        unidad: datosEdicion.unidad || "unidades",
+        estado: datosEdicion.estado || "Activo",
+        motivo: datosEdicion.motivo || "",
+        numero_expediente: datosEdicion.numero_expediente || "",
+        fechaCompra: aFechaInput(datosEdicion.fechaCompra),
+        fechaVencimiento: aFechaInput(datosEdicion.fechaVencimiento),
+        estadoRemito: datosEdicion.estadoRemito || "Pendiente",
+        fechaCierre: aFechaInput(datosEdicion.fechaCierre),
+        listaFotos: fotosActuales.map((foto, idx) => ({
+          id: `foto-inicial-${idx}`,
+          url: foto,
+          preview: formatearUrlDrive(foto)
+        })),
+      });
+    }
+  }, [datosEdicion]);
 
   const procesarArchivos = async (files) => {
     if (!files || files.length === 0) return;
