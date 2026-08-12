@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Package, Download, Upload, Copy, FileText, Users, Activity, ArrowLeft, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { formatFechaCorta } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, auditoria, onVolver, onCrearCopiaAhora, onDescargarRespaldo, onDescargarRespaldoExcel, onDescargarRespaldoPDF, onRestaurarRespaldo }) {
@@ -179,6 +180,7 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>{new Date(mov.fechaVencimiento).toLocaleDateString()}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>{formatFechaCorta(mov.fechaVencimiento)}</div>
                   <div style={{ fontSize: 11, color: '#94A3B8' }}>{diferenciaDias(mov.fechaVencimiento)} días</div>
                 </div>
               </div>
@@ -269,11 +271,7 @@ export default function Dashboard({ nacionMovs, provinciaMovs, listaUsuarios, au
                 <td style={{ padding: 8, fontWeight: 700 }}>{m.cantidad} {m.unidad}</td>
                 <td style={{ padding: 8 }}><span style={{ padding: '4px 8px', borderRadius: 6, background: '#EFF6FF', color: '#1E40AF', fontWeight: 700, fontSize: 11 }}>{m.estadoRemito || 'Pendiente'}</span></td>
                 <td style={{ padding: 8 }}>
-                  {m.fechaVencimiento ? (
-                    <span style={{ padding: '4px 8px', borderRadius: 6, background: new Date(m.fechaVencimiento) < new Date() ? '#FEE2E2' : '#F8FAFC', color: new Date(m.fechaVencimiento) < new Date() ? '#B91C1C' : '#0F172A', fontWeight: 700, fontSize: 11 }}>
-                      {new Date(m.fechaVencimiento).toLocaleDateString()}
-                    </span>
-                  ) : (
+                  {m.fechaVencimiento ? ( <span style={{ padding: '4px 8px', borderRadius: 6, background: new Date(m.fechaVencimiento) < new Date() ? '#FEE2E2' : '#F8FAFC', color: new Date(m.fechaVencimiento) < new Date() ? '#B91C1C' : '#0F172A', fontWeight: 700, fontSize: 11 }}> {formatFechaCorta(m.fechaVencimiento)} </span> ) : (
                     <span style={{ color: '#94A3B8', fontSize: 11 }}>Sin fecha</span>) }
                 </td>
               </tr>

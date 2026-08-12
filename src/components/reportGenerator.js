@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import logo from '../assets/logo.png';
 
+import { formatFechaCorta } from '../constants';
 /**
  * Generador de Informes Profesionales (PDF y Excel)
  * Inspirado en sistemas ERP para calidad institucional.
@@ -96,7 +97,7 @@ export const exportarHistorialPDF = async (movimientos, usuario) => {
 
     const head = [['Fecha', 'Tipo', 'Artículo', 'Categoría', 'Cantidad', 'Usuario', 'Remito/Exp.']];
     const body = movimientos.map(m => [
-      new Date(m.fechaCarga || m.fecha).toLocaleDateString('es-AR'),
+      formatFechaCorta(m.fechaCarga || m.fecha),
       m.tipo,
       m.descripcion,
       m.categoria,

@@ -43,14 +43,32 @@ export const DOC_IDS = {
 // ─── UTILIDADES ────────────────────────────────────────────────────────────────
 export const generarId = () => Math.random().toString(36).slice(2, 10);
 
-export const formatFecha = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-AR", {});
+/**
+ * Formatea una fecha 'YYYY-MM-DD' o ISO a 'DD/MM/YYYY' sin errores de zona horaria.
+ * Trabaja directamente con el string para evitar que new Date() reste un día.
+ * @param {string} fechaStr - La fecha en formato 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:mm:ss.sssZ'.
+ * @returns {string} La fecha formateada como 'D/M/YYYY' o una cadena vacía.
+ */
+export const formatFecha = (fechaStr) => {
+  if (!fechaStr || typeof fechaStr !== 'string') return "—";
+
+  // Tomamos solo la parte de la fecha, antes de la 'T' si existe.
+  const soloFecha = fechaStr.split("T")[0];
+  const partes = soloFecha.split("-");
+
+  if (partes.length === 3) {
+    const [year, month, day] = partes;
+    // Usamos parseInt para quitar los ceros iniciales (ej: '05' -> '5')
+    return `${parseInt(day, 10)}/${parseInt(month, 10)}/${year}`;
+  }
+
+  // Si el formato no es el esperado, devolvemos el string original.
+  return fechaStr;
 };
 
-export const formatFechaCorta = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-};
+/**
+ * Alias de formatFecha. Ambas funciones ahora hacen lo mismo y son seguras.
+ * @param {string} fechaStr - La fecha en formato 'YYYY-MM-DD' o ISO.
+ * @returns {string} La fecha formateada como 'D/M/YYYY'.
+ */
+export const formatFechaCorta = formatFecha;

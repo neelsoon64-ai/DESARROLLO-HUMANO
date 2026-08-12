@@ -153,6 +153,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
         { header: 'Usuario', key: 'cargadoPor', width: 20 },
       ];
       sheet.addRows(historialFiltrado.map(m => ({...m, fecha: new Date(m.fechaCarga || m.fecha).toLocaleDateString()})));
+      sheet.addRows(historialFiltrado.map(m => ({...m, fecha: formatFechaCorta(m.fechaCarga || m.fecha)})));
     }
 
     sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -180,7 +181,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
     const diffDias = Math.ceil((fechaVto - hoy) / (1000 * 60 * 60 * 24));
     const color = diffDias < 0 ? '#DC2626' : diffDias <= 30 ? '#F59E0B' : '#64748B';
     const Icono = diffDias < 0 ? AlertTriangle : diffDias <= 30 ? Clock : null;
-    return <span style={{ color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>{Icono && <Icono size={13} />} {formatFechaCorta(fechaVencimiento)}</span>;
+    return <span style={{ color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>{Icono && <Icono size={13} />} {formatFecha(fechaVencimiento)}</span>;
   };
 
   return (
