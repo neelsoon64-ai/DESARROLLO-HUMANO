@@ -28,6 +28,21 @@ const formatearUrlDrive = (idOrUrl) => {
   return ""; // Devolvemos cadena vacía para URLs inválidas.
 };
 
+/**
+ * Corrige el bug de fechas en inputs `type="date"` por desfasaje de zona horaria.
+ * Toma una fecha (string ISO o Date) y devuelve un string 'YYYY-MM-DD' seguro.
+ * @param {string | Date | null} date - La fecha a formatear.
+ * @returns {string} La fecha en formato 'YYYY-MM-DD' o una cadena vacía.
+ */
+const formatDateForInput = (date) => {
+  if (!date) return "";
+  // Crear la fecha en UTC para evitar que el constructor la ajuste a la zona horaria local.
+  // Si es '2024-05-20T00:00:00.000Z', new Date() en Argentina (UTC-3) lo interpreta como 19 de mayo.
+  // Al añadir 'T00:00:00' y usar UTC, nos aseguramos de que el día no cambie.
+  const d = new Date(typeof date === 'string' ? date.split('T')[0] + 'T00:00:00' : date);
+  return d.toISOString().slice(0, 10);
+};
+
 export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEdicion, expedientesExistentes = [], stockDisponible = [] }) {
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
@@ -41,7 +56,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   // ✅ La estructura del formulario se mantiene, asegurando que cada campo tiene su lugar.
   const [form, setForm] = useState({
-    fecha: inicial.fecha ? new Date(inicial.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    fecha: formatDateForInput(inicial.fecha || new Date()),
     nroRemito: inicial.nroRemito || "",
     orden_compra: inicial.orden_compra || "",
     proveedor: inicial.proveedor || "",
@@ -49,6 +64,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     nombre_destinatario: inicial.nombre_destinatario || "",
     apellido_destinatario: inicial.apellido_destinatario || "",
     dni_destinatario: inicial.dni_destinatario || "",
+    direccion: inicial.direccion || "",
+    localidad: inicial.localidad || "",
     destinatario: inicial.destinatario || "",
     tipo: inicial.tipo || "ingreso", 
     categoria: inicial.categoria || CATEGORIAS[0].id,
@@ -58,10 +75,10 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     estado: inicial.estado || "Activo",
     motivo: inicial.motivo || "",
     numero_expediente: inicial.numero_expediente || "",
-    fechaCompra: inicial.fechaCompra ? new Date(inicial.fechaCompra).toISOString().slice(0, 10) : "",
-    fechaVencimiento: inicial.fechaVencimiento ? new Date(inicial.fechaVencimiento).toISOString().slice(0, 10) : "",
+    fechaCompra: formatDateForInput(inicial.fechaCompra),
+    fechaVencimiento: formatDateForInput(inicial.fechaVencimiento),
     estadoRemito: inicial.estadoRemito || "Pendiente",
-    fechaCierre: inicial.fechaCierre ? new Date(inicial.fechaCierre).toISOString().slice(0, 10) : "",
+    fechaCierre: formatDateForInput(inicial.fechaCierre),
     listaFotos: fotosIniciales.map((foto, idx) => ({
       id: `foto-inicial-${idx}`,
       url: foto, // Se mantiene el ID o URL original para el guardado
@@ -228,6 +245,8 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           nombre_destinatario: form.nombre_destinatario.trim(),
           apellido_destinatario: form.apellido_destinatario.trim(),
           dni_destinatario: form.dni_destinatario.trim(),
+          direccion: form.direccion.trim(),
+          localidad: form.localidad.trim(),
         }),
 
         observaciones: form.observaciones,
@@ -373,7 +392,19 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
                 </div><div style={fieldGroup}>
                   <label style={labelStyle}>Institución (Opcional)</label>
                   <input type="text" placeholder="Nombre de la institución" value={form.destinatario} onChange={(e) => set("destinatario", e.target.value)} style={inputStyle} />
-                </div></div></>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Dirección (Opcional)</label>
+                  <input type="text" placeholder="Ej: Av. Fontana 50" value={form.direccion} onChange={(e) => set("direccion", e.target.value)} style={inputStyle} />
+                </div>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Localidad (Opcional)</label>
+                  <input type="text" placeholder="Ej: Rawson" value={form.localidad} onChange={(e) => set("localidad", e.target.value)} style={inputStyle} />
+                </div>
+              </div>
+            </>
           )}
 
 
