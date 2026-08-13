@@ -350,6 +350,11 @@ export default function App() {
     return Object.values(acumulado);
   }, [nacionMovs, provinciaMovs]);
 
+  const datosEdicionMemo = useMemo(() => {
+    if (!modalCarga?.datos) return null;
+    return { ...modalCarga.datos, esEdicionDesdeFicha: modalCarga.esEdicionDesdeFicha };
+  }, [modalCarga?.datos, modalCarga?.esEdicionDesdeFicha]);
+
   if (!usuarioActual) {
     return <Login usuarios={usuariosSeguros} onLogin={setUsuarioActual} onAudit={(evento) => registrarAuditoria(evento)} />;
   }
@@ -509,7 +514,7 @@ export default function App() {
       {modalCarga && (
         <ModalRemito
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
-          datosEdicion={{...modalCarga.datos, esEdicionDesdeFicha: modalCarga.esEdicionDesdeFicha}}
+          datosEdicion={datosEdicionMemo}
           expedientesExistentes={stockConsolidado.map(m => m.numero_expediente)}
           stockDisponible={stockConsolidado}
           onClose={() => setModalCarga(null)}
