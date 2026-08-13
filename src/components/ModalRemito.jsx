@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef } from "react";
 import { CATEGORIAS, UNIDADES, generarId, obtenerFechaLocal } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
@@ -104,55 +104,6 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
   const fileInputCamaraRef = useRef(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
-  const ultimoIdProcesado = useRef(datosEdicion?.id);
-  
-  useEffect(() => {
-    if (!datosEdicion) return;
-    
-    const idActual = datosEdicion.id;
-    const yaProcesado = ultimoIdProcesado.current === idActual;
-    
-    if (yaProcesado) return;
-    
-    ultimoIdProcesado.current = idActual;
-    
-    const fotosActuales = Array.isArray(datosEdicion.foto) 
-      ? datosEdicion.foto 
-      : (datosEdicion.foto ? [datosEdicion.foto] : []);
-
-      setForm({
-        fecha: aFechaInput(datosEdicion.fecha) || obtenerFechaLocal(),
-        nroRemito: datosEdicion.nroRemito || "",
-        orden_compra: datosEdicion.orden_compra || "",
-        proveedor: datosEdicion.proveedor || "",
-        observaciones: datosEdicion.observaciones || "",
-        nombre_destinatario: datosEdicion.nombre_destinatario || "",
-        apellido_destinatario: datosEdicion.apellido_destinatario || "",
-        dni_destinatario: datosEdicion.dni_destinatario || "",
-        direccion: datosEdicion.direccion || "",
-        localidad: datosEdicion.localidad || "",
-        destinatario: datosEdicion.destinatario || "",
-        tipo: datosEdicion.tipo || "ingreso", 
-        categoria: datosEdicion.categoria || CATEGORIAS[0].id,
-        descripcion: datosEdicion.descripcion || "",
-        cantidad: datosEdicion.cantidad || "",
-        unidad: datosEdicion.unidad || "unidades",
-        estado: datosEdicion.estado || "Activo",
-        motivo: datosEdicion.motivo || "",
-        numero_expediente: datosEdicion.numero_expediente || "",
-        fechaCompra: aFechaInput(datosEdicion.fechaCompra),
-        fechaVencimiento: aFechaInput(datosEdicion.fechaVencimiento),
-        estadoRemito: datosEdicion.estadoRemito || "Pendiente",
-        fechaCierre: aFechaInput(datosEdicion.fechaCierre),
-        listaFotos: fotosActuales.map((foto, idx) => ({
-          id: `foto-inicial-${idx}`,
-          url: foto,
-          preview: formatearUrlDrive(foto)
-        })),
-      });
-    }
-  }, [datosEdicion?.id]);
 
   const procesarArchivos = async (files) => {
     if (!files || files.length === 0) return;
