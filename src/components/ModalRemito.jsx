@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { CATEGORIAS, UNIDADES, generarId, obtenerFechaLocal } from "../constants.js";
 import { inputStyle, labelStyle, fieldGroup, btnPrincipal, btnSecundario, overlay, modal } from "../styles.js";
 import { generarPreviewDesdeArchivo, subirFotoRemito } from "../fotoStorage.js";
@@ -105,14 +105,21 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  // ✅ CORRECCIÓN CRÍTICA: Sincronizar el estado del formulario cuando `datosEdicion` cambie.
-  // Esto asegura que si el modal se reutiliza o `datosEdicion` se actualiza, el formulario
-  // refleje los datos más recientes, aplicando el formato correcto a las fechas.
+  const ultimoIdProcesado = useRef(datosEdicion?.id);
+  
   useEffect(() => {
-    if (datosEdicion) {
-      const fotosActuales = Array.isArray(datosEdicion.foto) 
-        ? datosEdicion.foto 
-        : (datosEdicion.foto ? [datosEdicion.foto] : []);
+    if (!datosEdicion) return;
+    
+    const idActual = datosEdicion.id;
+    const yaProcesado = ultimoIdProcesado.current === idActual;
+    
+    if (yaProcesado) return;
+    
+    ultimoIdProcesado.current = idActual;
+    
+    const fotosActuales = Array.isArray(datosEdicion.foto) 
+      ? datosEdicion.foto 
+      : (datosEdicion.foto ? [datosEdicion.foto] : []);
 
       setForm({
         fecha: aFechaInput(datosEdicion.fecha) || obtenerFechaLocal(),
@@ -145,7 +152,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         })),
       });
     }
-  }, [datosEdicion]);
+  }, [datosEdicion?.id]);
 
   const procesarArchivos = async (files) => {
     if (!files || files.length === 0) return;
