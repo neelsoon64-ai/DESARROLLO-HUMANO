@@ -221,7 +221,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         ? (fotosFinalesFiltradas.length === 1 ? fotosFinalesFiltradas[0] : fotosFinalesFiltradas)
         : (esEdicion ? (inicial.foto || []) : []); // Usamos array vacío por consistencia.
 
-      console.debug("ModalRemito: Guardando payload final con enlaces limpios.", { fotoFinal });
+      console.debug("ModalRemito: Guardando payload final con enlaces limpios.", { fotoFinal, fechaEnviada: form.fecha });
 
 
       const proveedorFinal = form.tipo === "inicial" && !form.proveedor.trim() 

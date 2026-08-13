@@ -325,7 +325,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
               <tbody>
                 {historialFiltrado.map((mov, idx) => (
                   <tr key={mov.id || idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>{formatFechaCorta(mov.fechaCarga)}</td>
+                    <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>{formatFechaCorta(mov.fecha || mov.fechaCarga)}</td>
                     <td style={{ padding: "10px", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '📥 Ingreso' : '📤 Egreso'}</td>
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
