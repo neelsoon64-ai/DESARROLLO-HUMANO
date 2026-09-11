@@ -113,7 +113,12 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   });
 
   const historialFiltrado = [...movimientos]
-    .sort((a, b) => new Date(b.fechaCarga) - new Date(a.fechaCarga))
+    .sort((a, b) => {
+      const fechaA = new Date(a.fecha || a.fechaCarga || 0).getTime();
+      const fechaB = new Date(b.fecha || b.fechaCarga || 0).getTime();
+      if (fechaB !== fechaA) return fechaB - fechaA;
+      return new Date(b.fechaCarga || 0) - new Date(a.fechaCarga || 0);
+    })
     .filter(mov => {
       // ✅ Si busqueda está vacía, mostrar TODO sin filtro de búsqueda
       if (!busqueda.trim()) {
@@ -124,10 +129,11 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
       // Si hay búsqueda, aplicar filtro inteligente
       const busquedaLower = busqueda.toLowerCase();
       const coincideBusqueda = mov.descripcion.toLowerCase().includes(busquedaLower) ||
-                               (mov.categoria && mov.categoria.toLowerCase().includes(busquedaLower)) ||
-                               (mov.cargadoPor && mov.cargadoPor.toLowerCase().includes(busquedaLower)) ||
-                               (mov.nroRemito && mov.nroRemito.toLowerCase().includes(busquedaLower)) ||
-                               (mov.numero_expediente && mov.numero_expediente.toLowerCase().includes(busquedaLower));
+               (mov.categoria && mov.categoria.toLowerCase().includes(busquedaLower)) ||
+               (mov.cargadoPor && mov.cargadoPor.toLowerCase().includes(busquedaLower)) ||
+               (mov.nroRemito && String(mov.nroRemito).toLowerCase().includes(busquedaLower)) ||
+               (mov.orden_compra && String(mov.orden_compra).toLowerCase().includes(busquedaLower)) ||
+               (mov.numero_expediente && String(mov.numero_expediente).toLowerCase().includes(busquedaLower));
       const coincideCategoria = categoriaFiltro === "Todas" || mov.categoria === categoriaFiltro;
       return coincideBusqueda && coincideCategoria;
     });
@@ -226,7 +232,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
       {/* Barra de Filtros */}
       <div className="no-print-filtros" style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <input type="text" placeholder="Buscar por descripción..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
+        <input type="text" placeholder="Buscar descripción, OC o N° de remito..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
         <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, background: "#fff", minWidth: 150 }}>
           {categoriasUnicas.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
