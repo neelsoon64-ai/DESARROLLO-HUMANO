@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ref, onValue, set as rtdbSet } from "firebase/database";
+import { ref, onValue, set as rtdbSet, runTransaction } from "firebase/database";
 import { db, firebaseConfigurado } from "./firebase.js";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -66,29 +66,16 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
 
   const actualizar = useCallback(
     async (actualizador) => {
-      let valorFinal;
-      
-      // ✅ Paso 1: Actualizar estado local en React
-      await new Promise(resolve => {
-        setEstado((previo) => {
-          // Calcular nuevo valor
-          valorFinal = typeof actualizador === "function" 
-            ? actualizador(previo) 
-            : actualizador;
-          
-          // Resolver promise cuando se haya calculado (se ejecutará antes de que React re-render)
-          resolve();
-          
-          // Retornar nuevo estado
-          return valorFinal;
-        });
-      });
-      
-      // ✅ Paso 2: Guardar en Firebase/localStorage DESPUÉS de actualizar React
       if (firebaseConfigurado && db) {
         const referencia = ref(db, rtdbPath);
         try {
-          await rtdbSet(referencia, valorFinal);
+          // La transacción evita perder eventos cuando llegan varias escrituras juntas.
+          const resultado = await runTransaction(referencia, (valorActual) => {
+            const base = valorActual === null ? valorInicialRef.current : valorActual;
+            return typeof actualizador === "function" ? actualizador(base) : actualizador;
+          });
+          const valorFinal = resultado.snapshot.val();
+          setEstado(valorFinal);
           console.debug(`✅ useSharedState: Guardado en Firebase (${rtdbPath}) - Total movimientos:`, 
             valorFinal.movimientos?.length || Object.keys(valorFinal.movimientos || {}).length);
         } catch (err) {
@@ -97,7 +84,11 @@ export function useSharedState(coleccion, idDocumento, valorInicial) {
         }
       } else {
         try {
-          window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
+          setEstado((previo) => {
+            const valorFinal = typeof actualizador === "function" ? actualizador(previo) : actualizador;
+            window.localStorage.setItem(rtdbPath, JSON.stringify(valorFinal));
+            return valorFinal;
+          });
           console.debug(`✅ useSharedState: Guardado en localStorage (${rtdbPath})`);
         } catch (err) {
           console.error(`❌ Error guardando en localStorage (${rtdbPath}):`, err);
