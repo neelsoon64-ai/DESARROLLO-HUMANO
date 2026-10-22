@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES, obtenerFechaLocal } from "./constants.js";
+import { USUARIOS_INICIALES, COLECCION, DOC_IDS, ROLES, generarId, obtenerFechaLocal } from "./constants.js";
 import { useSharedState } from "./useSharedState.js";
 import { firebaseConfigurado } from "./firebase.js";
 import Login from "./components/Login.jsx";
@@ -9,7 +9,16 @@ import ModalDetalle from "./components/ModalDetalle.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import Dashboard from "./components/Dashboard.jsx"; 
+import PaginaExpedientes from "./components/PaginaExpedientes.jsx";
+import PaginaStock from "./components/PaginaStock.jsx";
 import { exportarRespaldoExcel, exportarRespaldoPDF } from "./exportUtils.js";
+import {
+  calcularStockDetallado,
+  calcularStockDisponible,
+  consolidarStock,
+  crearArticuloId,
+  crearClaveStockHistorico,
+} from "./inventoryModel.js";
 import logo from "./assets/logo.png";
 
 export default function App() {
@@ -24,6 +33,7 @@ export default function App() {
   const [panelAudit, setPanelAudit] = useState(false);
   const [panelUsers, setPanelUsers] = useState(false);
   const [verDashboard, setVerDashboard] = useState(false); 
+  const [vistaInventario, setVistaInventario] = useState("general");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [ultimaSync, setUltimaSync] = useState(new Date());
   const [, setTick] = useState(0);
@@ -176,6 +186,11 @@ export default function App() {
         unidad: carga?.unidad || "unidades",
         nroRemito: carga?.nroRemito || null,
         orden_compra: carga?.orden_compra || null,
+        numero_expediente: carga?.numero_expediente || null,
+        expedienteId: carga?.expedienteId || null,
+        compraId: carga?.compraId || null,
+        articuloId: carga?.articuloId || null,
+        legacyStockKey: carga?.legacyStockKey || null,
         fecha: carga?.fecha || carga?.fechaCarga || obtenerFechaLocal(),
         fechaCarga: carga?.fechaCarga || carga?.fecha || obtenerFechaLocal(),
         proveedor: carga?.proveedor || null,
@@ -214,6 +229,23 @@ export default function App() {
         
         // Buscar si el movimiento ya existe
         const idx = movsArray.findIndex(m => String(m?.id).trim() === String(idMovimiento).trim());
+
+        if (movimientoSeguro.tipo === "egreso") {
+          const articuloId = movimientoSeguro.articuloId ||
+            crearArticuloId(movimientoSeguro.categoria, movimientoSeguro.descripcion, movimientoSeguro.unidad);
+          const claveHistorica = movimientoSeguro.legacyStockKey ||
+            crearClaveStockHistorico({ ...movimientoSeguro, origen: seccion });
+          const stockActual = calcularStockDisponible(movsArray, {
+            articuloId,
+            compraId: movimientoSeguro.compraId,
+            legacyStockKey: claveHistorica,
+            origen: seccion,
+            excluirId: idMovimiento,
+          });
+          if (Number(movimientoSeguro.cantidad) > stockActual) {
+            throw new Error(`Stock insuficiente para esta compra. Disponible: ${stockActual}.`);
+          }
+        }
         
         if (idx !== -1) {
           console.debug("agregarCarga: Actualizando movimiento existente en índice:", idx);
@@ -229,6 +261,111 @@ export default function App() {
     },
     [setNacion, setProvincia]
   );
+
+  const crearExpediente = useCallback(async ({ seccion, expediente }) => {
+    const setter = seccion === "nacion" ? setNacion : setProvincia;
+    await setter((prev) => {
+      const base = prev || {};
+      const expedientes = Array.isArray(base.expedientes) ? base.expedientes : [];
+      if (expedientes.some((actual) => actual.id === expediente.id || actual.numeroExpediente === expediente.numeroExpediente)) {
+        return base;
+      }
+      return { ...base, expedientes: [...expedientes, expediente] };
+    });
+    registrarAuditoria({
+      tipo: "carga",
+      detalle: `Creó expediente ${expediente.numeroExpediente} en ${seccion === "nacion" ? "Nación" : "Provincia"}`,
+    }, usuarioActual);
+  }, [registrarAuditoria, setNacion, setProvincia, usuarioActual]);
+
+  const crearCompra = useCallback(async ({ seccion, expediente, compra, lineas }) => {
+    const setter = seccion === "nacion" ? setNacion : setProvincia;
+    const fecha = compra.fechaCompra || obtenerFechaLocal();
+    const compraSegura = {
+      ...compra,
+      expedienteId: expediente.id,
+      numero_expediente: expediente.numeroExpediente,
+      fechaCompra: fecha,
+      creadaPor: usuarioActual?.nombre || "Desconocido",
+      movimientosIds: lineas.map(() => `mov_${generarId()}`),
+    };
+    const movimientosNuevos = lineas.map((linea, indice) => ({
+      id: compraSegura.movimientosIds[indice],
+      movimientoId: compraSegura.movimientosIds[indice],
+      tipo: "ingreso",
+      descripcion: linea.descripcion,
+      categoria: linea.categoria || "General",
+      articuloId: crearArticuloId(linea.categoria, linea.descripcion, linea.unidad),
+      cantidad: Number(linea.cantidad),
+      unidad: linea.unidad || "unidades",
+      compraId: compra.compraId,
+      expedienteId: expediente.id,
+      numero_expediente: expediente.numeroExpediente,
+      nroRemito: compra.remitoNumero || null,
+      orden_compra: compra.ordenCompra || null,
+      proveedor: compra.proveedor || null,
+      fecha,
+      fechaCompra: fecha,
+      fechaCarga: new Date().toISOString(),
+      cargadoPor: usuarioActual?.nombre || "Desconocido",
+      origen: seccion,
+      estado: "Activo",
+    }));
+
+    await setter((prev) => {
+      const base = prev || {};
+      const compras = Array.isArray(base.compras) ? base.compras : [];
+      if (compras.some((actual) => actual.compraId === compra.compraId)) return base;
+      const existentes = Array.isArray(base.movimientos)
+        ? base.movimientos.filter(Boolean)
+        : Object.values(base.movimientos || {}).filter(Boolean);
+      const idsExistentes = new Set(existentes.map((movimiento) => String(movimiento.id)));
+      const movimientos = [...existentes, ...movimientosNuevos.filter((movimiento) => !idsExistentes.has(String(movimiento.id)))];
+      return { ...base, compras: [...compras, compraSegura], movimientos };
+    });
+    registrarAuditoria({
+      tipo: "carga",
+      detalle: `Registró compra ${compra.ordenCompra || compra.compraId} para expediente ${expediente.numeroExpediente} con ${lineas.length} artículo(s)`,
+    }, usuarioActual);
+  }, [registrarAuditoria, setNacion, setProvincia, usuarioActual]);
+
+  const asignarExpedienteHistorico = useCallback(async (movimiento, expediente) => {
+    if (movimiento.origen !== expediente.seccion) {
+      throw new Error("El expediente y el movimiento pertenecen a secciones diferentes.");
+    }
+    const setter = movimiento.origen === "nacion" ? setNacion : setProvincia;
+    const datosActuales = movimiento.origen === "nacion" ? nacion : provincia;
+    const movimientosActuales = Array.isArray(datosActuales?.movimientos)
+      ? datosActuales.movimientos
+      : Object.values(datosActuales?.movimientos || {}).filter(Boolean);
+    if (!movimientosActuales.some((actual) => String(actual.id) === String(movimiento.id))) {
+      throw new Error("El movimiento histórico ya no está disponible.");
+    }
+    await setter((prev) => {
+      const base = prev || {};
+      const movimientos = Array.isArray(base.movimientos)
+        ? base.movimientos.filter(Boolean)
+        : Object.values(base.movimientos || {}).filter(Boolean);
+      const actualizados = movimientos.map((actual) => {
+        if (String(actual.id) !== String(movimiento.id)) return actual;
+        return {
+          ...actual,
+          ...(!actual.compraId && !actual.legacyStockKey
+            ? { legacyStockKey: crearClaveStockHistorico({ ...actual, origen: movimiento.origen }) }
+            : {}),
+          expedienteId: expediente.id,
+          numero_expediente: expediente.numeroExpediente,
+        };
+      });
+      return { ...base, movimientos: actualizados };
+    });
+    registrarAuditoria({
+      tipo: "edicion",
+      detalle: `Asignó el expediente ${expediente.numeroExpediente} al movimiento "${movimiento.descripcion}"`,
+      antes: "Sin expediente identificado",
+      despues: expediente.numeroExpediente,
+    }, usuarioActual);
+  }, [nacion, provincia, registrarAuditoria, setNacion, setProvincia, usuarioActual]);
 
   const eliminarCarga = useCallback(
     async (seccion, carga) => {
@@ -326,30 +463,13 @@ export default function App() {
     return fuente.map(normalizarMovimiento).filter(Boolean);
   };
 
-  const nacionMovs = normalizarMovimientos(nacion?.movimientos);
-  const provinciaMovs = normalizarMovimientos(provincia?.movimientos);
-
-  const stockConsolidado = useMemo(() => {
-    const todosLosMovimientos = [...nacionMovs, ...provinciaMovs];
-    if (!todosLosMovimientos || !Array.isArray(todosLosMovimientos)) return [];
-    const acumulado = todosLosMovimientos.reduce((acc, mov) => {
-      if (!mov.descripcion) return acc;
-      const categoria = mov.categoria || "General";
-      const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
-
-      if (!acc[key]) {
-        acc[key] = { id: key, descripcion: mov.descripcion, categoria: categoria, unidad: mov.unidad || "unidades", ingresos: 0, egresos: 0, stock: 0 };
-      }
-
-      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-      if (mov.tipo === 'ingreso' || mov.tipo === 'inicial') { acc[key].ingresos += cantidad; } 
-      else if (mov.tipo === 'egreso') { acc[key].egresos += cantidad; }
-      return acc;
-    }, {});
-    Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
-    return Object.values(acumulado);
-  }, [nacionMovs, provinciaMovs]);
-
+  const nacionMovs = normalizarMovimientos(nacion?.movimientos).map((mov) => ({ ...mov, origen: "nacion" }));
+  const provinciaMovs = normalizarMovimientos(provincia?.movimientos).map((mov) => ({ ...mov, origen: "provincia" }));
+  const todosLosMovimientos = [...nacionMovs, ...provinciaMovs];
+  const stockNacion = useMemo(() => calcularStockDetallado(nacionMovs), [nacionMovs]);
+  const stockProvincia = useMemo(() => calcularStockDetallado(provinciaMovs), [provinciaMovs]);
+  const stockGlobalDetallado = useMemo(() => calcularStockDetallado(todosLosMovimientos), [nacionMovs, provinciaMovs]);
+  const stockGlobal = useMemo(() => consolidarStock(stockGlobalDetallado), [stockGlobalDetallado]);
   const datosEdicionMemo = useMemo(() => {
     if (!modalCarga?.datos) return null;
     return { ...modalCarga.datos, esEdicionDesdeFicha: modalCarga.esEdicionDesdeFicha };
@@ -448,6 +568,44 @@ export default function App() {
           />}
 
         {!verDashboard && <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[
+              { id: "general", label: "Inventario general" },
+              { id: "dependencias", label: "Inventario por dependencia" },
+              { id: "expedientes", label: "Expedientes y Compras" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setVistaInventario(item.id)}
+                style={{
+                  border: "1px solid #CBD5E1",
+                  borderRadius: 8,
+                  padding: "9px 14px",
+                  background: vistaInventario === item.id ? "#1A3A5C" : "#fff",
+                  color: vistaInventario === item.id ? "#fff" : "#334155",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {vistaInventario === "expedientes" ? (
+            <PaginaExpedientes
+              nacion={nacion}
+              provincia={provincia}
+              todosLosMovimientos={todosLosMovimientos}
+              puedeEscribir={puedeEscribir}
+              onCrearExpediente={crearExpediente}
+              onCrearCompra={crearCompra}
+              onAsignarExpediente={asignarExpedienteHistorico}
+            />
+          ) : vistaInventario === "general" ? (
+            <PaginaStock stockConsolidado={stockGlobal} stockDetallado={stockGlobalDetallado} />
+          ) : (
+          <>
           {/* KPIs */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
             {[
@@ -476,7 +634,7 @@ export default function App() {
                 onRegistrarSalida={puedeEscribir ? (item) => setModalCarga({ 
                   seccion: "nacion", 
                   datos: { ...item, tipo: 'egreso', cantidad: '' },
-                  esEdicionDesdeFicha: true
+                  esEdicionDesdeFicha: Boolean(item.stockKey)
                 }) : undefined}
                 onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
                 puedeEliminar={puedeEliminar}
@@ -497,7 +655,7 @@ export default function App() {
                 onRegistrarSalida={puedeEscribir ? (item) => setModalCarga({ 
                   seccion: "provincia", 
                   datos: { ...item, tipo: 'egreso', cantidad: '' },
-                  esEdicionDesdeFicha: true
+                  esEdicionDesdeFicha: Boolean(item.stockKey)
                 }) : undefined}
                 onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}
                 puedeEliminar={puedeEliminar}
@@ -508,6 +666,8 @@ export default function App() {
               />
             </div>
           </div>
+          </>
+          )}
         </div>}
       </div>
 
@@ -515,8 +675,12 @@ export default function App() {
         <ModalRemito
           seccionNombre={modalCarga.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}
           datosEdicion={datosEdicionMemo}
-          expedientesExistentes={stockConsolidado.map(m => m.numero_expediente)}
-          stockDisponible={stockConsolidado}
+          expedientesExistentes={[
+            ...todosLosMovimientos.map((movimiento) => movimiento.numero_expediente),
+            ...(Array.isArray(nacion?.expedientes) ? nacion.expedientes.map((item) => item.numeroExpediente) : []),
+            ...(Array.isArray(provincia?.expedientes) ? provincia.expedientes.map((item) => item.numeroExpediente) : []),
+          ]}
+          stockDisponible={modalCarga.seccion === "nacion" ? stockNacion : stockProvincia}
           onClose={() => setModalCarga(null)}
           onGuardar={async (carga) => {
             const conUsuario = { 

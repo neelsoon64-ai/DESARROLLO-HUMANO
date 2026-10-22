@@ -85,6 +85,11 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     estado: inicial.estado || "Activo",
     motivo: inicial.motivo || "",
     numero_expediente: inicial.numero_expediente || "",
+    expedienteId: inicial.expedienteId || "",
+    compraId: inicial.compraId || "",
+    articuloId: inicial.articuloId || "",
+    stockKey: inicial.stockKey || "",
+    legacyStockKey: inicial.legacyStockKey || "",
     fechaCompra: aFechaInput(inicial.fechaCompra),
     fechaVencimiento: aFechaInput(inicial.fechaVencimiento),
     estadoRemito: inicial.estadoRemito || "Pendiente",
@@ -166,17 +171,25 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
   };
 
   const handleGuardar = async () => {
+    let itemInventario = null;
     if (!form.descripcion.trim()) return setError("Ingresá una descripción.");
     if (!form.cantidad || isNaN(Number(form.cantidad)) || Number(form.cantidad) <= 0)
       return setError("Ingresá una cantidad válida.");
     
     // ✅ VALIDACIÓN DE STOCK PARA EGRESOS
     if (form.tipo === 'egreso') {
-      const itemEnStock = stockDisponible.find(item => item.descripcion === form.descripcion && item.categoria === form.categoria);
-      const stockActual = itemEnStock ? itemEnStock.stock : 0;
-      if (Number(form.cantidad) > stockActual) {
-        return setError(`Stock insuficiente. Disponible: ${stockActual} unidades.`);
+      const candidatos = stockDisponible.filter((item) =>
+        item.descripcion === form.descripcion &&
+        item.categoria === form.categoria &&
+        item.stock > 0
+      );
+      const itemEnStock = candidatos.find((item) => item.stockKey === form.stockKey) ||
+        (candidatos.length === 1 ? candidatos[0] : null);
+      if (!itemEnStock) return setError("Seleccioná la compra o registro histórico del que saldrá el artículo.");
+      if (Number(form.cantidad) > itemEnStock.stock) {
+        return setError(`Stock insuficiente en el registro seleccionado. Disponible: ${itemEnStock.stock} ${itemEnStock.unidad}.`);
       }
+      itemInventario = itemEnStock;
     }
     if (form.estado === "Dado de baja" && !form.motivo) return setError("Seleccioná un motivo para Dado de baja.");
     if (form.estadoRemito === "Cerrado" && !form.fechaCierre) return setError("Ingresá la fecha de cierre del remito.");
@@ -235,7 +248,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
 
       // ✅ ESTRUCTURA DE DATOS GARANTIZADA: Cada campo se mapea a su lugar correcto.
       // ─── 🚀 ENVÍO INMUNE A TU BASE DE DATOS ───
-      onGuardar({
+      await onGuardar({
         ...inicial, // Preserva todos los campos originales no modificados
         id,
         fecha: form.fecha, // Se guarda el string 'YYYY-MM-DD' directamente
@@ -267,7 +280,11 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
         motivo: form.estado === "Dado de baja" ? (form.motivo || "") : "",
         fechaCompra: form.fechaCompra || null,
         fechaVencimiento: form.fechaVencimiento || null,
-        numero_expediente: form.numero_expediente.trim().toUpperCase(), // ✅ GUARDAR EXPEDIENTE EN MAYÚSCULAS
+        numero_expediente: (itemInventario?.numero_expediente || form.numero_expediente).trim().toUpperCase(),
+        expedienteId: itemInventario?.expedienteId || form.expedienteId || null,
+        compraId: itemInventario?.compraId || form.compraId || null,
+        articuloId: itemInventario?.articuloId || form.articuloId || null,
+        legacyStockKey: itemInventario?.compraId ? null : itemInventario?.stockKey || form.legacyStockKey || null,
         estadoRemito: form.estadoRemito || "Pendiente",
         fechaCierre: form.estadoRemito === "Cerrado" ? (form.fechaCierre || obtenerFechaLocal()) : null,
         foto: fotoFinal 
@@ -442,19 +459,28 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
             <label style={labelStyle}>{catActual?.icon} Descripción del Artículo</label>
             {form.tipo === 'egreso' ? (
               <select
-                value={form.descripcion}
+                value={form.stockKey}
                 onChange={(e) => {
-                  const selectedDesc = e.target.value;
-                  const selectedItem = stockDisponible.find(item => item.descripcion === selectedDesc);
-                  setForm(f => ({ ...f, descripcion: selectedDesc, categoria: selectedItem?.categoria || f.categoria }));
+                  const selectedItem = stockDisponible.find(item => item.stockKey === e.target.value);
+                  setForm(f => ({
+                    ...f,
+                    stockKey: selectedItem?.stockKey || "",
+                    descripcion: selectedItem?.descripcion || "",
+                    categoria: selectedItem?.categoria || f.categoria,
+                    compraId: selectedItem?.compraId || "",
+                    expedienteId: selectedItem?.expedienteId || "",
+                    numero_expediente: selectedItem?.numero_expediente || "",
+                    articuloId: selectedItem?.articuloId || "",
+                    legacyStockKey: selectedItem?.compraId ? "" : selectedItem?.stockKey || "",
+                  }));
                 }}
                 style={inputStyle}
                 disabled={esEdicionDesdeFicha}
               >
-                <option value="">-- Seleccioná un artículo del inventario --</option>
+                <option value="">-- Seleccioná artículo y compra / registro --</option>
                 {stockDisponible.filter(item => item.stock > 0).map(item => (
-                  <option key={item.id} value={item.descripcion}>
-                    {item.descripcion} ({item.stock} disp.)
+                  <option key={item.stockKey} value={item.stockKey}>
+                    {item.descripcion} · {item.numero_expediente ? `Exp. ${item.numero_expediente}` : "Histórico"} · {item.orden_compra || item.compraId || "sin compra"} ({item.stock} {item.unidad})
                   </option>
                 ))}
               </select>

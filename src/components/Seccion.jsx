@@ -3,11 +3,13 @@ import { exportarHistorialPDF } from "./reportGenerator.js";
 import { formatFechaCorta } from "../constants.js";
 import ExcelJS from 'exceljs';
 import { AlertTriangle, Clock, MinusCircle } from 'lucide-react';
+import { calcularStockDetallado, consolidarStock } from "../inventoryModel.js";
 
 export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onEditar, onVerDetalle, usuarioActual, onAudit, onRegistrarSalida }) {
   const [busqueda, setBusqueda] = useState(""); // 'stock' o 'historial'
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
   const [pestaña, setPestaña] = useState("stock"); // 'stock' o 'historial'
+  const [vistaStock, setVistaStock] = useState("general");
 
   const esIngreso = (mov) => {
     const tipo = String(mov?.tipo || "").trim().toLowerCase();
@@ -56,50 +58,16 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
   // =================================================================================
   // ✨ LÓGICA DE STOCK SIMPLIFICADA: TOTAL INGRESOS - TOTAL EGRESOS ✨
   // =================================================================================
-  const stockConsolidado = useMemo(() => {
-    if (!movimientos || !Array.isArray(movimientos)) return [];
-
-    const acumulado = movimientos.reduce((acc, mov) => {
-      if (!mov.descripcion) return acc; // Ignorar movimientos sin descripción
-
-      // ✅ REFACTORIZACIÓN CLAVE: La única clave de agrupación es `categoría + descripción`.
-      // Se eliminó por completo la agrupación por `remito` o `expediente`.
-      const categoria = mov.categoria || "General";
-      const key = `${categoria.toLowerCase()}-${mov.descripcion.toLowerCase()}`;
-
-      if (!acc[key]) {
-        acc[key] = {
-          id: key,
-          descripcion: mov.descripcion,
-          categoria: categoria,
-          unidad: mov.unidad || "unidades",
-          ingresos: 0,
-          egresos: 0,
-          stock: 0,
-        };
-      }
-
-      // ✅ CÁLCULO AUTOMÁTICO: Suma o resta según el tipo de movimiento.
-      const cantidad = isNaN(Number(mov.cantidad)) ? 0 : Number(mov.cantidad);
-      if (esIngreso(mov)) {
-        acc[key].ingresos += cantidad;
-      } else if (esEgreso(mov)) {
-        acc[key].egresos += cantidad;
-      }
-      return acc;
-    }, {});
-
-    // ✅ CÁLCULO FINAL: Se calcula el stock final después de procesar todos los movimientos.
-    Object.values(acumulado).forEach(item => { item.stock = item.ingresos - item.egresos; });
-    return Object.values(acumulado).sort((a, b) => a.descripcion.localeCompare(b.descripcion) || a.categoria.localeCompare(b.categoria));
-  }, [movimientos]);
+  const stockDetallado = useMemo(() => calcularStockDetallado(movimientos), [movimientos]);
+  const stockGeneral = useMemo(() => consolidarStock(stockDetallado), [stockDetallado]);
+  const stockConsolidado = vistaStock === "detalle" ? stockDetallado : stockGeneral;
 
   const totalItemsUnicos = new Set(movimientos.map(m => m.descripcion)).size;
   const totalIngresos = movimientos.reduce((total, mov) => total + (esIngreso(mov) ? Number(mov.cantidad || 0) : 0), 0);
   const totalEgresos = movimientos.reduce((total, mov) => total + (esEgreso(mov) ? Number(mov.cantidad || 0) : 0), 0);
 
   // ✨ CÁLCULO DEL TOTAL DE UNIDADES EN STOCK
-  const totalUnidadesEnStock = stockConsolidado.reduce((total, item) => total + item.stock, 0);
+  const totalUnidadesEnStock = stockGeneral.reduce((total, item) => total + item.stock, 0);
   // =================================================================================
 
 
@@ -107,7 +75,15 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
 
   // Filtrados
   const stockFiltrado = stockConsolidado.filter((item) => {
-    const coincideBusqueda = item.descripcion.toLowerCase().includes(busqueda.toLowerCase()) || item.categoria.toLowerCase().includes(busqueda.toLowerCase());
+    const texto = busqueda.trim().toLowerCase();
+    const detalles = item.compras || [item];
+    const coincideBusqueda = !texto ||
+      item.descripcion.toLowerCase().includes(texto) ||
+      item.categoria.toLowerCase().includes(texto) ||
+      detalles.some((compra) =>
+        [compra.numero_expediente, compra.compraId, compra.orden_compra, compra.nroRemito]
+          .some((valor) => String(valor || "").toLowerCase().includes(texto))
+      );
     const coincideCategoria = categoriaFiltro === "Todas" || item.categoria === categoriaFiltro;
     return coincideBusqueda && coincideCategoria;
   });
@@ -230,9 +206,16 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
         <button onClick={() => setPestaña("historial")} style={{ flex: 1, padding: "12px", background: "none", border: "none", borderBottom: pestaña === "historial" ? `3px solid ${color}` : "3px solid transparent", color: pestaña === "historial" ? color : "#64748B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📜 Ver Historial</button>
       </div>
 
+      {pestaña === "stock" && (
+        <div className="no-print-barra" style={{ display: "flex", borderBottom: "1px solid #E2E8F0" }}>
+          <button onClick={() => setVistaStock("general")} style={{ flex: 1, padding: "9px", background: "none", border: "none", borderBottom: vistaStock === "general" ? `2px solid ${color}` : "2px solid transparent", color: vistaStock === "general" ? color : "#64748B", fontWeight: 700, cursor: "pointer" }}>Inventario general</button>
+          <button onClick={() => setVistaStock("detalle")} style={{ flex: 1, padding: "9px", background: "none", border: "none", borderBottom: vistaStock === "detalle" ? `2px solid ${color}` : "2px solid transparent", color: vistaStock === "detalle" ? color : "#64748B", fontWeight: 700, cursor: "pointer" }}>Detalle por expediente y compra</button>
+        </div>
+      )}
+
       {/* Barra de Filtros */}
       <div className="no-print-filtros" style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <input type="text" placeholder="Buscar descripción, OC o N° de remito..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
+        <input type="text" placeholder="Buscar artículo, expediente, compra u orden..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ flex: 1, minWidth: 180, padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12 }} />
         <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, background: "#fff", minWidth: 150 }}>
           {categoriasUnicas.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
@@ -256,6 +239,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
               <thead>
                 <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
                   <th style={{ padding: "10px" }}>Artículo / Categoría</th>
+                  <th style={{ padding: "10px" }}>{vistaStock === "detalle" ? "Expediente / Compra / Remito" : "Compras vinculadas"}</th>
                   <th style={{ padding: "10px", textAlign: "center" }}>Ingresos</th>
                   <th style={{ padding: "10px", textAlign: "center" }}>Egresos</th>
                   <th style={{ padding: "10px", textAlign: "right" }}>Stock Actual</th>
@@ -268,6 +252,19 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                     <td style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 700, color: "#1E293B", fontSize: 13 }}>{item.descripcion}</div>
                       <span style={{ background: "#E2E8F0", padding: "2px 6px", borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#475569' }}>{item.categoria}</span>
+                    </td>
+                    <td style={{ padding: "10px", color: "#475569", minWidth: 150 }}>
+                      {vistaStock === "detalle" ? (
+                        item.compraId ? (
+                          <div>
+                            <div>Exp. {item.numero_expediente || "—"}</div>
+                            <div>Compra {item.orden_compra || item.compraId}</div>
+                            {item.nroRemito && <div>Remito {item.nroRemito}</div>}
+                          </div>
+                        ) : <span>Histórico pendiente de identificar</span>
+                      ) : (
+                        <div>{item.compras.length} registro(s) · {item.compras.filter((compra) => compra.compraId).length} compra(s)</div>
+                      )}
                     </td>
                     <td style={{ padding: "10px", textAlign: "center", fontWeight: 600, color: "#16A34A" }}>
                       {item.ingresos}
