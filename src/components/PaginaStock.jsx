@@ -90,6 +90,21 @@ export default function PaginaStock({
           <tbody>
             {stockFiltrado.map((item) => {
               const detalle = item.compras || [item];
+              const referencias = new Map();
+              detalle.forEach((registro) => {
+                const historico = !registro.compraId;
+                const clave = historico
+                  ? `historico:${registro.origen || "sin-origen"}`
+                  : `compra:${registro.origen || ""}:${registro.compraId}`;
+                const etiqueta = registro.compraId
+                  ? `Exp. ${registro.numero_expediente || "—"} · ${registro.orden_compra || registro.compraId}${registro.nroRemito ? ` · Rem. ${registro.nroRemito}` : ""}`
+                  : `Histórico sin compra · ${registro.origen === "nacion" ? "Nación" : "Provincia"}`;
+                const actual = referencias.get(clave);
+                referencias.set(clave, {
+                  etiqueta,
+                  cantidad: (actual?.cantidad || 0) + 1,
+                });
+              });
               const abrirFicha = () => onAbrirFicha?.(item);
               return (
                 <tr
@@ -120,11 +135,10 @@ export default function PaginaStock({
                       ) : <span>Histórico pendiente de identificar</span>
                     ) : (
                       <div>
-                        {detalle.map((registro) => (
-                          <div key={registro.stockKey || registro.id}>
-                            {registro.compraId
-                              ? `Exp. ${registro.numero_expediente || "—"} · ${registro.orden_compra || registro.compraId}${registro.nroRemito ? ` · Rem. ${registro.nroRemito}` : ""}`
-                              : `Histórico sin compra · ${registro.origen === "nacion" ? "Nación" : "Provincia"}`}
+                        {[...referencias.entries()].map(([clave, referencia]) => (
+                          <div key={clave}>
+                            {referencia.etiqueta}
+                            {referencia.cantidad > 1 ? ` · ${referencia.cantidad} registros` : ""}
                           </div>
                         ))}
                       </div>
