@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { formatFechaHora } from "../constants.js";
 import { movimientosConStockResultante } from "../inventoryModel.js";
+import { exportarDetalleRegistroExcel, exportarDetalleRegistroPDF } from "./reportGenerator.js";
 import { modal, overlay } from "../styles.js";
 
 const tipoMovimiento = (tipo) => {
@@ -12,9 +13,21 @@ const tipoMovimiento = (tipo) => {
 };
 
 const valor = (dato) => dato || "—";
+const botonExportar = {
+  border: "1px solid #CBD5E1",
+  borderRadius: 7,
+  background: "#F8FAFC",
+  color: "#1E3A8A",
+  padding: "7px 10px",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+};
 
-export default function ModalFichaArticulo({ articulo, stockDetallado = [], onClose }) {
+export default function ModalFichaArticulo({ articulo, stockDetallado = [], usuarioActual, onClose }) {
   const [registroSeleccionado, setRegistroSeleccionado] = useState(articulo?.stockKey || "");
+  const [exportando, setExportando] = useState("");
+  const [errorExportacion, setErrorExportacion] = useState("");
 
   useEffect(() => {
     setRegistroSeleccionado(articulo?.stockKey || "");
@@ -32,6 +45,24 @@ export default function ModalFichaArticulo({ articulo, stockDetallado = [], onCl
     .reverse()
     .find((movimiento) => ["ingreso", "entrada", "inicial"].includes(String(movimiento.tipo || "").toLocaleLowerCase()));
   const mostrarSelector = !articulo.stockKey && !registro && registros.length > 1;
+
+  const exportar = async (formato) => {
+    if (!registro) return;
+    setErrorExportacion("");
+    setExportando(formato);
+    try {
+      if (formato === "pdf") {
+        exportarDetalleRegistroPDF(registro, movimientos, usuarioActual);
+      } else {
+        await exportarDetalleRegistroExcel(registro, movimientos, usuarioActual);
+      }
+    } catch (error) {
+      console.error(`No se pudo exportar el detalle a ${formato.toUpperCase()}:`, error);
+      setErrorExportacion(`No se pudo generar el archivo ${formato.toUpperCase()}. Intentá nuevamente.`);
+    } finally {
+      setExportando("");
+    }
+  };
 
   return (
     <div style={{ ...overlay, zIndex: 500 }} onMouseDown={(event) => {
@@ -103,12 +134,23 @@ export default function ModalFichaArticulo({ articulo, stockDetallado = [], onCl
                 </button>
               )}
 
-              <h3 style={{ fontSize: 15, margin: "8px 0 10px" }}>Historial de movimientos de este registro</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "8px 0 10px" }}>
+                <h3 style={{ fontSize: 15, margin: 0 }}>Historial de movimientos de este registro</h3>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" onClick={() => exportar("pdf")} disabled={Boolean(exportando)} style={botonExportar} aria-label="Exportar historial a PDF">
+                    {exportando === "pdf" ? "Generando PDF..." : "Exportar PDF"}
+                  </button>
+                  <button type="button" onClick={() => exportar("excel")} disabled={Boolean(exportando)} style={botonExportar} aria-label="Exportar historial a Excel">
+                    {exportando === "excel" ? "Generando Excel..." : "Exportar Excel"}
+                  </button>
+                </div>
+              </div>
+              {errorExportacion && <div role="alert" style={{ color: "#991B1B", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: 10, marginBottom: 10 }}>{errorExportacion}</div>}
               <div style={{ overflowX: "auto", border: "1px solid #E5E7EB", borderRadius: 8 }}>
-                <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
+                <table style={{ width: "100%", minWidth: 1050, borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
                   <thead>
                     <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E5E7EB" }}>
-                      {["Fecha y hora", "Tipo", "Cantidad", "Stock resultante", "Remito / comprobante", "Usuario", "Observaciones"].map((titulo) => (
+                      {["Fecha y hora", "Tipo", "Artículo", "Cantidad", "Stock resultante", "Retiró / destinatario", "Operario", "Remito / expediente", "Observaciones"].map((titulo) => (
                         <th key={titulo} style={{ padding: 9, color: "#475569" }}>{titulo}</th>
                       ))}
                     </tr>
@@ -118,15 +160,33 @@ export default function ModalFichaArticulo({ articulo, stockDetallado = [], onCl
                       <tr key={`${movimiento.origen || registro.origen}:${movimiento.id || indice}`} style={{ borderBottom: "1px solid #F1F5F9" }}>
                         <td style={{ padding: 9, whiteSpace: "nowrap" }}>{formatFechaHora(movimiento.fechaCarga || movimiento.fecha)}</td>
                         <td style={{ padding: 9 }}>{tipoMovimiento(movimiento.tipo)}</td>
+                        <td style={{ padding: 9, minWidth: 140 }}>
+                          <strong>{movimiento.descripcion || registro.descripcion}</strong>
+                          <div style={{ color: "#64748B" }}>{movimiento.categoria || registro.categoria}</div>
+                        </td>
                         <td style={{ padding: 9, whiteSpace: "nowrap" }}>{movimiento.cantidad} {movimiento.unidad || registro.unidad}</td>
                         <td style={{ padding: 9 }}>{movimiento.stockResultante === null ? "—" : `${movimiento.stockResultante} ${movimiento.unidad || registro.unidad}`}</td>
-                        <td style={{ padding: 9 }}>{valor(movimiento.nroRemito || movimiento.comprobante || movimiento.orden_compra)}</td>
+                        <td style={{ padding: 9, minWidth: 150 }}>
+                          {movimiento.tipo === "egreso" ? (
+                            <>
+                              <strong>{[movimiento.nombre_destinatario, movimiento.apellido_destinatario].filter(Boolean).join(" ") || valor(movimiento.destinatario)}</strong>
+                              {movimiento.dni_destinatario && <div style={{ color: "#64748B" }}>DNI: {movimiento.dni_destinatario}</div>}
+                              {movimiento.destinatario && (movimiento.nombre_destinatario || movimiento.apellido_destinatario) && <div style={{ color: "#64748B" }}>{movimiento.destinatario}</div>}
+                              {(movimiento.direccion || movimiento.localidad) && <div style={{ color: "#64748B" }}>{[movimiento.direccion, movimiento.localidad].filter(Boolean).join(", ")}</div>}
+                            </>
+                          ) : "—"}
+                        </td>
+                        <td style={{ padding: 9 }}>{valor(movimiento.cargadoPor)}</td>
+                        <td style={{ padding: 9 }}>
+                          <div>{valor(movimiento.nroRemito || movimiento.comprobante)}</div>
+                          {movimiento.numero_expediente && <div style={{ color: "#64748B" }}>Exp. {movimiento.numero_expediente}</div>}
+                        </td>
                         <td style={{ padding: 9 }}>{valor(movimiento.cargadoPor)}</td>
                         <td style={{ padding: 9 }}>{valor(movimiento.observaciones || movimiento.motivo)}</td>
                       </tr>
                     ))}
                     {movimientos.length === 0 && (
-                      <tr><td colSpan="7" style={{ padding: 20, textAlign: "center", color: "#64748B" }}>No hay movimientos asociados a este registro.</td></tr>
+                      <tr><td colSpan="9" style={{ padding: 20, textAlign: "center", color: "#64748B" }}>No hay movimientos asociados a este registro.</td></tr>
                     )}
                   </tbody>
                 </table>

@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import logo from '../assets/logo.png';
 
-import { formatFechaCorta } from '../constants';
+import { formatFechaCorta, formatFechaHora } from '../constants';
 /**
  * Generador de Informes Profesionales (PDF y Excel)
  * Inspirado en sistemas ERP para calidad institucional.
@@ -130,6 +130,134 @@ export const exportarHistorialPDF = async (movimientos, usuario) => {
     doc.save(`Reporte_Historial_${new Date().toISOString().slice(0, 10)}.pdf`);
     resolve();
   });
+};
+
+export const exportarDetalleRegistroPDF = (registro, movimientos, usuario) => {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const valor = (dato) => dato || "—";
+  const destinatario = (movimiento) => {
+    const persona = [movimiento.nombre_destinatario, movimiento.apellido_destinatario].filter(Boolean).join(" ");
+    return [
+      persona || movimiento.destinatario || "—",
+      movimiento.dni_destinatario ? `DNI: ${movimiento.dni_destinatario}` : "",
+      movimiento.destinatario && persona ? movimiento.destinatario : "",
+      [movimiento.direccion, movimiento.localidad].filter(Boolean).join(", "),
+    ].filter(Boolean).join("\n");
+  };
+
+  doc.setFontSize(15);
+  doc.setFont("helvetica", "bold");
+  doc.text("Detalle de inventario y movimientos", 14, 15);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Artículo: ${registro.descripcion || "—"} | Categoría: ${registro.categoria || "—"}`, 14, 22);
+  doc.text(`Expediente: ${valor(registro.numero_expediente)} | Compra: ${registro.orden_compra || registro.compraId || "No identificada"} | Remito: ${valor(registro.nroRemito)}`, 14, 28);
+  doc.text(`Ingresos: ${registro.ingresos} ${registro.unidad} | Egresos: ${registro.egresos} ${registro.unidad} | Stock: ${registro.stock} ${registro.unidad}`, 14, 34);
+  doc.text(`Generado por: ${usuario?.nombre || "Sistema"} | ${new Date().toLocaleString("es-AR")}`, 14, 40);
+
+  autoTable(doc, {
+    startY: 45,
+    head: [["Fecha y hora", "Tipo", "Artículo", "Cantidad", "Stock resultante", "Retiró / destinatario", "Operario", "Remito / expediente", "Observaciones"]],
+    body: movimientos.map((movimiento) => [
+      formatFechaHora(movimiento.fechaCarga || movimiento.fecha),
+      movimiento.tipo || "—",
+      movimiento.descripcion || registro.descripcion || "—",
+      `${movimiento.cantidad} ${movimiento.unidad || registro.unidad}`,
+      movimiento.stockResultante === null ? "No calculable" : `${movimiento.stockResultante} ${movimiento.unidad || registro.unidad}`,
+      destinatario(movimiento),
+      movimiento.cargadoPor || "—",
+      [movimiento.nroRemito, movimiento.numero_expediente ? `Exp. ${movimiento.numero_expediente}` : ""].filter(Boolean).join("\n") || "—",
+      movimiento.observaciones || movimiento.motivo || "—",
+    ]),
+    theme: "grid",
+    styles: { fontSize: 7, cellPadding: 2, overflow: "linebreak" },
+    headStyles: { fillColor: [26, 58, 92], textColor: 255 },
+    didDrawPage: () => {
+      const page = doc.internal.getNumberOfPages();
+      doc.setFontSize(8);
+      doc.text(`Página ${page}`, doc.internal.pageSize.getWidth() - 14, doc.internal.pageSize.getHeight() - 7, { align: "right" });
+    },
+  });
+
+  const identificador = registro.orden_compra || registro.compraId || registro.stockKey || "historico";
+  doc.save(`Detalle_${String(identificador).replace(/[^a-zA-Z0-9_-]/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`);
+};
+
+export const exportarDetalleRegistroExcel = async (registro, movimientos, usuario) => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Sistema de Gestión de Inventario (SGI)";
+  workbook.lastModifiedBy = usuario?.nombre || "Sistema";
+
+  const resumen = workbook.addWorksheet("Detalle");
+  resumen.addRows([
+    ["Detalle de inventario"],
+    ["Artículo", registro.descripcion || "—"],
+    ["Categoría", registro.categoria || "—"],
+    ["Expediente", registro.numero_expediente || "—"],
+    ["Compra", registro.orden_compra || registro.compraId || "No identificada"],
+    ["Remito", registro.nroRemito || "—"],
+    ["Fecha de compra", registro.fechaCompra || "—"],
+    ["Ingresos", `${registro.ingresos} ${registro.unidad}`],
+    ["Egresos", `${registro.egresos} ${registro.unidad}`],
+    ["Stock disponible", `${registro.stock} ${registro.unidad}`],
+    ["Generado por", usuario?.nombre || "Sistema"],
+    ["Fecha de generación", new Date().toLocaleString("es-AR")],
+  ]);
+  resumen.getRow(1).font = { bold: true, size: 16, color: { argb: "FF1A3A5C" } };
+  resumen.getColumn(1).width = 24;
+  resumen.getColumn(2).width = 48;
+
+  const historial = workbook.addWorksheet("Movimientos");
+  historial.columns = [
+    { header: "Fecha y hora", key: "fecha", width: 22 },
+    { header: "Tipo", key: "tipo", width: 14 },
+    { header: "Artículo", key: "descripcion", width: 40 },
+    { header: "Categoría", key: "categoria", width: 24 },
+    { header: "Cantidad", key: "cantidad", width: 16 },
+    { header: "Stock resultante", key: "stockResultante", width: 19 },
+    { header: "Persona que retiró", key: "persona", width: 28 },
+    { header: "DNI", key: "dni", width: 16 },
+    { header: "Institución / destinatario", key: "destinatario", width: 30 },
+    { header: "Dirección", key: "direccion", width: 30 },
+    { header: "Localidad", key: "localidad", width: 20 },
+    { header: "Operario / usuario", key: "usuario", width: 24 },
+    { header: "Remito / comprobante", key: "remito", width: 24 },
+    { header: "Expediente", key: "expediente", width: 22 },
+    { header: "Observaciones", key: "observaciones", width: 40 },
+  ];
+  historial.addRows(movimientos.map((movimiento) => ({
+    fecha: formatFechaHora(movimiento.fechaCarga || movimiento.fecha),
+    tipo: movimiento.tipo || "—",
+    descripcion: movimiento.descripcion || registro.descripcion || "—",
+    categoria: movimiento.categoria || registro.categoria || "—",
+    cantidad: `${movimiento.cantidad} ${movimiento.unidad || registro.unidad}`,
+    stockResultante: movimiento.stockResultante === null ? "No calculable" : `${movimiento.stockResultante} ${movimiento.unidad || registro.unidad}`,
+    persona: [movimiento.nombre_destinatario, movimiento.apellido_destinatario].filter(Boolean).join(" ") || movimiento.destinatario || "—",
+    dni: movimiento.dni_destinatario || "—",
+    destinatario: movimiento.destinatario || "—",
+    direccion: movimiento.direccion || "—",
+    localidad: movimiento.localidad || "—",
+    usuario: movimiento.cargadoPor || "—",
+    remito: movimiento.nroRemito || movimiento.comprobante || "—",
+    expediente: movimiento.numero_expediente || "—",
+    observaciones: movimiento.observaciones || movimiento.motivo || "—",
+  })));
+  historial.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  historial.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A3A5C" } };
+  historial.autoFilter = { from: "A1", to: "O1" };
+  historial.views = [{ state: "frozen", ySplit: 1 }];
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const identificador = registro.orden_compra || registro.compraId || registro.stockKey || "historico";
+  link.href = url;
+  link.download = `Detalle_${String(identificador).replace(/[^a-zA-Z0-9_-]/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 // =================================================================================

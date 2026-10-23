@@ -729,6 +729,7 @@ export default function App() {
         <ModalFichaArticulo
           articulo={fichaArticulo}
           stockDetallado={stockGlobalDetallado}
+          usuarioActual={usuarioActual}
           onClose={() => setFichaArticulo(null)}
         />
       )}

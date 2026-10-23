@@ -27,8 +27,22 @@ export default function Login({ usuarios, onLogin, onAudit }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0F2540 0%,#1A3A5C 50%,#2E7DC4 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#fff", borderRadius: 20, padding: "40px 36px", width: "100%", maxWidth: 380, boxShadow: "0 24px 80px rgba(0,0,0,0.4)" }}>
+    <div style={{ minHeight: "100vh", position: "relative", overflow: "hidden", background: "linear-gradient(160deg,#0F2540 0%,#1A3A5C 50%,#2E7DC4 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: -24,
+          backgroundImage: `url("${logo}")`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "190px 130px",
+          opacity: 0.075,
+          filter: "blur(1.5px)",
+          transform: "rotate(-8deg) scale(1.08)",
+          pointerEvents: "none",
+        }}
+      />
+      <div style={{ position: "relative", zIndex: 1, background: "#fff", borderRadius: 20, padding: "40px 36px", width: "100%", maxWidth: 380, boxShadow: "0 24px 80px rgba(0,0,0,0.4)" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <img
             src={logo}
