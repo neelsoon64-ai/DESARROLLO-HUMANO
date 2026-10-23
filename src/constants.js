@@ -73,6 +73,14 @@ export const formatFecha = (fechaStr) => {
  */
 export const formatFechaCorta = formatFecha;
 
+export const formatFechaHora = (fechaStr) => {
+  if (!fechaStr || typeof fechaStr !== "string") return "—";
+  const fecha = formatFecha(fechaStr);
+  const fechaHora = new Date(fechaStr);
+  if (!fechaStr.includes("T") || Number.isNaN(fechaHora.getTime())) return fecha;
+  return `${fecha} ${fechaHora.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+};
+
 export const obtenerFechaLocal = () => {
   const ahora = new Date();
   const year = ahora.getFullYear();

@@ -90,10 +90,23 @@ export default function PaginaStock({
           <tbody>
             {stockFiltrado.map((item) => {
               const detalle = item.compras || [item];
+              const abrirFicha = () => onAbrirFicha?.(item);
               return (
-                <tr key={item.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <tr
+                  key={item.id}
+                  onClick={onAbrirFicha ? abrirFicha : undefined}
+                  onKeyDown={onAbrirFicha ? (event) => {
+                    if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                      event.preventDefault();
+                      abrirFicha();
+                    }
+                  } : undefined}
+                  role={onAbrirFicha ? "button" : undefined}
+                  tabIndex={onAbrirFicha ? 0 : undefined}
+                  style={{ borderBottom: "1px solid #F3F4F6", cursor: onAbrirFicha ? "pointer" : "default" }}
+                >
                   <td style={{ padding: "12px 16px" }}>
-                    <div style={{ fontWeight: 600, color: "#111827" }}>{item.descripcion}</div>
+                    <div style={{ fontWeight: 600, color: "#111827", textDecoration: onAbrirFicha ? "underline" : "none", textDecorationColor: "#CBD5E1" }}>{item.descripcion}</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>{item.categoria}</div>
                   </td>
                   <td style={{ padding: "12px 16px", color: "#475569" }}>
@@ -122,8 +135,8 @@ export default function PaginaStock({
                   <td style={{ padding: "12px 16px", fontWeight: 700, textAlign: "right" }}>{item.stock} <span style={{ color: "#6B7280", fontWeight: 500 }}>{item.unidad}</span></td>
                   {(onAbrirFicha || onAbrirEgreso) && (
                     <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                      {onAbrirFicha && <button onClick={() => onAbrirFicha(item)} style={{ marginRight: 6 }}>Ver ficha</button>}
-                      {onAbrirEgreso && item.stock > 0 && <button onClick={() => onAbrirEgreso(item)}>Registrar salida</button>}
+                      {onAbrirFicha && <button type="button" onClick={(event) => { event.stopPropagation(); abrirFicha(); }} style={{ marginRight: 6 }}>Ver ficha</button>}
+                      {onAbrirEgreso && item.stock > 0 && <button type="button" onClick={(event) => { event.stopPropagation(); onAbrirEgreso(item); }}>Registrar salida</button>}
                     </td>
                   )}
                 </tr>

@@ -1,11 +1,18 @@
 import React, { useMemo, useState } from "react";
-import { CATEGORIAS, UNIDADES, formatFechaCorta, generarId, obtenerFechaLocal } from "../constants.js";
-import { calcularStockDetallado } from "../inventoryModel.js";
+import { CATEGORIAS, UNIDADES, formatFechaCorta, formatFechaHora, generarId, obtenerFechaLocal } from "../constants.js";
+import { calcularStockDetallado, movimientosConStockResultante } from "../inventoryModel.js";
 
 const boton = { border: 0, borderRadius: 8, padding: "9px 14px", background: "#1D4ED8", color: "#fff", fontWeight: 700, cursor: "pointer" };
 const caja = { background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 16, marginBottom: 16 };
 const campo = { width: "100%", boxSizing: "border-box", padding: "9px 10px", border: "1px solid #D1D5DB", borderRadius: 8, background: "#fff" };
 const inicialLinea = () => ({ key: generarId(), descripcion: "", categoria: CATEGORIAS[0].id, cantidad: "", unidad: "unidades" });
+const etiquetaTipo = (tipo) => {
+  const valor = String(tipo || "").toLocaleLowerCase();
+  if (["ingreso", "entrada", "inicial"].includes(valor)) return "Ingreso";
+  if (["egreso", "salida"].includes(valor)) return "Egreso";
+  if (valor === "ajuste") return "Ajuste";
+  return tipo || "Movimiento";
+};
 
 export default function PaginaExpedientes({
   nacion,
@@ -15,6 +22,7 @@ export default function PaginaExpedientes({
   onCrearExpediente,
   onCrearCompra,
   onAsignarExpediente,
+  onAbrirFicha,
 }) {
   const [numeroExpediente, setNumeroExpediente] = useState("");
   const [descripcionExpediente, setDescripcionExpediente] = useState("");
@@ -23,7 +31,7 @@ export default function PaginaExpedientes({
   const [lineas, setLineas] = useState([inicialLinea()]);
   const [busqueda, setBusqueda] = useState("");
   const [expedientesAsignacion, setExpedientesAsignacion] = useState({});
-  const [compraAbierta, setCompraAbierta] = useState("");
+  const [compraSeleccionadaKey, setCompraSeleccionadaKey] = useState("");
   const [error, setError] = useState("");
 
   const expedientes = useMemo(
@@ -43,6 +51,23 @@ export default function PaginaExpedientes({
   );
 
   const movimientosPorCompra = useMemo(() => calcularStockDetallado(todosLosMovimientos), [todosLosMovimientos]);
+  const compraSeleccionada = compras.find((item) => `${item.seccion}:${item.compraId}` === compraSeleccionadaKey) || null;
+  const expedienteCompraSeleccionada = compraSeleccionada
+    ? expedientes.find((item) => item.id === compraSeleccionada.expedienteId && item.seccion === compraSeleccionada.seccion)
+    : null;
+  const articulosCompraSeleccionada = compraSeleccionada
+    ? movimientosPorCompra.filter((articulo) => articulo.compraId === compraSeleccionada.compraId && articulo.origen === compraSeleccionada.seccion)
+    : [];
+  const movimientosCompraSeleccionada = articulosCompraSeleccionada
+    .flatMap((articulo) => movimientosConStockResultante(articulo.movimientos).map((movimiento) => ({
+      ...movimiento,
+      registroArticulo: articulo,
+    })))
+    .sort((a, b) => {
+      const fechaA = Date.parse(a.fechaCarga || a.fecha || "");
+      const fechaB = Date.parse(b.fechaCarga || b.fecha || "");
+      return (Number.isFinite(fechaB) ? fechaB : -Infinity) - (Number.isFinite(fechaA) ? fechaA : -Infinity);
+    });
   const movimientosPendientes = useMemo(
     () => todosLosMovimientos.filter((movimiento) => !movimiento.compraId || !movimiento.numero_expediente),
     [todosLosMovimientos]
@@ -120,7 +145,7 @@ export default function PaginaExpedientes({
       <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: "0 0 16px" }}>Expedientes y Compras</h1>
       {error && <div role="alert" style={{ ...caja, color: "#991B1B", background: "#FEF2F2", borderColor: "#FECACA" }}>{error}</div>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
+      {!compraSeleccionadaKey && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
         <form onSubmit={registrarExpediente} style={caja}>
           <h2 style={{ margin: "0 0 12px", fontSize: 17 }}>Crear expediente</h2>
           <div style={{ display: "grid", gap: 10 }}>
@@ -172,51 +197,106 @@ export default function PaginaExpedientes({
             <button type="submit" disabled={!puedeEscribir || expedientes.length === 0} style={{ ...boton, opacity: puedeEscribir && expedientes.length > 0 ? 1 : 0.5 }}>Guardar compra y sus artículos</button>
           </div>
         </form>
-      </div>
+      </div>}
 
-      <section style={caja}>
+      {compraSeleccionadaKey ? (
+        <section style={caja}>
+          <button type="button" onClick={() => setCompraSeleccionadaKey("")} style={{ ...boton, background: "#EFF6FF", color: "#1D4ED8", marginBottom: 14 }}>
+            ← Volver a compras
+          </button>
+          {!compraSeleccionada ? (
+            <div role="status" style={{ color: "#64748B" }}>La compra ya no está disponible en los datos sincronizados. Volvé al listado para actualizar la selección.</div>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ margin: "0 0 5px", fontSize: 20 }}>Detalle de compra</h2>
+                  <div style={{ color: "#475569" }}>
+                    Expediente {expedienteCompraSeleccionada?.numeroExpediente || compraSeleccionada.numero_expediente || "no identificado"}
+                    {" · Compra "}{compraSeleccionada.ordenCompra || compraSeleccionada.compraId}
+                    {compraSeleccionada.remitoNumero ? ` · Remito ${compraSeleccionada.remitoNumero}` : ""}
+                  </div>
+                  <div style={{ color: "#64748B", fontSize: 13, marginTop: 4 }}>
+                    {expedienteCompraSeleccionada?.descripcion ? `${expedienteCompraSeleccionada.descripcion} · ` : ""}
+                    {formatFechaCorta(compraSeleccionada.fechaCompra)} · {compraSeleccionada.proveedor || "Sin proveedor"}
+                  </div>
+                </div>
+                <div style={{ color: "#64748B", fontSize: 13 }}>{compraSeleccionada.seccion === "nacion" ? "Inventario — Nación" : "Inventario — Provincia"}</div>
+              </div>
+
+              <h3 style={{ fontSize: 16, margin: "0 0 10px" }}>Movimientos de esta compra</h3>
+              <div style={{ overflowX: "auto", border: "1px solid #E5E7EB", borderRadius: 8 }}>
+                <table style={{ width: "100%", minWidth: 850, borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E5E7EB" }}>
+                      {["Fecha y hora", "Tipo", "Artículo", "Cantidad", "Stock resultante", "Remito / comprobante", "Usuario", "Observaciones"].map((titulo) => (
+                        <th key={titulo} style={{ padding: 9, color: "#475569" }}>{titulo}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movimientosCompraSeleccionada.map((movimiento, indice) => (
+                      <tr key={`${compraSeleccionada.seccion}:${movimiento.id || indice}`} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                        <td style={{ padding: 9, whiteSpace: "nowrap" }}>{formatFechaHora(movimiento.fechaCarga || movimiento.fecha)}</td>
+                        <td style={{ padding: 9 }}>{etiquetaTipo(movimiento.tipo)}</td>
+                        <td style={{ padding: 9 }}>
+                          <button type="button" onClick={() => onAbrirFicha?.(movimiento.registroArticulo)} style={{ border: 0, padding: 0, background: "transparent", color: "#1D4ED8", fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+                            {movimiento.descripcion}
+                          </button>
+                          <div style={{ color: "#64748B" }}>{movimiento.categoria}</div>
+                        </td>
+                        <td style={{ padding: 9, whiteSpace: "nowrap" }}>{movimiento.cantidad} {movimiento.unidad}</td>
+                        <td style={{ padding: 9, whiteSpace: "nowrap" }}>{movimiento.stockResultante === null ? "—" : `${movimiento.stockResultante} ${movimiento.unidad}`}</td>
+                        <td style={{ padding: 9 }}>{movimiento.nroRemito || movimiento.comprobante || movimiento.orden_compra || "—"}</td>
+                        <td style={{ padding: 9 }}>{movimiento.cargadoPor || "—"}</td>
+                        <td style={{ padding: 9 }}>{movimiento.observaciones || movimiento.motivo || "—"}</td>
+                      </tr>
+                    ))}
+                    {movimientosCompraSeleccionada.length === 0 && (
+                      <tr><td colSpan="8" style={{ padding: 20, textAlign: "center", color: "#64748B" }}>No hay movimientos con una relación explícita a esta compra.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 style={{ fontSize: 16, margin: "18px 0 10px" }}>Artículos asociados</h3>
+              <div style={{ display: "grid", gap: 8 }}>
+                {articulosCompraSeleccionada.map((articulo) => (
+                  <button key={articulo.stockKey} type="button" onClick={() => onAbrirFicha?.(articulo)} style={{ display: "flex", justifyContent: "space-between", textAlign: "left", gap: 12, flexWrap: "wrap", background: "#fff", border: "1px solid #CBD5E1", borderRadius: 8, padding: 12, cursor: "pointer" }}>
+                    <span><strong>{articulo.descripcion}</strong><span style={{ color: "#64748B" }}> · {articulo.categoria}</span></span>
+                    <span>{articulo.ingresos} ingresados · {articulo.egresos} egresados · <strong>{articulo.stock} {articulo.unidad}</strong></span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      ) : <section style={caja}>
         <h2 style={{ margin: "0 0 12px", fontSize: 17 }}>Compras registradas</h2>
         <input style={{ ...campo, marginBottom: 12 }} value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar expediente, compra, remito o proveedor..." />
         <div style={{ display: "grid", gap: 10 }}>
           {comprasFiltradas.map((item) => {
             const expediente = expedientes.find((actual) => actual.id === item.expedienteId);
-            const lineasCompra = movimientosPorCompra.filter(
+            const cantidadArticulos = movimientosPorCompra.filter(
               (articulo) => articulo.compraId === item.compraId && articulo.origen === item.seccion
-            );
-            const abierta = compraAbierta === item.compraId;
+            ).length;
             return (
               <article key={`${item.seccion}:${item.compraId}`} style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
-                <button type="button" onClick={() => setCompraAbierta(abierta ? "" : item.compraId)} style={{ width: "100%", textAlign: "left", border: 0, padding: 14, background: "#F9FAFB", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => setCompraSeleccionadaKey(`${item.seccion}:${item.compraId}`)} style={{ width: "100%", textAlign: "left", border: 0, padding: 14, background: "#F9FAFB", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                   <span><strong>Expediente {expediente?.numeroExpediente || "no identificado"}</strong>{" · Compra "}{item.ordenCompra || item.compraId}{item.remitoNumero ? ` · Remito ${item.remitoNumero}` : ""}</span>
                   <span>{formatFechaCorta(item.fechaCompra)} · {item.proveedor || "Sin proveedor"}</span>
                 </button>
-                {abierta && (
-                  <div style={{ overflowX: "auto", padding: 12 }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                      <thead><tr style={{ textAlign: "left", borderBottom: "1px solid #E5E7EB" }}><th style={{ padding: 8 }}>Artículo / categoría</th><th style={{ padding: 8 }}>Ingresos</th><th style={{ padding: 8 }}>Egresos</th><th style={{ padding: 8 }}>Stock</th><th style={{ padding: 8 }}>Historial</th></tr></thead>
-                      <tbody>
-                        {lineasCompra.map((articulo) => (
-                          <tr key={articulo.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
-                            <td style={{ padding: 8 }}><strong>{articulo.descripcion}</strong><br />{articulo.categoria}</td>
-                            <td style={{ padding: 8, color: "#059669" }}>{articulo.ingresos} {articulo.unidad}</td>
-                            <td style={{ padding: 8, color: "#B91C1C" }}>{articulo.egresos} {articulo.unidad}</td>
-                            <td style={{ padding: 8, fontWeight: 700 }}>{articulo.stock} {articulo.unidad}</td>
-                            <td style={{ padding: 8 }}>{articulo.movimientos.map((movimiento) => <div key={`${movimiento.origen}:${movimiento.id}`}>{formatFechaCorta(movimiento.fechaCarga || movimiento.fecha)} · {movimiento.tipo} · {movimiento.cantidad} {movimiento.unidad}</div>)}</td>
-                          </tr>
-                        ))}
-                        {lineasCompra.length === 0 && <tr><td colSpan="5" style={{ padding: 12 }}>No hay movimientos asociados a esta compra.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <div style={{ padding: "8px 14px", color: "#64748B", fontSize: 12 }}>
+                  {cantidadArticulos} artículo(s) asociado(s) · Abrir detalle y movimientos
+                </div>
               </article>
             );
           })}
           {comprasFiltradas.length === 0 && <div style={{ color: "#6B7280" }}>No hay compras para mostrar.</div>}
         </div>
-      </section>
+      </section>}
 
-      <section style={caja}>
+      {!compraSeleccionadaKey && <section style={caja}>
         <h2 style={{ margin: "0 0 6px", fontSize: 17 }}>Registros históricos pendientes de identificar</h2>
         <p style={{ margin: "0 0 12px", color: "#6B7280", fontSize: 13 }}>Los movimientos originales se conservan. La asignación añade el expediente indicado, pero no inventa una compra ni cambia cantidades.</p>
         <div style={{ display: "grid", gap: 10 }}>
@@ -241,7 +321,7 @@ export default function PaginaExpedientes({
           })}
           {movimientosPendientes.length === 0 && <div style={{ color: "#6B7280" }}>No hay registros pendientes.</div>}
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import Login from "./components/Login.jsx";
 import Seccion from "./components/Seccion.jsx"; 
 import ModalRemito from "./components/ModalRemito.jsx";
 import ModalDetalle from "./components/ModalDetalle.jsx";
+import ModalFichaArticulo from "./components/ModalFichaArticulo.jsx";
 import PanelAuditoria from "./components/PanelAuditoria.jsx";
 import PanelUsuarios from "./components/PanelUsuarios.jsx";
 import Dashboard from "./components/Dashboard.jsx"; 
@@ -30,6 +31,7 @@ export default function App() {
   const [usuarioActual, setUsuarioActual] = useState(null);
   const [modalCarga, setModalCarga] = useState(null); 
   const [detalleMovimiento, setDetalleMovimiento] = useState(null);
+  const [fichaArticulo, setFichaArticulo] = useState(null);
   const [panelAudit, setPanelAudit] = useState(false);
   const [panelUsers, setPanelUsers] = useState(false);
   const [verDashboard, setVerDashboard] = useState(false); 
@@ -452,8 +454,8 @@ export default function App() {
       cantidad: Number.isFinite(cantidad) ? cantidad : 0,
       descripcion: String(mov.descripcion || mov.articulo || "Sin descripción").trim(),
       categoria: mov.categoria || "General",
-      fechaCarga: mov.fechaCarga || mov.fecha || new Date().toISOString(),
-      fecha: mov.fecha || mov.fechaCarga || new Date().toISOString(),
+      fechaCarga: mov.fechaCarga || mov.fecha || "",
+      fecha: mov.fecha || mov.fechaCarga || "",
     };
   };
 
@@ -572,7 +574,7 @@ export default function App() {
             {[
               { id: "general", label: "Inventario general" },
               { id: "dependencias", label: "Inventario por dependencia" },
-              { id: "expedientes", label: "Expedientes y Compras" },
+              { id: "expedientes", label: "Compras y expedientes" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -601,9 +603,14 @@ export default function App() {
               onCrearExpediente={crearExpediente}
               onCrearCompra={crearCompra}
               onAsignarExpediente={asignarExpedienteHistorico}
+              onAbrirFicha={setFichaArticulo}
             />
           ) : vistaInventario === "general" ? (
-            <PaginaStock stockConsolidado={stockGlobal} stockDetallado={stockGlobalDetallado} />
+            <PaginaStock
+              stockConsolidado={stockGlobal}
+              stockDetallado={stockGlobalDetallado}
+              onAbrirFicha={setFichaArticulo}
+            />
           ) : (
           <>
           {/* KPIs */}
@@ -715,6 +722,14 @@ export default function App() {
             registrarAuditoria({ tipo: "eliminacion", detalle: `Eliminó "${mov.descripcion}"` }, usuarioActual);
             cerrarDetalle();
           }}
+        />
+      )}
+
+      {fichaArticulo && (
+        <ModalFichaArticulo
+          articulo={fichaArticulo}
+          stockDetallado={stockGlobalDetallado}
+          onClose={() => setFichaArticulo(null)}
         />
       )}
 

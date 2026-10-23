@@ -161,3 +161,54 @@ export function filtrarInventario(
     );
   });
 }
+
+export function movimientosConStockResultante(movimientos = []) {
+  const items = movimientos
+    .filter(Boolean)
+    .map((movimiento, indice) => {
+      const fecha = movimiento.fechaCarga || movimiento.fecha || "";
+      const timestamp = fecha ? Date.parse(fecha) : Number.NaN;
+      return {
+        movimiento,
+        indice,
+        timestamp: Number.isFinite(timestamp) ? timestamp : null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.timestamp === null && b.timestamp === null) return a.indice - b.indice;
+      if (a.timestamp === null) return 1;
+      if (b.timestamp === null) return -1;
+      return a.timestamp - b.timestamp || a.indice - b.indice;
+    });
+
+  const fechasConfiables = items.every((item) => item.timestamp !== null);
+  let saldo = 0;
+  let calculable = fechasConfiables;
+  const conSaldo = items.map(({ movimiento, timestamp }) => {
+    const cantidad = Number(movimiento.cantidad);
+    const esIngresoMovimiento = esIngreso(movimiento);
+    const esEgresoMovimiento = esEgreso(movimiento);
+
+    if (
+      !calculable ||
+      !Number.isFinite(cantidad) ||
+      cantidad < 0 ||
+      (!esIngresoMovimiento && !esEgresoMovimiento)
+    ) {
+      calculable = false;
+      return { ...movimiento, stockResultante: null, _timestamp: timestamp };
+    }
+
+    saldo += esIngresoMovimiento ? cantidad : -cantidad;
+    return { ...movimiento, stockResultante: saldo, _timestamp: timestamp };
+  });
+
+  return conSaldo
+    .sort((a, b) => {
+      if (a._timestamp === null && b._timestamp === null) return 0;
+      if (a._timestamp === null) return 1;
+      if (b._timestamp === null) return -1;
+      return b._timestamp - a._timestamp;
+    })
+    .map(({ _timestamp, ...movimiento }) => movimiento);
+}

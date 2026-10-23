@@ -7,6 +7,7 @@ import {
   crearArticuloId,
   crearClaveStockHistorico,
   filtrarInventario,
+  movimientosConStockResultante,
 } from "../src/inventoryModel.js";
 
 const articulo = {
@@ -119,4 +120,20 @@ test("una salida histórica usa su clave de stock y no el saldo de otra compra",
     }),
     7
   );
+});
+
+test("ordena los movimientos recientes primero y calcula saldo sólo con cronología confiable", () => {
+  const historial = movimientosConStockResultante([
+    { id: "entrada", tipo: "ingreso", cantidad: 10, fechaCarga: "2026-01-01T10:00:00.000Z" },
+    { id: "salida", tipo: "egreso", cantidad: 4, fechaCarga: "2026-01-02T10:00:00.000Z" },
+  ]);
+  assert.deepEqual(historial.map((movimiento) => movimiento.id), ["salida", "entrada"]);
+  assert.deepEqual(historial.map((movimiento) => movimiento.stockResultante), [6, 10]);
+
+  const conAjuste = movimientosConStockResultante([
+    { id: "entrada", tipo: "ingreso", cantidad: 10, fechaCarga: "2026-01-01T10:00:00.000Z" },
+    { id: "ajuste", tipo: "ajuste", cantidad: 2, fechaCarga: "2026-01-02T10:00:00.000Z" },
+  ]);
+  assert.equal(conAjuste.find((movimiento) => movimiento.id === "entrada").stockResultante, 10);
+  assert.equal(conAjuste.find((movimiento) => movimiento.id === "ajuste").stockResultante, null);
 });
