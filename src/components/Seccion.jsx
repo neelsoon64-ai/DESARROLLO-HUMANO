@@ -170,6 +170,58 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
       
       {/* Inyección de estilos CSS dinámicos para corregir la exportación del PDF */}
       <style>{`
+        @media screen and (max-width: 640px) {
+          .historial-tabla,
+          .historial-tabla tbody {
+            display: block;
+            width: 100%;
+          }
+          .historial-tabla thead {
+            display: none;
+          }
+          .historial-tabla tr {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            background: #fff;
+          }
+          .historial-tabla td {
+            display: block;
+            min-width: 0;
+            padding: 0 !important;
+            overflow-wrap: anywhere;
+          }
+          .historial-tabla td::before {
+            display: block;
+            margin-bottom: 3px;
+            color: #64748B;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .historial-tabla td[data-label="Artículo"],
+          .historial-tabla td[data-label="Acción"] {
+            grid-column: 1 / -1;
+          }
+          .historial-tabla td[data-label="Fecha"]::before { content: "Fecha"; }
+          .historial-tabla td[data-label="Tipo"]::before { content: "Tipo"; }
+          .historial-tabla td[data-label="Artículo"]::before { content: "Artículo"; }
+          .historial-tabla td[data-label="Cantidad"]::before { content: "Cantidad"; }
+          .historial-tabla td[data-label="Operario"]::before { content: "Operario"; }
+          .historial-tabla td[data-label="Remito / Expediente"]::before { content: "Remito / Expediente"; }
+          .historial-tabla td[data-label="Acción"]::before { content: "Acción"; }
+          .historial-tabla td[data-label="Acción"] > div {
+            justify-content: flex-start !important;
+            flex-wrap: wrap;
+          }
+          .historial-vacio {
+            padding: 12px 8px !important;
+          }
+        }
         @media print {
           body * { visibility: hidden; background: transparent !important; box-shadow: none !important; }
           .seccion-contenedor, .seccion-contenedor * { visibility: visible; }
@@ -313,7 +365,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
               <div style={{ padding: "12px 16px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", fontSize: 12, color: "#64748B", fontWeight: 600 }}>
                 📊 Mostrando {historialFiltrado.length} de {movimientos.length} movimientos
               </div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
+              <table className="historial-tabla" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #E2E8F0", color: "#64748B" }}>
                   <th style={{ padding: "10px" }}>Fecha</th>
@@ -328,9 +380,9 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
               <tbody>
                 {historialFiltrado.map((mov, idx) => (
                   <tr key={mov.id || idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>{formatFechaCorta(mov.fecha || mov.fechaCarga)}</td>
-                    <td style={{ padding: "10px", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '📥 Ingreso' : '📤 Egreso'}</td>
-                    <td style={{ padding: "10px" }}>
+                    <td data-label="Fecha" style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>{formatFechaCorta(mov.fecha || mov.fechaCarga)}</td>
+                    <td data-label="Tipo" style={{ padding: "10px", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '📥 Ingreso' : '📤 Egreso'}</td>
+                    <td data-label="Artículo" style={{ padding: "10px" }}>
                       <div style={{ fontWeight: 600, color: "#1E293B" }}>{mov.descripcion}</div>
                       <span style={{ fontSize: 10, color: "#64748B" }}>{mov.categoria}</span>
                       {mov.tipo === 'egreso' && (mov.nombre_destinatario || mov.apellido_destinatario || mov.destinatario) && (
@@ -347,9 +399,9 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '+' : '-'}{mov.cantidad} {mov.unidad}</td>
-                    <td style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
-                    <td style={{ padding: "10px", color: "#475569", fontSize: 11 }}>
+                    <td data-label="Cantidad" style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: esIngreso(mov) ? '#16A34A' : '#DC2626' }}>{esIngreso(mov) ? '+' : '-'}{mov.cantidad} {mov.unidad}</td>
+                    <td data-label="Operario" style={{ padding: "10px", color: "#64748B", fontSize: 11 }}>👤 {mov.cargadoPor || "Sistema"}</td>
+                    <td data-label="Remito / Expediente" style={{ padding: "10px", color: "#475569", fontSize: 11 }}>
                       <div>{mov.nroRemito || "s/n"}</div>
                       {/* ✅ ORDEN DE COMPRA */}
                       {mov.orden_compra && (
@@ -362,7 +414,7 @@ export default function Seccion({ nombre, color, colorClaro, datos, onCarga, onE
                           Exp: {mov.numero_expediente}</span></div>
                       )}
                     </td>
-                    <td className="no-print-btn" style={{ padding: "10px", textAlign: "center" }}>
+                    <td className="no-print-btn" data-label="Acción" style={{ padding: "10px", textAlign: "center" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                         {onEditar && (
                           <button 

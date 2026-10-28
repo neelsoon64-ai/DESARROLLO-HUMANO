@@ -630,7 +630,7 @@ export default function App() {
 
           {/* CONTENEDOR FLEXIBLE PARA LAYOUT LADO A LADO */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
-            <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+            <div style={{ flex: '1 1 450px', minWidth: "min(100%, 400px)" }}>
               <Seccion 
                 nombre="Inventario — Nación" 
                 color="#1A3A5C" 
@@ -651,7 +651,7 @@ export default function App() {
                 auditoria={auditoria} 
               />
             </div>
-            <div style={{ flex: '1 1 450px', minWidth: 400 }}>
+            <div style={{ flex: '1 1 450px', minWidth: "min(100%, 400px)" }}>
               <Seccion 
                 nombre="Inventario — Provincia" 
                 color="#0D714C" 
