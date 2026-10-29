@@ -62,9 +62,33 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
 
   return (
     <>
+      <style>{`
+        .modal-detalle-cuerpo {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+        .modal-detalle-acciones {
+          position: sticky;
+          bottom: 0;
+          z-index: 1;
+          padding-top: 12px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.94), #fff 24%);
+        }
+        @media (max-width: 600px) {
+          .modal-detalle-cuerpo {
+            padding: 14px !important;
+          }
+          .modal-detalle-cuerpo > div:first-child {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+        }
+      `}</style>
       <div style={overlay}>
-        <div style={{ ...modal, maxWidth: 540, padding: 0, overflow: "hidden", borderRadius: 24 }}>
-          <div style={{ background: mov.tipo === "ingreso" ? "linear-gradient(135deg,#0D714C,#10B981)" : "linear-gradient(135deg,#B91C1C,#F97316)", padding: "24px 26px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+        <div style={{ ...modal, width: "min(760px, calc(100vw - 24px))", maxWidth: 760, maxHeight: "90vh", padding: 0, overflow: "hidden", borderRadius: 24 }}>
+          <div style={{ flexShrink: 0, background: mov.tipo === "ingreso" ? "linear-gradient(135deg,#0D714C,#10B981)" : "linear-gradient(135deg,#B91C1C,#F97316)", padding: "24px 26px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>
                 {mov.tipo === "ingreso" ? "Remito de ingreso" : "Remito de egreso"}
@@ -91,7 +115,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
             </button>
           </div>
 
-          <div style={{ padding: "22px 26px 18px", display: "grid", gap: 18 }}>
+          <div className="modal-detalle-cuerpo" style={{ padding: "22px 26px 18px", display: "grid", gap: 18 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
               <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                 <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Fecha</div>
@@ -191,7 +215,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                     display: "grid", 
                     gridTemplateColumns: fotosValidas.length === 1 ? "1fr" : "1fr 1fr", 
                     gap: 12,
-                    maxHeight: 380,
+                    maxHeight: "min(30vh, 320px)",
                     overflowY: "auto"
                   }}>
                     {fotosValidas.map((fotoUrl, index) => (
@@ -202,7 +226,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                         style={{ 
                           width: "100%", 
                           height: fotosValidas.length === 1 ? "auto" : 140, 
-                          maxHeight: 340,
+                          maxHeight: "min(30vh, 320px)",
                           borderRadius: 14, 
                           objectFit: "contain",
                           imageRendering: "crisp-edges",
@@ -223,7 +247,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
             </div>
 
             {/* ── PANEL DE ACCIONES CON BOTÓN DE IMPRESIÓN OFICIAL INTEGRADO ── */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", flexDirection: "column" }}>
+            <div className="modal-detalle-acciones" style={{ display: "flex", gap: 12, flexWrap: "wrap", flexDirection: "column" }}>
               <button
                 onClick={() => imprimirRemitoOficial(mov)}
                 style={{
