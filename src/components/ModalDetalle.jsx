@@ -68,27 +68,59 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
           min-height: 0;
           overflow-y: auto;
           overscroll-behavior: contain;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          align-content: start;
+        }
+        .modal-detalle-datos {
+          grid-column: 1;
+          display: grid;
+          align-content: start;
+          gap: 18px;
+          min-width: 0;
+        }
+        .modal-detalle-imagenes {
+          grid-column: 2;
+          grid-row: 1;
+          min-width: 0;
         }
         .modal-detalle-acciones {
+          grid-column: 1 / -1;
           position: sticky;
           bottom: 0;
           z-index: 1;
           padding-top: 12px;
           background: linear-gradient(180deg, rgba(255,255,255,0.94), #fff 24%);
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          align-items: center;
+        }
+        @media (max-width: 760px) {
+          .modal-detalle-cuerpo {
+            grid-template-columns: minmax(0, 1fr);
+          }
+          .modal-detalle-datos,
+          .modal-detalle-imagenes,
+          .modal-detalle-acciones {
+            grid-column: 1;
+            grid-row: auto;
+          }
+          .modal-detalle-acciones {
+            grid-template-columns: minmax(0, 1fr);
+          }
         }
         @media (max-width: 600px) {
           .modal-detalle-cuerpo {
             padding: 14px !important;
           }
-          .modal-detalle-cuerpo > div:first-child {
+          .modal-detalle-datos > div:first-child {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             gap: 8px !important;
           }
         }
       `}</style>
       <div style={overlay}>
-        <div style={{ ...modal, width: "min(760px, calc(100vw - 24px))", maxWidth: 760, maxHeight: "90vh", padding: 0, overflow: "hidden", borderRadius: 24 }}>
-          <div style={{ flexShrink: 0, background: mov.tipo === "ingreso" ? "linear-gradient(135deg,#0D714C,#10B981)" : "linear-gradient(135deg,#B91C1C,#F97316)", padding: "24px 26px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+        <div style={{ ...modal, width: "min(1100px, calc(100vw - 32px))", maxWidth: 1100, maxHeight: "90vh", padding: 0, overflow: "hidden", borderRadius: 24 }}>
+          <div style={{ flexShrink: 0, background: mov.tipo === "ingreso" ? "linear-gradient(135deg,#0D714C,#10B981)" : "linear-gradient(135deg,#B91C1C,#F97316)", padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>
                 {mov.tipo === "ingreso" ? "Remito de ingreso" : "Remito de egreso"}
@@ -116,6 +148,7 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
           </div>
 
           <div className="modal-detalle-cuerpo" style={{ padding: "22px 26px 18px", display: "grid", gap: 18 }}>
+            <div className="modal-detalle-datos">
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
               <div style={{ background: "#F8FAFC", borderRadius: 18, padding: 16, border: "1px solid #E2E8F0" }}>
                 <div style={{ color: "#64748B", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Fecha</div>
@@ -183,9 +216,10 @@ export default function ModalDetalle({ mov, onClose, puedeEditar, onEditar, pued
                 <div style={{ color: "#475569", fontSize: 14, lineHeight: 1.7 }}>{mov.observaciones}</div>
               </div>
             )}
+            </div>
 
             {/* ── SECCIÓN IMÁGENES DEL REMITO (CALIDAD MEJORADA) ── */}
-            <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
+            <div className="modal-detalle-imagenes" style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 18px 45px rgba(15,23,42,0.06)" }}>
               <div style={{ padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
                 <div>
                   <div style={{ color: "#0F172A", fontSize: 13, fontWeight: 800 }}>Imágenes del remito ({fotosValidas.length})</div>
