@@ -640,7 +640,7 @@ export default function App() {
                 onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "nacion", datos: mov }) : undefined} 
                 onRegistrarSalida={puedeEscribir ? (item) => setModalCarga({ 
                   seccion: "nacion", 
-                  datos: { ...item, tipo: 'egreso', cantidad: '' },
+                  datos: { ...item, tipo: 'egreso', cantidad: '', esNuevaSalida: true },
                   esEdicionDesdeFicha: Boolean(item.stockKey)
                 }) : undefined}
                 onEliminar={puedeEliminar ? (mov) => eliminarCarga("nacion", mov) : undefined}
@@ -661,7 +661,7 @@ export default function App() {
                 onEditar={puedeEscribir ? (mov) => setModalCarga({ seccion: "provincia", datos: mov }) : undefined} 
                 onRegistrarSalida={puedeEscribir ? (item) => setModalCarga({ 
                   seccion: "provincia", 
-                  datos: { ...item, tipo: 'egreso', cantidad: '' },
+                  datos: { ...item, tipo: 'egreso', cantidad: '', esNuevaSalida: true },
                   esEdicionDesdeFicha: Boolean(item.stockKey)
                 }) : undefined}
                 onEliminar={puedeEliminar ? (mov) => eliminarCarga("provincia", mov) : undefined}

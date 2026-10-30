@@ -57,6 +57,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
   const inicial = datosEdicion || {};
   const esEdicion = !!datosEdicion;
   const esEdicionDesdeFicha = !!datosEdicion?.esEdicionDesdeFicha;
+  const esNuevaSalida = Boolean(inicial.esNuevaSalida || esEdicionDesdeFicha);
   
   const fotosIniciales = Array.isArray(inicial.foto) 
     ? inicial.foto 
@@ -198,7 +199,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
     // ✅ GARANTIZAR QUE EL ID SE PRESERVE AL EDITAR, PERO SE GENERE UNO NUEVO
     // para cada carga/salida nueva. Si se abre desde una ficha/stock, no debe
     // reutilizar el ID del ítem base porque eso sobrescribe el movimiento anterior.
-    const esNuevaCarga = !esEdicion || esEdicionDesdeFicha;
+    const esNuevaCarga = !esEdicion || esEdicionDesdeFicha || inicial.esNuevaSalida;
     const id = esNuevaCarga ? generarId() : (inicial.id || generarId());
     setSubiendo(true);
 
@@ -317,7 +318,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
           <div>
             <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>{seccionNombre}</div>
             <div style={{ color: "#fff", fontSize: 17, fontWeight: 700, marginTop: 2 }}>
-              {esEdicion ? "✏️ Editar Movimiento" : form.tipo === "inicial" ? "💾 Carga de Stock Inicial" : "Nueva Carga de Remito"}
+              {esNuevaSalida ? "📤 Nueva salida de stock" : esEdicion ? "✏️ Editar Movimiento" : form.tipo === "inicial" ? "💾 Carga de Stock Inicial" : "Nueva Carga de Remito"}
             </div>
           </div>
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>×</button>
@@ -471,6 +472,7 @@ export default function ModalRemito({ onClose, onGuardar, seccionNombre, datosEd
                     expedienteId: selectedItem?.expedienteId || "",
                     numero_expediente: selectedItem?.numero_expediente || "",
                     articuloId: selectedItem?.articuloId || "",
+                    unidad: selectedItem?.unidad || f.unidad,
                     legacyStockKey: selectedItem?.compraId ? "" : selectedItem?.stockKey || "",
                   }));
                 }}
